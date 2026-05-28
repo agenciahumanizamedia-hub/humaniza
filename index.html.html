@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Humaniza OS</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b0b0f;color:#fff}
+header{height:74px;border-bottom:1px solid #25252d;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:#0b0b0f;position:sticky;top:0;z-index:5}
+.logo{font-size:26px;font-weight:900}.logo span{color:#ff5b3e}
+button{border:0;cursor:pointer;color:#fff;font-weight:800;border-radius:10px;background:#ff5b3e;padding:12px 16px;font-size:14px}
+.btn-dark{background:#252532}.btn-green{background:#1f9d55}.btn-blue{background:#3877ff}.btn-danger{background:#8e2a2a}.btn-gold{background:#b9852b}
+.container{width:min(1780px,94vw);margin:30px auto}
+.tabs{display:flex;gap:20px;border-bottom:1px solid #2b2b36;margin-bottom:24px;flex-wrap:wrap}
+.tab{padding:0 0 14px;color:#8d91ad;font-weight:900;cursor:pointer}.tab.active{color:#fff;border-bottom:2px solid #ff5b3e}
+.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:24px}
+input,select,textarea{width:100%;background:#15151b;border:1px solid #2b2b36;color:#fff;border-radius:10px;padding:13px 15px;font-size:14px;outline:none}
+input::placeholder,textarea::placeholder{color:#747893}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card,.panel,.stat{background:#15151b;border:1px solid #2b2b36;border-radius:16px;padding:20px}
+.card h3,.panel h3{margin:0 0 10px;font-size:18px}.card p,.panel p{color:#969ab7;line-height:1.4;font-size:14px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pill{background:#1d1d27;color:#b7bad0;border:1px solid #30303b;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px}
+.stat p{margin:0 0 10px;color:#8d91ad;text-transform:uppercase;font-size:12px;letter-spacing:1px}.stat strong{font-size:36px}
+.progress{height:7px;border-radius:999px;background:#2b2b36;overflow:hidden;margin-top:12px}.progress span{display:block;height:100%;background:#42b883;width:0%}
+.board-wrap{overflow-x:auto;padding-bottom:12px}
+.board{display:grid;grid-template-columns:repeat(7,minmax(245px,1fr));gap:18px;min-width:1720px}
+.column{background:#15151b;border:1px solid #2b2b36;border-radius:14px;padding:18px;min-height:390px}
+.column-title{font-weight:900;text-transform:uppercase;font-size:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.count{background:#1d1d27;color:#8d91ad;padding:3px 11px;border-radius:999px;font-size:12px}
+.task{background:#1d1d25;border:1px solid #2b2b36;border-radius:12px;padding:15px;margin-bottom:12px;position:relative}
+.task h4{margin:0 0 10px;padding-right:60px}.task p{font-size:13px;color:#969ab7}
+.task.approved{border-color:#42b883}.task.adjust{border-color:#ffbd4a}.task.late{border-color:#ff4d4d;background:#241719}.task.urgent{border-color:#ffbd4a}
+.badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;text-transform:uppercase;margin:4px 4px 0 0}
+.b-green{background:rgba(66,184,131,.18);color:#42b883;border:1px solid rgba(66,184,131,.35)}
+.b-yellow{background:rgba(255,189,74,.18);color:#ffbd4a;border:1px solid rgba(255,189,74,.35)}
+.b-red{background:rgba(255,77,77,.18);color:#ff5b5b;border:1px solid rgba(255,77,77,.35)}
+.b-blue{background:rgba(77,163,255,.18);color:#4da3ff;border:1px solid rgba(77,163,255,.35)}
+.icon-actions{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.icon{width:28px;height:28px;border-radius:8px;background:#15151b;border:1px solid #30303b;display:grid;place-items:center;padding:0}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;align-items:center;justify-content:center;padding:20px}
+.modal.active{display:flex}
+.modal-card{width:min(780px,96vw);background:#15151b;border:1px solid #2b2b36;border-radius:16px;padding:24px;max-height:92vh;overflow:auto}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
+.empty{text-align:center;color:#8d91ad;padding:48px 0}
+.client-header{background:linear-gradient(135deg,#15151b,#1d1517);border:1px solid #2b2b36;border-radius:18px;padding:24px;margin-bottom:22px}
+.client-header h2{margin:0 0 8px;font-size:30px}
+.search{max-width:360px}
+.hidden{display:none!important}
+.todo-list{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+.todo{background:#191920;border:1px solid #2b2b36;border-radius:14px;padding:16px}
+.todo h4{margin:0 0 8px}.todo p{color:#969ab7;font-size:13px}
+@media(max-width:1100px){.grid,.stats,.todo-list{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}}
+@media(max-width:720px){header{padding:0 16px}.grid,.stats,.todo-list{grid-template-columns:1fr}.logo{font-size:21px}.client-header h2{font-size:24px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Humaniza<span>.</span>OS</div>
+  <div class="actions">
+    <button onclick="openClientModal()">+ Cliente</button>
+    <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
+    <button onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
+  </div>
+</header>
+
+<main class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="showView('dashboard', this)">📊 Visão geral</div>
+    <div class="tab" onclick="showView('internal', this)">📋 Agência</div>
+    <div class="tab" onclick="showView('clients', this)">👥 Clientes</div>
+    <div class="tab" onclick="showView('demands', this)">🗂️ Demandas clientes</div>
+    <div class="tab" onclick="showView('clientPanel', this)">🖥️ Tela do cliente</div>
+  </div>
+
+  <section id="dashboardView"></section>
+
+  <section id="internalView" class="hidden">
+    <div class="top"><h2>Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa interna..." oninput="renderInternal()"></div>
+    <div class="board-wrap"><div class="board" id="internalBoard"></div></div>
+  </section>
+
+  <section id="clientsView" class="hidden">
+    <div class="top"><h2>Clientes cadastrados</h2><input class="search" id="clientSearch" placeholder="Buscar cliente..." oninput="renderClients()"></div>
+    <div class="grid" id="clientsGrid"></div>
+  </section>
+
+  <section id="demandsView" class="hidden">
+    <div class="top"><h2>Todas as demandas dos clientes</h2><select style="max-width:320px" id="agencyClientFilter" onchange="renderDemands()"></select></div>
+    <div class="board-wrap"><div class="board" id="demandsBoard"></div></div>
+  </section>
+
+  <section id="clientPanelView" class="hidden">
+    <div id="clientPanelContent"></div>
+  </section>
+</main>
+
+<div class="modal" id="clientModal">
+  <div class="modal-card">
+    <h2 id="clientModalTitle">Novo cliente</h2>
+    <div class="form">
+      <input id="clientName" placeholder="Nome do cliente" class="full">
+      <input id="clientWhatsapp" placeholder="WhatsApp. Ex: 43999999999">
+      <input id="clientDrive" placeholder="Link da pasta do Drive">
+      <input id="clientInstagram" placeholder="Instagram do cliente">
+      <select id="clientStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
+      <textarea id="clientObs" class="full" rows="4" placeholder="Observações"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveClient()">Salvar cliente</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="demandModal">
+  <div class="modal-card">
+    <h2 id="demandModalTitle">Nova demanda</h2>
+    <div class="form">
+      <select id="demandClient" class="full"></select>
+      <input id="demandTitle" placeholder="Nome da demanda" class="full">
+      <select id="demandType"><option>Estratégia</option><option>Aprovação de post</option><option>Aprovação de vídeo</option><option>Roteiro</option><option>Calendário</option><option>Aguardando cliente</option><option>Material pendente</option><option>Financeiro</option></select>
+      <select id="demandStatus"><option>Estratégia</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aguardando você</option><option>Ajustes solicitados</option><option>Aprovado</option><option>Publicado</option></select>
+      <input id="demandDate" type="date">
+      <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+      <input id="demandLink" class="full" placeholder="Link do post, vídeo, arte ou pasta">
+      <textarea id="demandDesc" class="full" rows="4" placeholder="Descrição da demanda"></textarea>
+      <textarea id="demandComment" class="full" rows="3" placeholder="Comentário do cliente ou ajuste solicitado"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteDemandBtn" onclick="deleteDemand()" style="display:none">Excluir</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveDemand()">Salvar demanda</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="internalModal">
+  <div class="modal-card">
+    <h2 id="internalModalTitle">Nova tarefa interna</h2>
+    <div class="form">
+      <input id="internalTitle" placeholder="Nome da tarefa" class="full">
+      <input id="internalClient" placeholder="Cliente relacionado">
+      <input id="internalValue" placeholder="Valor. Ex: R$ 1.100">
+      <select id="internalType"><option>Edição de Vídeo</option><option>Cliente</option><option>Redes Sociais</option><option>Reunião</option><option>Interno</option><option>Financeiro</option></select>
+      <select id="internalPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+      <select id="internalStatus"></select>
+      <input id="internalDate" type="date">
+      <textarea id="internalDesc" class="full" rows="4" placeholder="Descrição"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteInternalBtn" onclick="deleteInternal()" style="display:none">Excluir</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveInternal()">Salvar tarefa</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let clients = JSON.parse(localStorage.getItem('humanizaClientsAll')) || [
+  {id: crypto.randomUUID(), name:'Dubbai Alianças', whatsapp:'', drive:'', instagram:'@dubbai_aliancas', status:'Ativo', obs:'Painel de aprovação e estratégia.'},
+  {id: crypto.randomUUID(), name:'Efraim Joias', whatsapp:'', drive:'', instagram:'@efraimjoias', status:'Ativo', obs:'Conteúdo elegante e comercial.'}
+];
+let demands = JSON.parse(localStorage.getItem('humanizaDemandsAll')) || [
+  {id: crypto.randomUUID(), clientId: clients[0].id, title:'Estratégia do mês', type:'Estratégia', status:'Estratégia', date:'2026-05-30', priority:'Alta', link:'', desc:'Campanha, datas sazonais e linha de conteúdo.', comment:''},
+  {id: crypto.randomUUID(), clientId: clients[0].id, title:'Aprovação Reels Dia dos Namorados', type:'Aprovação de vídeo', status:'Aguardando aprovação', date:'2026-05-29', priority:'Urgente', link:'', desc:'Cliente precisa aprovar vídeo antes da postagem.', comment:''},
+  {id: crypto.randomUUID(), clientId: clients[1].id, title:'Calendário de posts', type:'Calendário', status:'Em produção', date:'2026-06-02', priority:'Normal', link:'', desc:'Montar calendário do mês.', comment:''}
+];
+let internalTasks = JSON.parse(localStorage.getItem('humanizaInternalAll')) || [
+  {id: crypto.randomUUID(), title:'Captação Tô Raízes', client:'Tô Raízes', value:'R$ 800', type:'Edição de Vídeo', priority:'Urgente', status:'Captação', date:'2026-05-28', desc:'Separar roteiro, conferir horários e organizar arquivos da gravação.'},
+  {id: crypto.randomUUID(), title:'Enviar boleto mensal', client:'Cliente mensal', value:'R$ 1.100', type:'Financeiro', priority:'Alta', status:'Enviar Boletos', date:'2026-05-30', desc:'Confirmar vencimento e enviar boleto para o cliente.'}
+];
+
+const demandStatuses = ['Estratégia','Em produção','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
+const internalStatuses = ['Captação','A Resolver','Em andamento','Em revisão','Ajustes','Enviar Boletos','Entregue'];
+let editingClient = null, editingDemand = null, editingInternal = null;
+let selectedClientId = clients[0]?.id || null;
+
+function saveAll(){
+  localStorage.setItem('humanizaClientsAll', JSON.stringify(clients));
+  localStorage.setItem('humanizaDemandsAll', JSON.stringify(demands));
+  localStorage.setItem('humanizaInternalAll', JSON.stringify(internalTasks));
+}
+function showView(view, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['dashboard','internal','clients','demands','clientPanel'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
+  document.getElementById(view+'View').classList.remove('hidden');
+  if(view==='dashboard') renderDashboard();
+  if(view==='internal') renderInternal();
+  if(view==='clients') renderClients();
+  if(view==='demands') renderDemands();
+  if(view==='clientPanel') renderClientPanel(selectedClientId);
+}
+function formatDate(date){ if(!date) return ''; const d=new Date(date+'T00:00:00'); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
+function todayOnly(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+function isLate(x){ if(!x.date || ['Publicado','Aprovado','Entregue'].includes(x.status)) return false; return new Date(x.date+'T00:00:00') < todayOnly(); }
+function clientById(id){ return clients.find(c => c.id === id); }
+function calcProgress(list){ if(!list.length) return 0; const done=list.filter(x => ['Aprovado','Publicado','Entregue'].includes(x.status)).length; return Math.round((done/list.length)*100); }
+
+function renderDashboard(){
+  const total = internalTasks.length + demands.length;
+  const late = [...internalTasks, ...demands].filter(isLate).length;
+  const urgent = [...internalTasks, ...demands].filter(x => x.priority === 'Urgente').length;
+  const waiting = demands.filter(d => d.status === 'Aguardando aprovação' || d.status === 'Aguardando você').length;
+  const progress = calcProgress([...internalTasks, ...demands]);
+  document.getElementById('dashboardView').innerHTML = `
+    <div class="stats">
+      <div class="stat"><p>Total geral</p><strong>${total}</strong></div>
+      <div class="stat"><p>Atrasadas</p><strong>${late}</strong></div>
+      <div class="stat"><p>Urgentes</p><strong>${urgent}</strong></div>
+      <div class="stat"><p>Progresso geral</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div>
+    </div>
+    <div class="grid">
+      <div class="panel"><h3>📋 Agência</h3><p>${internalTasks.length} tarefa(s) internas no painel.</p><button onclick="document.querySelectorAll('.tab')[1].click()">Abrir agência</button></div>
+      <div class="panel"><h3>👥 Clientes</h3><p>${clients.length} cliente(s) cadastrado(s).</p><button onclick="document.querySelectorAll('.tab')[2].click()">Abrir clientes</button></div>
+      <div class="panel"><h3>🗂️ Demandas</h3><p>${demands.length} demanda(s) de clientes.</p><button onclick="document.querySelectorAll('.tab')[3].click()">Abrir demandas</button></div>
+      <div class="panel"><h3>⚠️ Aguardando ação</h3><p>${waiting} demanda(s) aguardando aprovação ou retorno do cliente.</p><button onclick="document.querySelectorAll('.tab')[4].click()">Tela do cliente</button></div>
+    </div>`;
+}
+
+function renderInternal(){
+  fillInternalStatus();
+  const q = (document.getElementById('internalSearch')?.value || '').toLowerCase();
+  const data = internalTasks.filter(t => t.title.toLowerCase().includes(q) || (t.client||'').toLowerCase().includes(q));
+  document.getElementById('internalBoard').innerHTML = internalStatuses.map(st => {
+    const items = data.filter(t => t.status === st);
+    return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(internalCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
+  }).join('');
+}
+function internalCard(t){
+  return `<div class="task ${isLate(t)?'late':''} ${t.priority==='Urgente'?'urgent':''}">
+    <div class="icon-actions"><button class="icon" onclick="editInternal('${t.id}')">✏️</button></div>
+    <h4>${t.title}</h4>
+    <span class="badge b-blue">${t.type}</span>${isLate(t)?'<span class="badge b-red">Atrasada</span>':''}${t.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}
+    <p>${t.desc||''}</p>
+    <div class="meta">${t.client?`<span class="pill">${t.client}</span>`:''}${t.date?`<span class="pill">Prazo: ${formatDate(t.date)}</span>`:''}${t.value?`<span class="pill">${t.value}</span>`:''}</div>
+    <div class="actions"><button class="btn-dark" onclick="moveInternal('${t.id}',-1)">← Voltar</button><button class="btn-dark" onclick="moveInternal('${t.id}',1)">Avançar →</button><button class="btn-green" onclick="finishInternal('${t.id}')">Concluir</button></div>
+  </div>`;
+}
+
+function renderClients(){
+  const grid=document.getElementById('clientsGrid');
+  const q=(document.getElementById('clientSearch')?.value||'').toLowerCase();
+  const list=clients.filter(c => c.name.toLowerCase().includes(q) || (c.instagram||'').toLowerCase().includes(q));
+  grid.innerHTML = list.length ? list.map(c => {
+    const ds=demands.filter(d => d.clientId===c.id);
+    const approval=ds.filter(d => d.status==='Aguardando aprovação').length;
+    const waiting=ds.filter(d => d.status==='Aguardando você').length;
+    const progress=calcProgress(ds);
+    return `<div class="card"><h3>${c.name}</h3><p>${c.obs||'Sem observações.'}</p><div class="meta"><span class="pill">${c.status}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}<span class="pill">${approval} aprovação</span><span class="pill">${waiting} aguardando cliente</span></div><div class="progress"><span style="width:${progress}%"></span></div><div class="actions"><button onclick="renderClientPanel('${c.id}'); showClientPanelTab()">Abrir tela</button><button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Demanda</button><button class="btn-dark" onclick="editClient('${c.id}')">Editar</button>${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div>`;
+  }).join('') : '<div class="empty">Nenhum cliente cadastrado.</div>';
+  fillSelects();
+}
+function showClientPanelTab(){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[4].classList.add('active');
+  ['dashboard','internal','clients','demands'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
+  document.getElementById('clientPanelView').classList.remove('hidden');
+}
+function renderDemands(){
+  fillSelects();
+  const filter=document.getElementById('agencyClientFilter').value;
+  const data=filter==='Todos'?demands:demands.filter(d => d.clientId===filter);
+  document.getElementById('demandsBoard').innerHTML = demandStatuses.map(st => {
+    const items=data.filter(d => d.status===st);
+    return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(demandCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
+  }).join('');
+}
+function renderClientPanel(clientId){
+  selectedClientId = clientId || selectedClientId || clients[0]?.id;
+  const c=clientById(selectedClientId);
+  const content=document.getElementById('clientPanelContent');
+  if(!c){ content.innerHTML='<div class="empty">Cadastre um cliente primeiro.</div>'; return; }
+  const data=demands.filter(d => d.clientId===c.id);
+  const approval=data.filter(d => d.status==='Aguardando aprovação');
+  const waiting=data.filter(d => d.status==='Aguardando você');
+  const late=data.filter(isLate);
+  const progress=calcProgress(data);
+  content.innerHTML = `<div class="client-header"><h2>${c.name}</h2><p style="color:#969ab7;margin:0">${c.obs||''}</p><div class="meta"><span class="pill">${c.status}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}${c.drive?'<span class="pill">Drive cadastrado</span>':''}</div><div class="actions"><button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Nova demanda</button>${c.drive?`<button class="btn-dark" onclick="window.open('${c.drive}','_blank')">Abrir Drive</button>`:''}${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div>
+  <div class="stats"><div class="stat"><p>Total</p><strong>${data.length}</strong></div><div class="stat"><p>Aguardando aprovação</p><strong>${approval.length}</strong></div><div class="stat"><p>Aguardando você</p><strong>${waiting.length}</strong></div><div class="stat"><p>Progresso do mês</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div></div>
+  <div class="todo-list"><div class="todo"><h4>✅ Aprovar conteúdo</h4><p>${approval.length?`${approval.length} demanda(s) aguardando aprovação.`:'Nenhuma aprovação pendente.'}</p></div><div class="todo"><h4>📩 Aguardando você</h4><p>${waiting.length?`${waiting.length} item(ns) precisam de retorno ou material.`:'Nada pendente com o cliente.'}</p></div><div class="todo"><h4>⚠️ Atenção</h4><p>${late.length?`${late.length} demanda(s) atrasada(s).`:'Tudo dentro do prazo.'}</p></div></div>
+  <div class="board-wrap"><div class="board">${demandStatuses.map(st => {const items=data.filter(d => d.status===st); return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>`}).join('')}</div></div>`;
+}
+function demandCard(d){
+  const c=clientById(d.clientId), late=isLate(d), approved=['Aprovado','Publicado'].includes(d.status), adjust=d.status==='Ajustes solicitados', waiting=d.status==='Aguardando você';
+  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions"><button class="icon" onclick="editDemand('${d.id}')">✏️</button></div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p><div class="meta"><span class="pill">${c?c.name:'Sem cliente'}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button><button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
+}
+
+function fillSelects(){
+  document.getElementById('demandClient').innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('agencyClientFilter').innerHTML = '<option>Todos</option>' + clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+function fillInternalStatus(){ document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join(''); }
+
+function openClientModal(){ editingClient=null; document.getElementById('clientModalTitle').textContent='Novo cliente'; document.getElementById('deleteClientBtn').style.display='none'; ['clientName','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id=>document.getElementById(id).value=''); document.getElementById('clientStatus').value='Ativo'; document.getElementById('clientModal').classList.add('active'); }
+function editClient(id){ const c=clientById(id); if(!c)return; editingClient=id; document.getElementById('clientModalTitle').textContent='Editar cliente'; document.getElementById('deleteClientBtn').style.display='inline-block'; document.getElementById('clientName').value=c.name||''; document.getElementById('clientWhatsapp').value=c.whatsapp||''; document.getElementById('clientDrive').value=c.drive||''; document.getElementById('clientInstagram').value=c.instagram||''; document.getElementById('clientStatus').value=c.status||'Ativo'; document.getElementById('clientObs').value=c.obs||''; document.getElementById('clientModal').classList.add('active'); }
+function saveClient(){ const data={name:clientName.value.trim(),whatsapp:clientWhatsapp.value.trim(),drive:clientDrive.value.trim(),instagram:clientInstagram.value.trim(),status:clientStatus.value,obs:clientObs.value.trim()}; if(!data.name){alert('Coloque o nome do cliente.');return;} if(editingClient){const i=clients.findIndex(c=>c.id===editingClient);clients[i]={...clients[i],...data};}else clients.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll(); }
+function deleteClient(){ if(!editingClient)return; if(confirm('Excluir cliente e todas as demandas dele?')){clients=clients.filter(c=>c.id!==editingClient);demands=demands.filter(d=>d.clientId!==editingClient);selectedClientId=clients[0]?.id||null;saveAll();closeModals();refreshAll();}}
+
+function openDemandModal(clientId){ editingDemand=null; demandModalTitle.textContent='Nova demanda'; deleteDemandBtn.style.display='none'; fillSelects(); demandClient.value=clientId||selectedClientId||clients[0]?.id||''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id=>document.getElementById(id).value=''); demandType.value='Estratégia'; demandStatus.value='Estratégia'; demandPriority.value='Normal'; demandModal.classList.add('active');}
+function editDemand(id){ const d=demands.find(x=>x.id===id); if(!d)return; editingDemand=id; fillSelects(); demandModalTitle.textContent='Editar demanda'; deleteDemandBtn.style.display='inline-block'; demandClient.value=d.clientId; demandTitle.value=d.title||''; demandType.value=d.type||'Estratégia'; demandStatus.value=d.status||'Estratégia'; demandDate.value=d.date||''; demandPriority.value=d.priority||'Normal'; demandLink.value=d.link||''; demandDesc.value=d.desc||''; demandComment.value=d.comment||''; demandModal.classList.add('active');}
+function saveDemand(){ const data={clientId:demandClient.value,title:demandTitle.value.trim(),type:demandType.value,status:demandStatus.value,date:demandDate.value,priority:demandPriority.value,link:demandLink.value.trim(),desc:demandDesc.value.trim(),comment:demandComment.value.trim()}; if(!data.clientId){alert('Cadastre um cliente primeiro.');return;} if(!data.title){alert('Coloque o nome da demanda.');return;} if(editingDemand){const i=demands.findIndex(d=>d.id===editingDemand);demands[i]={...demands[i],...data};}else demands.push({id:crypto.randomUUID(),...data}); selectedClientId=data.clientId; saveAll(); closeModals(); refreshAll();}
+function deleteDemand(){ if(!editingDemand)return; if(confirm('Excluir essa demanda?')){demands=demands.filter(d=>d.id!==editingDemand);saveAll();closeModals();refreshAll();}}
+function approveDemand(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aprovado';saveAll();refreshAll();}}
+function waitingClient(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aguardando você';saveAll();refreshAll();}}
+function requestAdjust(id){ const text=prompt('Qual ajuste o cliente pediu?'); const d=demands.find(x=>x.id===id); if(d){d.status='Ajustes solicitados';d.comment=text||d.comment;saveAll();refreshAll();}}
+
+function openInternalModal(){ editingInternal=null; fillInternalStatus(); internalModalTitle.textContent='Nova tarefa interna'; deleteInternalBtn.style.display='none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc'].forEach(id=>document.getElementById(id).value=''); internalType.value='Edição de Vídeo'; internalPriority.value='Normal'; internalStatus.value='A Resolver'; internalModal.classList.add('active');}
+function editInternal(id){ const t=internalTasks.find(x=>x.id===id); if(!t)return; editingInternal=id; fillInternalStatus(); internalModalTitle.textContent='Editar tarefa interna'; deleteInternalBtn.style.display='inline-block'; internalTitle.value=t.title||''; internalClient.value=t.client||''; internalValue.value=t.value||''; internalType.value=t.type||'Edição de Vídeo'; internalPriority.value=t.priority||'Normal'; internalStatus.value=t.status||'A Resolver'; internalDate.value=t.date||''; internalDesc.value=t.desc||''; internalModal.classList.add('active');}
+function saveInternal(){ const data={title:internalTitle.value.trim(),client:internalClient.value.trim(),value:internalValue.value.trim(),type:internalType.value,priority:internalPriority.value,status:internalStatus.value,date:internalDate.value,desc:internalDesc.value.trim()}; if(!data.title){alert('Coloque o nome da tarefa.');return;} if(editingInternal){const i=internalTasks.findIndex(t=>t.id===editingInternal);internalTasks[i]={...internalTasks[i],...data};}else internalTasks.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll();}
+function deleteInternal(){ if(!editingInternal)return; if(confirm('Excluir essa tarefa?')){internalTasks=internalTasks.filter(t=>t.id!==editingInternal);saveAll();closeModals();refreshAll();}}
+function moveInternal(id,dir){ const t=internalTasks.find(x=>x.id===id); if(!t)return; const i=internalStatuses.indexOf(t.status); t.status=internalStatuses[Math.max(0,Math.min(internalStatuses.length-1,i+dir))]; saveAll(); refreshAll();}
+function finishInternal(id){ const t=internalTasks.find(x=>x.id===id); if(t){t.status='Entregue';saveAll();refreshAll();}}
+
+function openWhats(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
+function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active')); }
+function refreshAll(){ renderDashboard(); renderInternal(); renderClients(); renderDemands(); renderClientPanel(selectedClientId); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModals(); });
+fillSelects(); fillInternalStatus(); refreshAll();
+</script>
+</body>
+</html>
