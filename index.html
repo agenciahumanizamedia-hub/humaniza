@@ -367,6 +367,154 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   .identity-preview{align-items:flex-start}
 }
 
+
+/* Menu lateral mobile */
+.mobile-menu-btn{
+  display:none;
+  background:#5B56FF;
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  font-size:22px;
+  padding:0;
+  align-items:center;
+  justify-content:center;
+}
+
+.mobile-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.58);
+  z-index:30;
+}
+
+.mobile-sidebar{
+  position:fixed;
+  top:0;
+  right:-86vw;
+  width:min(340px,86vw);
+  height:100vh;
+  background:#242424;
+  border-left:1px solid #333333;
+  z-index:31;
+  padding:18px;
+  transition:right .25s ease;
+  box-shadow:-20px 0 60px rgba(0,0,0,.35);
+  overflow:auto;
+}
+
+.mobile-sidebar.active{
+  right:0;
+}
+
+.mobile-overlay.active{
+  display:block;
+}
+
+.mobile-sidebar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid #333333;
+}
+
+.mobile-sidebar-head strong{
+  font-size:20px;
+}
+
+.mobile-close{
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  background:#2A2A2A;
+  font-size:26px;
+  line-height:1;
+  padding:0;
+}
+
+.mobile-sidebar button{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+  background:#2A2A2A;
+  margin-bottom:10px;
+  border-radius:14px;
+  padding:14px;
+  text-align:left;
+  box-shadow:none;
+}
+
+.mobile-sidebar button:hover{
+  background:#5B56FF;
+}
+
+.mobile-sidebar .mobile-logout{
+  background:#3A3A3A;
+}
+
+.mobile-sidebar hr{
+  border:0;
+  border-top:1px solid #333333;
+  margin:14px 0;
+}
+
+@media(max-width:720px){
+  header{
+    height:74px!important;
+    min-height:74px!important;
+    padding:0 18px!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    gap:12px!important;
+  }
+
+  header .logo{
+    width:auto!important;
+    flex:1;
+    font-size:23px!important;
+    line-height:1.1;
+  }
+
+  #mobileMenuBtn{
+    display:flex;
+  }
+
+  header > .actions{
+    display:none!important;
+  }
+
+  .tabs{
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    gap:14px;
+    padding:0 2px 8px;
+    margin-bottom:18px;
+    scrollbar-width:none;
+  }
+
+  .tabs::-webkit-scrollbar{display:none}
+
+  .tab{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+}
+
+@media(min-width:721px){
+  .mobile-sidebar,
+  .mobile-overlay,
+  .mobile-menu-btn{
+    display:none!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -385,6 +533,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 <section id="appPage" class="hidden">
 <header>
   <div class="logo" id="appBrandLogo">Agência Humaniza</div>
+  <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button onclick="openClientModal()">+ Cliente</button>
     <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
@@ -394,6 +543,26 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <button onclick="logout()" class="btn-dark">Sair</button>
   </div>
 </header>
+
+<div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileMenu()"></div>
+<aside id="mobileSidebar" class="mobile-sidebar">
+  <div class="mobile-sidebar-head">
+    <strong>Agência Humaniza</strong>
+    <button onclick="closeMobileMenu()" class="mobile-close">×</button>
+  </div>
+
+  <button onclick="mobileGo('dashboard')">📊 Visão geral</button>
+  <button onclick="mobileGo('internal')">📋 Agência</button>
+  <button onclick="mobileGo('team')">👨‍💻 Equipe</button>
+  <button onclick="mobileGo('clients')">👥 Clientes</button>
+  <button onclick="mobileGo('demands')">🗂️ Demandas clientes</button>
+  <button onclick="mobileGo('clientPanel')">🖥️ Tela do cliente</button>
+
+  <hr>
+
+  <button onclick="openSettingsModal(); closeMobileMenu()">⚙️ Configurações</button>
+  <button onclick="logout()" class="mobile-logout">🚪 Sair</button>
+</aside>
 
 <main class="container">
   <div class="tabs">
@@ -1042,6 +1211,34 @@ window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
 function refreshAll(){ if(isAdmin){ renderDashboard(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderInternal(); } renderClientPanel(selectedClientId); }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
+
+window.toggleMobileMenu = function(){
+  document.getElementById('mobileSidebar')?.classList.toggle('active');
+  document.getElementById('mobileOverlay')?.classList.toggle('active');
+}
+
+window.closeMobileMenu = function(){
+  document.getElementById('mobileSidebar')?.classList.remove('active');
+  document.getElementById('mobileOverlay')?.classList.remove('active');
+}
+
+window.mobileGo = function(view){
+  closeMobileMenu();
+
+  const tabMap = {
+    dashboard: 0,
+    internal: 1,
+    team: 2,
+    clients: 3,
+    demands: 4,
+    clientPanel: 5
+  };
+
+  const tabs = document.querySelectorAll('.tab');
+  const tab = tabs[tabMap[view]] || null;
+  showView(view, tab);
+}
+
 </script>
 </body>
 </html>
