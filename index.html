@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Humaniza OS</title>
+<title>Portal Agência Humaniza</title>
 <style>
 /* Identidade Agência Humaniza: roxo #5B56FF, branco #F2F2F0, cinza #A6A6A6, preto #1C1C1C */
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#1C1C1C;color:#F2F2F0}
 header{height:74px;border-bottom:1px solid #2A2A2A;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:#1C1C1C;position:sticky;top:0;z-index:5}
 .logo{font-size:26px;font-weight:900}.logo span{color:#5B56FF}
-button{border:0;cursor:pointer;color:#F2F2F0;font-weight:800;border-radius:10px;background:#5B56FF;padding:12px 16px;font-size:14px;box-shadow:0 8px 24px rgba(91,86,255,.16)}
-.btn-dark{background:#252532}.btn-green{background:#1f9d55}.btn-blue{background:#3877ff}.btn-danger{background:#8e2a2a}.btn-gold{background:#b9852b}
+button{border:0;cursor:pointer;color:#F2F2F0;font-weight:800;border-radius:10px;background:#5B56FF;padding:12px 16px;font-size:14px}
+.btn-dark{background:#2A2A2A}.btn-green{background:#5B56FF}.btn-blue{background:#5B56FF}.btn-danger{background:#8e2a2a}.btn-gold{background:#3A3A3A}
 .container{width:min(1780px,94vw);margin:30px auto}
 .tabs{display:flex;gap:20px;border-bottom:1px solid #333333;margin-bottom:24px;flex-wrap:wrap}
-.tab{padding:0 0 14px;color:#A6A6A6;font-weight:900;cursor:pointer}.tab.active{color:#F2F2F0;border-bottom:2px solid #5B56FF;text-shadow:0 0 16px rgba(91,86,255,.35)}
+.tab{padding:0 0 14px;color:#A6A6A6;font-weight:900;cursor:pointer}.tab.active{color:#F2F2F0;border-bottom:2px solid #5B56FF}
 .top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:24px}
 input,select,textarea{width:100%;background:#242424;border:1px solid #333333;color:#F2F2F0;border-radius:10px;padding:13px 15px;font-size:14px;outline:none}
 input::placeholder,textarea::placeholder{color:#A6A6A6}
@@ -57,19 +57,235 @@ input::placeholder,textarea::placeholder{color:#A6A6A6}
 .comment-box{background:#202020;border:1px solid #333333;border-radius:10px;padding:10px;margin-top:10px;color:#F2F2F0;font-size:12px;line-height:1.4}
 .comment-box b{color:#F2F2F0}
 .team-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px}
-@media(max-width:1100px){.team-summary{grid-template-columns:1fr 1fr}}
-@media(max-width:720px){.team-summary{grid-template-columns:1fr}}
 @media(max-width:1100px){.grid,.stats,.todo-list{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}}
 @media(max-width:720px){header{padding:0 16px}.grid,.stats,.todo-list{grid-template-columns:1fr}.logo{font-size:21px}.client-header h2{font-size:24px}}
+
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top,#302C75,#1C1C1C 58%)}
+.login-card{width:min(430px,94vw);background:#242424;border:1px solid #333333;border-radius:20px;padding:28px;box-shadow:0 20px 80px rgba(0,0,0,.35)}
+.login-card .logo{font-size:30px;margin-bottom:8px}
+.notice{background:#242424;border:1px solid #633;padding:12px;border-radius:12px;color:#ffb3b3;margin-top:12px;font-size:14px}
+
+/* Ajustes visuais da marca */
+.login-card{box-shadow:0 20px 80px rgba(91,86,255,.18)}
+.tab.active{text-shadow:0 0 16px rgba(91,86,255,.35)}
+button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
+.card,.panel,.stat,.column,.modal-card,.login-card{box-shadow:0 12px 34px rgba(0,0,0,.18)}
+
+
+/* Responsivo mobile Agência Humaniza */
+@media(max-width:720px){
+  body{overflow-x:hidden}
+  header{
+    height:auto;
+    min-height:74px;
+    padding:16px;
+    gap:14px;
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  header .logo{
+    font-size:22px;
+    width:100%;
+    justify-content:flex-start;
+  }
+  header .actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:0;
+  }
+  header .actions button{
+    width:100%;
+    padding:12px 10px;
+    font-size:13px;
+  }
+
+  .container{
+    width:100%;
+    margin:18px 0;
+    padding:0 14px;
+  }
+
+  .tabs{
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    gap:14px;
+    padding:0 2px 8px;
+    margin-bottom:18px;
+    scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:0 0 auto;
+    padding-bottom:10px;
+    font-size:14px;
+    white-space:nowrap;
+  }
+
+  .top{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:12px;
+  }
+  .top h2{
+    margin:0;
+    font-size:22px;
+  }
+  .search{
+    max-width:none;
+    width:100%;
+  }
+
+  .grid,
+  .stats,
+  .todo-list,
+  .team-summary{
+    grid-template-columns:1fr!important;
+    gap:14px;
+  }
+
+  .card,
+  .panel,
+  .stat,
+  .todo{
+    padding:16px;
+    border-radius:14px;
+  }
+  .stat strong{
+    font-size:30px;
+  }
+
+  .actions{
+    gap:8px;
+  }
+  .card .actions,
+  .panel .actions,
+  .task .actions,
+  .client-header .actions{
+    display:grid;
+    grid-template-columns:1fr;
+    width:100%;
+  }
+  .card .actions button,
+  .panel .actions button,
+  .task .actions button,
+  .client-header .actions button{
+    width:100%;
+  }
+
+  .board-wrap{
+    overflow-x:auto;
+    margin-left:-14px;
+    margin-right:-14px;
+    padding:0 14px 12px;
+  }
+  .board{
+    display:grid;
+    grid-auto-flow:column;
+    grid-auto-columns:minmax(285px, 86vw);
+    grid-template-columns:none;
+    min-width:0;
+    gap:14px;
+  }
+  .column{
+    min-height:260px;
+    padding:14px;
+    border-radius:14px;
+  }
+  .column-title{
+    font-size:13px;
+  }
+  .task{
+    padding:14px;
+  }
+  .task h4{
+    font-size:16px;
+    padding-right:42px;
+  }
+
+  .modal{
+    align-items:flex-end;
+    padding:0;
+  }
+  .modal-card{
+    width:100%;
+    max-height:92vh;
+    border-radius:20px 20px 0 0;
+    padding:20px;
+  }
+  .form{
+    grid-template-columns:1fr!important;
+    gap:10px;
+  }
+  .full{
+    grid-column:auto!important;
+  }
+  input,select,textarea{
+    font-size:16px;
+    padding:13px 14px;
+  }
+
+  .login-page{
+    padding:18px;
+    align-items:center;
+  }
+  .login-card{
+    width:100%;
+    padding:24px;
+  }
+  .login-card .logo{
+    font-size:26px;
+  }
+
+  .client-header{
+    padding:18px;
+  }
+  .client-header h2{
+    font-size:24px;
+  }
+  .client-title-row{
+    align-items:flex-start;
+  }
+}
+
+@media(max-width:420px){
+  header .actions{
+    grid-template-columns:1fr;
+  }
+  .board{
+    grid-auto-columns:minmax(270px, 88vw);
+  }
+  .logo{
+    font-size:20px;
+  }
+}
+
 </style>
 </head>
 <body>
+
+<section id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="logo" id="loginBrandLogo">Agência Humaniza</div>
+    <p>Entre para acessar o painel da agência ou a área do cliente.</p>
+    <input id="loginEmail" type="email" placeholder="E-mail">
+    <input id="loginPassword" type="password" placeholder="Senha">
+    <button style="width:100%" onclick="login()">Entrar</button>
+    <div class="notice" id="loginError" style="display:none"></div>
+  </div>
+</section>
+
+<section id="appPage" class="hidden">
 <header>
-  <div class="logo">Humaniza<span>.</span>OS</div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza</div>
   <div class="actions">
     <button onclick="openClientModal()">+ Cliente</button>
     <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
-    <button onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
+    <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
+    <button id="btnInternal" onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
+    <button onclick="logout()" class="btn-dark">Sair</button>
   </div>
 </header>
 
@@ -113,6 +329,7 @@ input::placeholder,textarea::placeholder{color:#A6A6A6}
     <div id="clientPanelContent"></div>
   </section>
 </main>
+</section>
 
 <div class="modal" id="teamModal">
   <div class="modal-card">
@@ -141,6 +358,7 @@ input::placeholder,textarea::placeholder{color:#A6A6A6}
     <h2 id="clientModalTitle">Novo cliente</h2>
     <div class="form">
       <input id="clientName" placeholder="Nome do cliente" class="full">
+      <input id="clientEmail" placeholder="E-mail de login do cliente">
       <input id="clientWhatsapp" placeholder="WhatsApp. Ex: 43999999999">
       <input id="clientDrive" placeholder="Link da pasta do Drive">
       <input id="clientInstagram" placeholder="Instagram do cliente">
@@ -201,34 +419,117 @@ input::placeholder,textarea::placeholder{color:#A6A6A6}
   </div>
 </div>
 
-<script>
-let clients = JSON.parse(localStorage.getItem('humanizaClientsAll')) || [
-  {id: crypto.randomUUID(), name:'Dubbai Alianças', whatsapp:'', drive:'', instagram:'@dubbai_aliancas', status:'Ativo', obs:'Painel de aprovação e estratégia.'},
-  {id: crypto.randomUUID(), name:'Efraim Joias', whatsapp:'', drive:'', instagram:'@efraimjoias', status:'Ativo', obs:'Conteúdo elegante e comercial.'}
-];
-let demands = JSON.parse(localStorage.getItem('humanizaDemandsAll')) || [
-  {id: crypto.randomUUID(), clientId: clients[0].id, title:'Estratégia do mês', type:'Estratégia', status:'Estratégia', date:'2026-05-30', priority:'Alta', link:'', desc:'Campanha, datas sazonais e linha de conteúdo.', comment:''},
-  {id: crypto.randomUUID(), clientId: clients[0].id, title:'Aprovação Reels Dia dos Namorados', type:'Aprovação de vídeo', status:'Aguardando aprovação', date:'2026-05-29', priority:'Urgente', link:'', desc:'Cliente precisa aprovar vídeo antes da postagem.', comment:''},
-  {id: crypto.randomUUID(), clientId: clients[1].id, title:'Calendário de posts', type:'Calendário', status:'Em produção', date:'2026-06-02', priority:'Normal', link:'', desc:'Montar calendário do mês.', comment:''}
-];
-let internalTasks = JSON.parse(localStorage.getItem('humanizaInternalAll')) || [
-  {id: crypto.randomUUID(), title:'Captação Tô Raízes', client:'Tô Raízes', value:'R$ 800', type:'Edição de Vídeo', priority:'Urgente', status:'Captação', date:'2026-05-28', desc:'Separar roteiro, conferir horários e organizar arquivos da gravação.'},
-  {id: crypto.randomUUID(), title:'Enviar boleto mensal', client:'Cliente mensal', value:'R$ 1.100', type:'Financeiro', priority:'Alta', status:'Enviar Boletos', date:'2026-05-30', desc:'Confirmar vencimento e enviar boleto para o cliente.'}
-];
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2xU6wgDjswece50JVE-thiCb40wP-58M",
+  authDomain: "humaniza-os.firebaseapp.com",
+  projectId: "humaniza-os",
+  storageBucket: "humaniza-os.firebasestorage.app",
+  messagingSenderId: "416592042651",
+  appId: "1:416592042651:web:66dd16c8e823e57d5b443e",
+  measurementId: "G-YQMK274JER"
+};
+
+const ADMIN_EMAIL = "agenciahumanizamedia@gmail.com";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let isAdmin = false;
+let clients = [];
+let demands = [];
+let internalTasks = [];
+let teamMembers = [];
+let editingClient = null, editingDemand = null, editingInternal = null, editingTeam = null;
+let selectedClientId = null;
+let unsubClients = null, unsubDemands = null, unsubInternal = null, unsubTeam = null;
+let isTeamMember = false;
+let currentTeamMember = null;
 
 const demandStatuses = ['Estratégia','Em produção','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
 const internalStatuses = ['A Resolver','Em Produção','Pronto para Revisão','Ajustes Internos','Aprovado Internamente','Entregue ao Cliente','Entregue'];
-let editingClient = null, editingDemand = null, editingInternal = null;
-let selectedClientId = clients[0]?.id || null;
 
-function saveAll(){
-  localStorage.setItem('humanizaClientsAll', JSON.stringify(clients));
-  localStorage.setItem('humanizaDemandsAll', JSON.stringify(demands));
-  localStorage.setItem('humanizaInternalAll', JSON.stringify(internalTasks));
+window.login = async function(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const error = document.getElementById('loginError');
+  error.style.display = 'none';
+  try { await signInWithEmailAndPassword(auth, email, password); }
+  catch(e) { error.textContent = 'Erro no login. Confira e-mail e senha.'; error.style.display = 'block'; }
 }
-function showView(view, el){
+window.logout = function(){ signOut(auth); }
+
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    currentUser = user;
+    isAdmin = [ADMIN_EMAIL.toLowerCase()].includes((user.email || '').trim().toLowerCase());
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('appPage').classList.remove('hidden');
+    startListeners();
+    adjustViewByRole();
+  } else {
+    currentUser = null;
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('appPage').classList.add('hidden');
+    [unsubClients, unsubDemands, unsubInternal, unsubTeam].forEach(fn => { if(fn) fn(); });
+  }
+});
+
+function adjustViewByRole(){
+  const tabs = document.querySelectorAll('.tab');
+  document.querySelector('header .actions').querySelectorAll('button').forEach(btn => btn.style.display = 'inline-block');
+  tabs.forEach(tab => tab.style.display = 'block');
+
+  if(isAdmin){
+    showView('dashboard', tabs[0]);
+    return;
+  }
+
+  document.querySelector('header .actions').querySelectorAll('button').forEach(btn => {
+    if(btn.textContent !== 'Sair') btn.style.display = 'none';
+  });
+
+  if(isTeamMember){
+    tabs.forEach((tab, index) => { if(index !== 1) tab.style.display = 'none'; });
+    showView('internal', tabs[1]);
+  } else {
+    tabs.forEach((tab, index) => { if(index !== 5) tab.style.display = 'none'; });
+    showView('clientPanel', tabs[5]);
+  }
+}
+
+function startListeners(){
+  [unsubClients, unsubDemands, unsubInternal, unsubTeam].forEach(fn => { if(fn) fn(); });
+
+  unsubTeam = onSnapshot(collection(db, 'team'), snap => {
+    teamMembers = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    currentTeamMember = teamMembers.find(m => (m.email || '').trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()) || null;
+    isTeamMember = !!currentTeamMember;
+    if(!isAdmin) adjustViewByRole();
+    refreshAll();
+  });
+
+  if(isAdmin){
+    unsubClients = onSnapshot(collection(db, 'clients'), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = selectedClientId || clients[0]?.id || null; refreshAll(); });
+    unsubDemands = onSnapshot(collection(db, 'demands'), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubInternal = onSnapshot(collection(db, 'internalTasks'), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+  } else {
+    unsubClients = onSnapshot(query(collection(db, 'clients'), where('email','==', currentUser.email)), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = clients[0]?.id || null; refreshAll(); });
+    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('clientEmail','==', currentUser.email)), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubInternal = onSnapshot(query(collection(db, 'internalTasks'), where('assignedEmail','==', currentUser.email)), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+  }
+}
+
+window.showView = function(view, el){
+  if(!isAdmin && !isTeamMember && view !== 'clientPanel') return;
+  if(isTeamMember && !isAdmin && view !== 'internal') return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  if(el) el.classList.add('active');
   ['dashboard','internal','team','clients','demands','clientPanel'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
   document.getElementById(view+'View').classList.remove('hidden');
   if(view==='dashboard') renderDashboard();
@@ -238,13 +539,15 @@ function showView(view, el){
   if(view==='demands') renderDemands();
   if(view==='clientPanel') renderClientPanel(selectedClientId);
 }
-function formatDate(date){ if(!date) return ''; const d=new Date(date+'T00:00:00'); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
-function todayOnly(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+
+function formatDate(date){ if(!date) return ''; const d = new Date(date+'T00:00:00'); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
+function todayOnly(){ const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
 function isLate(x){ if(!x.date || ['Publicado','Aprovado','Entregue'].includes(x.status)) return false; return new Date(x.date+'T00:00:00') < todayOnly(); }
 function clientById(id){ return clients.find(c => c.id === id); }
 function calcProgress(list){ if(!list.length) return 0; const done=list.filter(x => ['Aprovado','Publicado','Entregue'].includes(x.status)).length; return Math.round((done/list.length)*100); }
 
 function renderDashboard(){
+  if(!isAdmin) return;
   const total = internalTasks.length + demands.length;
   const late = [...internalTasks, ...demands].filter(isLate).length;
   const urgent = [...internalTasks, ...demands].filter(x => x.priority === 'Urgente').length;
@@ -265,105 +568,200 @@ function renderDashboard(){
     </div>`;
 }
 
-function renderInternal(){
+window.renderInternal = function(){
+  if(!isAdmin && !isTeamMember) return;
   fillInternalStatus();
   const q = (document.getElementById('internalSearch')?.value || '').toLowerCase();
-  const data = internalTasks.filter(t => t.title.toLowerCase().includes(q) || (t.client||'').toLowerCase().includes(q));
+  const data = internalTasks.filter(t => (t.title||'').toLowerCase().includes(q) || (t.client||'').toLowerCase().includes(q));
   document.getElementById('internalBoard').innerHTML = internalStatuses.map(st => {
     const items = data.filter(t => t.status === st);
     return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(internalCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
   }).join('');
 }
 function internalCard(t){
+  const canEdit = isAdmin || currentTeamMember?.permission === 'Líder' || t.assignedEmail === currentUser?.email;
+  const assignedInfo = isAdmin && t.assignedName ? `<span class="pill">Responsável: ${t.assignedName}</span>` : '';
+  const comments = t.internalComment ? `<div class="comment-box"><b>Comentário interno:</b><br>${t.internalComment}</div>` : '';
+  const actions = canEdit ? `<div class="actions">
+    <button class="btn-dark" onclick="moveInternal('${t.id}',-1)">← Voltar</button>
+    <button class="btn-dark" onclick="moveInternal('${t.id}',1)">Avançar →</button>
+    <button class="btn-blue" onclick="quickComment('${t.id}')">Comentar</button>
+    <button class="btn-green" onclick="finishInternal('${t.id}')">Concluir</button>
+    ${isAdmin || currentTeamMember?.permission === 'Líder' ? `<button class="btn-gold" onclick="editInternal('${t.id}')">Editar</button>` : ''}
+  </div>` : '';
   return `<div class="task ${isLate(t)?'late':''} ${t.priority==='Urgente'?'urgent':''}">
-    <div class="icon-actions"><button class="icon" onclick="editInternal('${t.id}')">✏️</button></div>
+    <div class="icon-actions">${(isAdmin || currentTeamMember?.permission === 'Líder') ? `<button class="icon" onclick="editInternal('${t.id}')">✏️</button>` : ''}</div>
     <h4>${t.title}</h4>
-    <span class="badge b-blue">${t.type}</span>${isLate(t)?'<span class="badge b-red">Atrasada</span>':''}${t.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}
+    <span class="badge b-blue">${t.type||'Interno'}</span>${isLate(t)?'<span class="badge b-red">Atrasada</span>':''}${t.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}
     <p>${t.desc||''}</p>
-    <div class="meta">${t.client?`<span class="pill">${t.client}</span>`:''}${t.date?`<span class="pill">Prazo: ${formatDate(t.date)}</span>`:''}${t.value?`<span class="pill">${t.value}</span>`:''}</div>
-    <div class="actions"><button class="btn-dark" onclick="moveInternal('${t.id}',-1)">← Voltar</button><button class="btn-dark" onclick="moveInternal('${t.id}',1)">Avançar →</button><button class="btn-green" onclick="finishInternal('${t.id}')">Concluir</button></div>
+    <div class="meta">${t.client?`<span class="pill">${t.client}</span>`:''}${assignedInfo}${t.date?`<span class="pill">Prazo: ${formatDate(t.date)}</span>`:''}${t.value?`<span class="pill">${t.value}</span>`:''}</div>
+    ${comments}
+    ${actions}
   </div>`;
 }
 
-function renderClients(){
-  const grid=document.getElementById('clientsGrid');
-  const q=(document.getElementById('clientSearch')?.value||'').toLowerCase();
-  const list=clients.filter(c => c.name.toLowerCase().includes(q) || (c.instagram||'').toLowerCase().includes(q));
+window.renderTeam = function(){
+  if(!isAdmin) return;
+  const grid = document.getElementById('teamGrid');
+  const summary = document.getElementById('teamSummary');
+  const q = (document.getElementById('teamSearch')?.value || '').toLowerCase();
+  const list = teamMembers.filter(m => (m.name||'').toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q) || (m.role||'').toLowerCase().includes(q));
+  const totalOpen = internalTasks.filter(t => t.status !== 'Entregue').length;
+  const totalLate = internalTasks.filter(isLate).length;
+  const review = internalTasks.filter(t => t.status === 'Pronto para Revisão').length;
+  summary.innerHTML = `
+    <div class="stat"><p>Tarefas abertas</p><strong>${totalOpen}</strong></div>
+    <div class="stat"><p>Atrasadas</p><strong>${totalLate}</strong></div>
+    <div class="stat"><p>Pronto revisão</p><strong>${review}</strong></div>
+    <div class="stat"><p>Equipe ativa</p><strong>${teamMembers.filter(m => m.status !== 'Finalizado').length}</strong></div>
+  `;
+  grid.innerHTML = list.length ? list.map(m => {
+    const tasks = internalTasks.filter(t => t.assignedEmail === m.email);
+    const open = tasks.filter(t => t.status !== 'Entregue').length;
+    const late = tasks.filter(isLate).length;
+    const review = tasks.filter(t => t.status === 'Pronto para Revisão').length;
+    return `<div class="card"><h3>${m.name}</h3><p>${m.role || 'Sem função cadastrada.'}</p><div class="meta"><span class="pill">${m.permission || 'Operacional'}</span><span class="pill">${m.status || 'Ativo'}</span><span class="pill">${m.email || ''}</span><span class="pill">${open} abertas</span><span class="pill">${late} atrasadas</span><span class="pill">${review} revisão</span></div><div class="actions"><button class="btn-dark" onclick="editTeamMember('${m.id}')">Editar</button></div></div>`;
+  }).join('') : '<div class="empty">Nenhum funcionário cadastrado.</div>';
+  fillTeamSelects();
+}
+
+window.renderClients = function(){
+  if(!isAdmin) return;
+  const grid = document.getElementById('clientsGrid');
+  const q = (document.getElementById('clientSearch')?.value||'').toLowerCase();
+  const list = clients.filter(c => (c.name||'').toLowerCase().includes(q) || (c.instagram||'').toLowerCase().includes(q));
   grid.innerHTML = list.length ? list.map(c => {
-    const ds=demands.filter(d => d.clientId===c.id);
-    const approval=ds.filter(d => d.status==='Aguardando aprovação').length;
-    const waiting=ds.filter(d => d.status==='Aguardando você').length;
-    const progress=calcProgress(ds);
-    return `<div class="card"><h3>${c.name}</h3><p>${c.obs||'Sem observações.'}</p><div class="meta"><span class="pill">${c.status}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}<span class="pill">${approval} aprovação</span><span class="pill">${waiting} aguardando cliente</span></div><div class="progress"><span style="width:${progress}%"></span></div><div class="actions"><button onclick="renderClientPanel('${c.id}'); showClientPanelTab()">Abrir tela</button><button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Demanda</button><button class="btn-dark" onclick="editClient('${c.id}')">Editar</button>${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div>`;
+    const ds = demands.filter(d => d.clientId === c.id || d.clientEmail === c.email);
+    const approval = ds.filter(d => d.status === 'Aguardando aprovação').length;
+    const waiting = ds.filter(d => d.status === 'Aguardando você').length;
+    const progress = calcProgress(ds);
+    return `<div class="card"><h3>${c.name}</h3><p>${c.obs||'Sem observações.'}</p><div class="meta"><span class="pill">${c.status||'Ativo'}</span>${c.email?`<span class="pill">${c.email}</span>`:''}${c.instagram?`<span class="pill">${c.instagram}</span>`:''}<span class="pill">${approval} aprovação</span><span class="pill">${waiting} aguardando cliente</span></div><div class="progress"><span style="width:${progress}%"></span></div><div class="actions"><button onclick="renderClientPanel('${c.id}'); showClientPanelTab()">Abrir tela</button><button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Demanda</button><button class="btn-dark" onclick="editClient('${c.id}')">Editar</button>${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div>`;
   }).join('') : '<div class="empty">Nenhum cliente cadastrado.</div>';
   fillSelects();
 }
 function showClientPanelTab(){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab')[4].classList.add('active');
-  ['dashboard','internal','clients','demands'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
+  if(isAdmin) document.querySelectorAll('.tab')[5].classList.add('active');
+  ['dashboard','internal','team','clients','demands'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
   document.getElementById('clientPanelView').classList.remove('hidden');
 }
-function renderDemands(){
+window.showClientPanelTab = showClientPanelTab;
+
+window.renderDemands = function(){
+  if(!isAdmin) return;
   fillSelects();
-  const filter=document.getElementById('agencyClientFilter').value;
-  const data=filter==='Todos'?demands:demands.filter(d => d.clientId===filter);
+  const filter = document.getElementById('agencyClientFilter').value;
+  const data = filter === 'Todos' ? demands : demands.filter(d => d.clientId === filter);
   document.getElementById('demandsBoard').innerHTML = demandStatuses.map(st => {
-    const items=data.filter(d => d.status===st);
+    const items = data.filter(d => d.status === st);
     return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(demandCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
   }).join('');
 }
-function renderClientPanel(clientId){
+window.renderClientPanel = function(clientId){
   selectedClientId = clientId || selectedClientId || clients[0]?.id;
-  const c=clientById(selectedClientId);
-  const content=document.getElementById('clientPanelContent');
-  if(!c){ content.innerHTML='<div class="empty">Cadastre um cliente primeiro.</div>'; return; }
-  const data=demands.filter(d => d.clientId===c.id);
-  const approval=data.filter(d => d.status==='Aguardando aprovação');
-  const waiting=data.filter(d => d.status==='Aguardando você');
-  const late=data.filter(isLate);
-  const progress=calcProgress(data);
-  content.innerHTML = `<div class="client-header"><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">${c.obs||''}</p><div class="meta"><span class="pill">${c.status}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}${c.drive?'<span class="pill">Drive cadastrado</span>':''}</div><div class="actions"><button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Nova demanda</button>${c.drive?`<button class="btn-dark" onclick="window.open('${c.drive}','_blank')">Abrir Drive</button>`:''}${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div>
-  <div class="stats"><div class="stat"><p>Total</p><strong>${data.length}</strong></div><div class="stat"><p>Aguardando aprovação</p><strong>${approval.length}</strong></div><div class="stat"><p>Aguardando você</p><strong>${waiting.length}</strong></div><div class="stat"><p>Progresso do mês</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div></div>
-  <div class="todo-list"><div class="todo"><h4>✅ Aprovar conteúdo</h4><p>${approval.length?`${approval.length} demanda(s) aguardando aprovação.`:'Nenhuma aprovação pendente.'}</p></div><div class="todo"><h4>📩 Aguardando você</h4><p>${waiting.length?`${waiting.length} item(ns) precisam de retorno ou material.`:'Nada pendente com o cliente.'}</p></div><div class="todo"><h4>⚠️ Atenção</h4><p>${late.length?`${late.length} demanda(s) atrasada(s).`:'Tudo dentro do prazo.'}</p></div></div>
-  <div class="board-wrap"><div class="board">${demandStatuses.map(st => {const items=data.filter(d => d.status===st); return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>`}).join('')}</div></div>`;
+  const c = clientById(selectedClientId);
+  const content = document.getElementById('clientPanelContent');
+  if(!c){ content.innerHTML = '<div class="empty">Nenhum cliente vinculado a este login ainda.</div>'; return; }
+  const data = demands.filter(d => d.clientId === c.id || d.clientEmail === c.email);
+  const approval = data.filter(d => d.status === 'Aguardando aprovação');
+  const waiting = data.filter(d => d.status === 'Aguardando você');
+  const late = data.filter(isLate);
+  const progress = calcProgress(data);
+  content.innerHTML = `<div class="client-header"><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">${c.obs||''}</p><div class="meta"><span class="pill">${c.status||'Ativo'}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}${c.drive?'<span class="pill">Drive cadastrado</span>':''}</div><div class="actions">${isAdmin?`<button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Nova demanda</button>`:''}${c.drive?`<button class="btn-dark" onclick="window.open('${c.drive}','_blank')">Abrir Drive</button>`:''}${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div><div class="stats"><div class="stat"><p>Total</p><strong>${data.length}</strong></div><div class="stat"><p>Aguardando aprovação</p><strong>${approval.length}</strong></div><div class="stat"><p>Aguardando você</p><strong>${waiting.length}</strong></div><div class="stat"><p>Progresso do mês</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div></div><div class="todo-list"><div class="todo"><h4>✅ Aprovar conteúdo</h4><p>${approval.length?`${approval.length} demanda(s) aguardando aprovação.`:'Nenhuma aprovação pendente.'}</p></div><div class="todo"><h4>📩 Aguardando você</h4><p>${waiting.length?`${waiting.length} item(ns) precisam de retorno ou material.`:'Nada pendente com o cliente.'}</p></div><div class="todo"><h4>⚠️ Atenção</h4><p>${late.length?`${late.length} demanda(s) atrasada(s).`:'Tudo dentro do prazo.'}</p></div></div><div class="board-wrap"><div class="board">${demandStatuses.map(st => { const items=data.filter(d => d.status===st); return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>` }).join('')}</div></div>`;
 }
 function demandCard(d){
-  const c=clientById(d.clientId), late=isLate(d), approved=['Aprovado','Publicado'].includes(d.status), adjust=d.status==='Ajustes solicitados', waiting=d.status==='Aguardando você';
-  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions"><button class="icon" onclick="editDemand('${d.id}')">✏️</button></div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p><div class="meta"><span class="pill">${c?c.name:'Sem cliente'}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button><button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
+  const c = clientById(d.clientId), late = isLate(d), approved = ['Aprovado','Publicado'].includes(d.status), adjust = d.status === 'Ajustes solicitados', waiting = d.status === 'Aguardando você';
+  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions">${isAdmin?`<button class="icon" onclick="editDemand('${d.id}')">✏️</button>`:''}</div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p><div class="meta"><span class="pill">${c?c.name:'Cliente'}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button>${isAdmin?`<button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>`:''}${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
 }
-
 function fillSelects(){
+  if(!isAdmin) return;
   document.getElementById('demandClient').innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('agencyClientFilter').innerHTML = '<option>Todos</option>' + clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  fillTeamSelects();
 }
-function fillInternalStatus(){ document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join(''); }
+function fillTeamSelects(){
+  const demandAssigned = document.getElementById('demandAssigned');
+  if(demandAssigned) demandAssigned.innerHTML = '<option value="">Sem responsável interno</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+  const internalAssigned = document.getElementById('internalAssigned');
+  if(internalAssigned) internalAssigned.innerHTML = '<option value="">Sem responsável</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+}
+function fillInternalStatus(){ if(!isAdmin) return; document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join(''); fillTeamSelects(); }
 
-function openClientModal(){ editingClient=null; document.getElementById('clientModalTitle').textContent='Novo cliente'; document.getElementById('deleteClientBtn').style.display='none'; ['clientName','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id=>document.getElementById(id).value=''); document.getElementById('clientStatus').value='Ativo'; document.getElementById('clientModal').classList.add('active'); }
-function editClient(id){ const c=clientById(id); if(!c)return; editingClient=id; document.getElementById('clientModalTitle').textContent='Editar cliente'; document.getElementById('deleteClientBtn').style.display='inline-block'; document.getElementById('clientName').value=c.name||''; document.getElementById('clientWhatsapp').value=c.whatsapp||''; document.getElementById('clientDrive').value=c.drive||''; document.getElementById('clientInstagram').value=c.instagram||''; document.getElementById('clientStatus').value=c.status||'Ativo'; document.getElementById('clientObs').value=c.obs||''; document.getElementById('clientModal').classList.add('active'); }
-function saveClient(){ const data={name:clientName.value.trim(),whatsapp:clientWhatsapp.value.trim(),drive:clientDrive.value.trim(),instagram:clientInstagram.value.trim(),status:clientStatus.value,obs:clientObs.value.trim()}; if(!data.name){alert('Coloque o nome do cliente.');return;} if(editingClient){const i=clients.findIndex(c=>c.id===editingClient);clients[i]={...clients[i],...data};}else clients.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll(); }
-function deleteClient(){ if(!editingClient)return; if(confirm('Excluir cliente e todas as demandas dele?')){clients=clients.filter(c=>c.id!==editingClient);demands=demands.filter(d=>d.clientId!==editingClient);selectedClientId=clients[0]?.id||null;saveAll();closeModals();refreshAll();}}
+window.openTeamModal = function(){
+  editingTeam = null;
+  document.getElementById('teamModalTitle').textContent = 'Novo funcionário';
+  document.getElementById('deleteTeamBtn').style.display = 'none';
+  ['teamName','teamEmail','teamRole','teamObs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('teamPermission').value = 'Operacional';
+  document.getElementById('teamStatus').value = 'Ativo';
+  document.getElementById('teamModal').classList.add('active');
+}
+window.editTeamMember = function(id){
+  const m = teamMembers.find(x => x.id === id);
+  if(!m) return;
+  editingTeam = id;
+  document.getElementById('teamModalTitle').textContent = 'Editar funcionário';
+  document.getElementById('deleteTeamBtn').style.display = 'inline-block';
+  document.getElementById('teamName').value = m.name || '';
+  document.getElementById('teamEmail').value = m.email || '';
+  document.getElementById('teamRole').value = m.role || '';
+  document.getElementById('teamPermission').value = m.permission || 'Operacional';
+  document.getElementById('teamStatus').value = m.status || 'Ativo';
+  document.getElementById('teamObs').value = m.obs || '';
+  document.getElementById('teamModal').classList.add('active');
+}
+window.saveTeamMember = async function(){
+  const data = { name: teamName.value.trim(), email: teamEmail.value.trim(), role: teamRole.value.trim(), permission: teamPermission.value, status: teamStatus.value, obs: teamObs.value.trim(), updatedAt: serverTimestamp() };
+  if(!data.name){ alert('Coloque o nome do funcionário.'); return; }
+  if(!data.email){ alert('Coloque o e-mail de login do funcionário.'); return; }
+  if(editingTeam) await setDoc(doc(db,'team',editingTeam), data, {merge:true});
+  else await addDoc(collection(db,'team'), {...data, createdAt: serverTimestamp()});
+  closeModals();
+}
+window.deleteTeamMember = async function(){
+  if(!editingTeam) return;
+  if(confirm('Excluir funcionário da equipe?')){
+    await deleteDoc(doc(db,'team',editingTeam));
+    closeModals();
+  }
+}
 
-function openDemandModal(clientId){ editingDemand=null; demandModalTitle.textContent='Nova demanda'; deleteDemandBtn.style.display='none'; fillSelects(); demandClient.value=clientId||selectedClientId||clients[0]?.id||''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id=>document.getElementById(id).value=''); demandType.value='Estratégia'; demandStatus.value='Estratégia'; demandPriority.value='Normal'; demandModal.classList.add('active');}
-function editDemand(id){ const d=demands.find(x=>x.id===id); if(!d)return; editingDemand=id; fillSelects(); demandModalTitle.textContent='Editar demanda'; deleteDemandBtn.style.display='inline-block'; demandClient.value=d.clientId; demandTitle.value=d.title||''; demandType.value=d.type||'Estratégia'; demandStatus.value=d.status||'Estratégia'; demandDate.value=d.date||''; demandPriority.value=d.priority||'Normal'; demandLink.value=d.link||''; demandDesc.value=d.desc||''; demandComment.value=d.comment||''; demandModal.classList.add('active');}
-function saveDemand(){ const data={clientId:demandClient.value,title:demandTitle.value.trim(),type:demandType.value,status:demandStatus.value,date:demandDate.value,priority:demandPriority.value,link:demandLink.value.trim(),desc:demandDesc.value.trim(),comment:demandComment.value.trim()}; if(!data.clientId){alert('Cadastre um cliente primeiro.');return;} if(!data.title){alert('Coloque o nome da demanda.');return;} if(editingDemand){const i=demands.findIndex(d=>d.id===editingDemand);demands[i]={...demands[i],...data};}else demands.push({id:crypto.randomUUID(),...data}); selectedClientId=data.clientId; saveAll(); closeModals(); refreshAll();}
-function deleteDemand(){ if(!editingDemand)return; if(confirm('Excluir essa demanda?')){demands=demands.filter(d=>d.id!==editingDemand);saveAll();closeModals();refreshAll();}}
-function approveDemand(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aprovado';saveAll();refreshAll();}}
-function waitingClient(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aguardando você';saveAll();refreshAll();}}
-function requestAdjust(id){ const text=prompt('Qual ajuste o cliente pediu?'); const d=demands.find(x=>x.id===id); if(d){d.status='Ajustes solicitados';d.comment=text||d.comment;saveAll();refreshAll();}}
+window.openClientModal = function(){ editingClient = null; document.getElementById('clientModalTitle').textContent = 'Novo cliente'; document.getElementById('deleteClientBtn').style.display = 'none'; ['clientName','clientEmail','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id => document.getElementById(id).value = ''); document.getElementById('clientStatus').value = 'Ativo'; document.getElementById('clientModal').classList.add('active'); }
+window.editClient = function(id){ const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || ''; document.getElementById('clientModal').classList.add('active'); }
+window.saveClient = async function(){ const data = { name: clientName.value.trim(), email: clientEmail.value.trim(), whatsapp: clientWhatsapp.value.trim(), drive: clientDrive.value.trim(), instagram: clientInstagram.value.trim(), status: clientStatus.value, obs: clientObs.value.trim(), updatedAt: serverTimestamp() }; if(!data.name){ alert('Coloque o nome do cliente.'); return; } if(!data.email){ alert('Coloque o e-mail de login do cliente.'); return; } if(editingClient) await setDoc(doc(db,'clients',editingClient), data, {merge:true}); else await addDoc(collection(db,'clients'), {...data, createdAt: serverTimestamp()}); closeModals(); }
+window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
 
-function openInternalModal(){ editingInternal=null; fillInternalStatus(); internalModalTitle.textContent='Nova tarefa interna'; deleteInternalBtn.style.display='none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc'].forEach(id=>document.getElementById(id).value=''); internalType.value='Edição de Vídeo'; internalPriority.value='Normal'; internalStatus.value='A Resolver'; internalModal.classList.add('active');}
-function editInternal(id){ const t=internalTasks.find(x=>x.id===id); if(!t)return; editingInternal=id; fillInternalStatus(); internalModalTitle.textContent='Editar tarefa interna'; deleteInternalBtn.style.display='inline-block'; internalTitle.value=t.title||''; internalClient.value=t.client||''; internalValue.value=t.value||''; internalType.value=t.type||'Edição de Vídeo'; internalPriority.value=t.priority||'Normal'; internalStatus.value=t.status||'A Resolver'; internalDate.value=t.date||''; internalDesc.value=t.desc||''; internalModal.classList.add('active');}
-function saveInternal(){ const data={title:internalTitle.value.trim(),client:internalClient.value.trim(),value:internalValue.value.trim(),type:internalType.value,priority:internalPriority.value,status:internalStatus.value,date:internalDate.value,desc:internalDesc.value.trim()}; if(!data.title){alert('Coloque o nome da tarefa.');return;} if(editingInternal){const i=internalTasks.findIndex(t=>t.id===editingInternal);internalTasks[i]={...internalTasks[i],...data};}else internalTasks.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll();}
-function deleteInternal(){ if(!editingInternal)return; if(confirm('Excluir essa tarefa?')){internalTasks=internalTasks.filter(t=>t.id!==editingInternal);saveAll();closeModals();refreshAll();}}
-function moveInternal(id,dir){ const t=internalTasks.find(x=>x.id===id); if(!t)return; const i=internalStatuses.indexOf(t.status); t.status=internalStatuses[Math.max(0,Math.min(internalStatuses.length-1,i+dir))]; saveAll(); refreshAll();}
-function finishInternal(id){ const t=internalTasks.find(x=>x.id===id); if(t){t.status='Entregue';saveAll();refreshAll();}}
+window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id => document.getElementById(id).value = ''); document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal'; document.getElementById('demandModal').classList.add('active'); }
+window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; document.getElementById('demandModal').classList.add('active'); }
+window.saveDemand = async function(){ const c = clientById(demandClient.value); const assigned = teamMembers.find(m => m.email === demandAssigned.value);
+  const data = { clientId: demandClient.value, clientEmail: c?.email || '', title: demandTitle.value.trim(), type: demandType.value, status: demandStatus.value, date: demandDate.value, priority: demandPriority.value, assignedEmail: demandAssigned.value || '', assignedName: assigned?.name || '', link: demandLink.value.trim(), desc: demandDesc.value.trim(), comment: demandComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.clientId){ alert('Cadastre um cliente primeiro.'); return; } if(!data.title){ alert('Coloque o nome da demanda.'); return; } if(editingDemand) await setDoc(doc(db,'demands',editingDemand), data, {merge:true}); else await addDoc(collection(db,'demands'), {...data, createdAt: serverTimestamp()}); selectedClientId = data.clientId; closeModals(); }
+window.deleteDemand = async function(){ if(!editingDemand) return; if(confirm('Excluir essa demanda?')){ await deleteDoc(doc(db,'demands',editingDemand)); closeModals(); } }
+window.approveDemand = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aprovado', updatedAt:serverTimestamp()}, {merge:true}); }
+window.waitingClient = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aguardando você', updatedAt:serverTimestamp()}, {merge:true}); }
+window.requestAdjust = async function(id){ const text = prompt('Qual ajuste deseja solicitar?'); await setDoc(doc(db,'demands',id), {status:'Ajustes solicitados', comment:text||'', updatedAt:serverTimestamp()}, {merge:true}); }
 
-function openWhats(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
-function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active')); }
-function refreshAll(){ renderDashboard(); renderInternal(); renderClients(); renderDemands(); renderClientPanel(selectedClientId); }
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModals(); });
-fillSelects(); fillInternalStatus(); refreshAll();
+window.openInternalModal = function(){ editingInternal = null; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Nova tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc','internalComment'].forEach(id => document.getElementById(id).value = '');
+  fillTeamSelects();
+  document.getElementById('internalAssigned').value = ''; document.getElementById('internalType').value = 'Edição de Vídeo'; document.getElementById('internalPriority').value = 'Normal'; document.getElementById('internalStatus').value = 'A Resolver'; document.getElementById('internalModal').classList.add('active'); }
+window.editInternal = function(id){ const t = internalTasks.find(x => x.id === id); if(!t) return; editingInternal = id; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Editar tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'inline-block'; document.getElementById('internalTitle').value = t.title || ''; document.getElementById('internalClient').value = t.client || ''; document.getElementById('internalValue').value = t.value || ''; document.getElementById('internalType').value = t.type || 'Edição de Vídeo'; document.getElementById('internalPriority').value = t.priority || 'Normal'; document.getElementById('internalStatus').value = t.status || 'A Resolver'; document.getElementById('internalDate').value = t.date || ''; document.getElementById('internalDesc').value = t.desc || '';
+  document.getElementById('internalComment').value = t.internalComment || ''; document.getElementById('internalModal').classList.add('active'); }
+window.saveInternal = async function(){ const assigned = teamMembers.find(m => m.email === internalAssigned.value);
+  const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: internalAssigned.value || '', assignedName: assigned?.name || '', status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } if(editingInternal) await setDoc(doc(db,'internalTasks',editingInternal), data, {merge:true}); else await addDoc(collection(db,'internalTasks'), {...data, createdAt: serverTimestamp()}); closeModals(); }
+window.deleteInternal = async function(){ if(!editingInternal) return; if(confirm('Excluir essa tarefa?')){ await deleteDoc(doc(db,'internalTasks',editingInternal)); closeModals(); } }
+window.moveInternal = async function(id, dir){ const t = internalTasks.find(x => x.id === id); if(!t) return; const i = internalStatuses.indexOf(t.status); const status = internalStatuses[Math.max(0, Math.min(internalStatuses.length-1, i+dir))]; await setDoc(doc(db,'internalTasks',id), {status, updatedAt:serverTimestamp()}, {merge:true}); }
+window.finishInternal = async function(id){ await setDoc(doc(db,'internalTasks',id), {status:'Entregue', updatedAt:serverTimestamp()}, {merge:true}); }
+
+window.quickComment = async function(id){
+  const t = internalTasks.find(x => x.id === id);
+  const text = prompt('Comentário interno:', t?.internalComment || '');
+  if(text !== null){
+    await setDoc(doc(db,'internalTasks',id), {internalComment:text, updatedAt:serverTimestamp()}, {merge:true});
+  }
+}
+window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
+window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+function refreshAll(){ if(isAdmin){ renderDashboard(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderInternal(); } renderClientPanel(selectedClientId); }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
 </script>
 </body>
 </html>
