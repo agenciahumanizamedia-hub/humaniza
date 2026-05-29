@@ -515,6 +515,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   }
 }
 
+
+.mobile-hidden-role{display:none!important}
 </style>
 </head>
 <body>
@@ -550,18 +552,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <strong>Agência Humaniza</strong>
     <button onclick="closeMobileMenu()" class="mobile-close">×</button>
   </div>
-
-  <button onclick="mobileGo('dashboard')">📊 Visão geral</button>
-  <button onclick="mobileGo('internal')">📋 Agência</button>
-  <button onclick="mobileGo('team')">👨‍💻 Equipe</button>
-  <button onclick="mobileGo('clients')">👥 Clientes</button>
-  <button onclick="mobileGo('demands')">🗂️ Demandas clientes</button>
-  <button onclick="mobileGo('clientPanel')">🖥️ Tela do cliente</button>
-
-  <hr>
-
-  <button onclick="openSettingsModal(); closeMobileMenu()">⚙️ Configurações</button>
-  <button onclick="logout()" class="mobile-logout">🚪 Sair</button>
+  <div id="mobileMenuItems"></div>
 </aside>
 
 <main class="container">
@@ -846,6 +837,7 @@ function adjustViewByRole(){
   tabs.forEach(tab => tab.style.display = 'block');
 
   if(isAdmin){
+    updateMobileMenuByRole();
     showView('dashboard', tabs[0]);
     return;
   }
@@ -855,9 +847,11 @@ function adjustViewByRole(){
   });
 
   if(isTeamMember){
+    updateMobileMenuByRole();
     tabs.forEach((tab, index) => { if(index !== 1) tab.style.display = 'none'; });
     showView('internal', tabs[1]);
   } else {
+    updateMobileMenuByRole();
     tabs.forEach((tab, index) => { if(index !== 5) tab.style.display = 'none'; });
     showView('clientPanel', tabs[5]);
   }
@@ -1212,7 +1206,51 @@ window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m =
 function refreshAll(){ if(isAdmin){ renderDashboard(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderInternal(); } renderClientPanel(selectedClientId); }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
 
+
+function renderMobileMenuItems(){
+  const box = document.getElementById('mobileMenuItems');
+  if(!box) return;
+
+  let items = [];
+
+  if(isAdmin){
+    items = [
+      {label:'📊 Visão geral', action:"mobileGo('dashboard')"},
+      {label:'📋 Agência', action:"mobileGo('internal')"},
+      {label:'👨‍💻 Equipe', action:"mobileGo('team')"},
+      {label:'👥 Clientes', action:"mobileGo('clients')"},
+      {label:'🗂️ Demandas clientes', action:"mobileGo('demands')"},
+      {label:'🖥️ Tela do cliente', action:"mobileGo('clientPanel')"},
+      {divider:true},
+      {label:'⚙️ Configurações', action:"openSettingsModal(); closeMobileMenu()"},
+      {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
+    ];
+  } else if(isTeamMember){
+    items = [
+      {label:'📋 Minhas tarefas', action:"mobileGo('internal')"},
+      {divider:true},
+      {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
+    ];
+  } else {
+    items = [
+      {label:'🖥️ Minha área', action:"mobileGo('clientPanel')"},
+      {divider:true},
+      {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
+    ];
+  }
+
+  box.innerHTML = items.map(item => {
+    if(item.divider) return '<hr>';
+    return `<button class="${item.extra || ''}" onclick="${item.action}">${item.label}</button>`;
+  }).join('');
+}
+
+function updateMobileMenuByRole(){
+  renderMobileMenuItems();
+}
+
 window.toggleMobileMenu = function(){
+  updateMobileMenuByRole();
   document.getElementById('mobileSidebar')?.classList.toggle('active');
   document.getElementById('mobileOverlay')?.classList.toggle('active');
 }
@@ -1223,6 +1261,8 @@ window.closeMobileMenu = function(){
 }
 
 window.mobileGo = function(view){
+  if(!isAdmin && !isTeamMember && view !== 'clientPanel') return;
+  if(isTeamMember && !isAdmin && view !== 'internal') return;
   closeMobileMenu();
 
   const tabMap = {
