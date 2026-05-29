@@ -68,6 +68,7 @@ input::placeholder,textarea::placeholder{color:#747893}
   <div class="actions">
     <button onclick="openClientModal()">+ Cliente</button>
     <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
+    <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
     <button onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
   </div>
 </header>
@@ -211,19 +212,22 @@ let demands = JSON.parse(localStorage.getItem('humanizaDemandsAll')) || [
   {id: crypto.randomUUID(), clientId: clients[1].id, title:'Calendário de posts', type:'Calendário', status:'Em produção', date:'2026-06-02', priority:'Normal', link:'', desc:'Montar calendário do mês.', comment:''}
 ];
 let internalTasks = JSON.parse(localStorage.getItem('humanizaInternalAll')) || [
-  {id: crypto.randomUUID(), title:'Captação Tô Raízes', client:'Tô Raízes', value:'R$ 800', type:'Edição de Vídeo', priority:'Urgente', status:'Captação', date:'2026-05-28', desc:'Separar roteiro, conferir horários e organizar arquivos da gravação.'},
-  {id: crypto.randomUUID(), title:'Enviar boleto mensal', client:'Cliente mensal', value:'R$ 1.100', type:'Financeiro', priority:'Alta', status:'Enviar Boletos', date:'2026-05-30', desc:'Confirmar vencimento e enviar boleto para o cliente.'}
+  {id: crypto.randomUUID(), title:'Captação Tô Raízes', client:'Tô Raízes', value:'R$ 800', type:'Edição de Vídeo', priority:'Urgente', status:'A Resolver', date:'2026-05-28', desc:'Separar roteiro, conferir horários e organizar arquivos da gravação.', assignedEmail:'', assignedName:'', internalComment:''},
+  {id: crypto.randomUUID(), title:'Enviar boleto mensal', client:'Cliente mensal', value:'R$ 1.100', type:'Financeiro', priority:'Alta', status:'A Resolver', date:'2026-05-30', desc:'Confirmar vencimento e enviar boleto para o cliente.', assignedEmail:'', assignedName:'', internalComment:''}
 ];
+
+let teamMembers = JSON.parse(localStorage.getItem('humanizaTeamAll')) || [];
 
 const demandStatuses = ['Estratégia','Em produção','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
 const internalStatuses = ['A Resolver','Em Produção','Pronto para Revisão','Ajustes Internos','Aprovado Internamente','Entregue ao Cliente','Entregue'];
-let editingClient = null, editingDemand = null, editingInternal = null;
+let editingClient = null, editingDemand = null, editingInternal = null, editingTeam = null;
 let selectedClientId = clients[0]?.id || null;
 
 function saveAll(){
   localStorage.setItem('humanizaClientsAll', JSON.stringify(clients));
   localStorage.setItem('humanizaDemandsAll', JSON.stringify(demands));
   localStorage.setItem('humanizaInternalAll', JSON.stringify(internalTasks));
+  localStorage.setItem('humanizaTeamAll', JSON.stringify(teamMembers));
 }
 function showView(view, el){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -279,9 +283,56 @@ function internalCard(t){
     <h4>${t.title}</h4>
     <span class="badge b-blue">${t.type}</span>${isLate(t)?'<span class="badge b-red">Atrasada</span>':''}${t.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}
     <p>${t.desc||''}</p>
-    <div class="meta">${t.client?`<span class="pill">${t.client}</span>`:''}${t.date?`<span class="pill">Prazo: ${formatDate(t.date)}</span>`:''}${t.value?`<span class="pill">${t.value}</span>`:''}</div>
-    <div class="actions"><button class="btn-dark" onclick="moveInternal('${t.id}',-1)">← Voltar</button><button class="btn-dark" onclick="moveInternal('${t.id}',1)">Avançar →</button><button class="btn-green" onclick="finishInternal('${t.id}')">Concluir</button></div>
+    <div class="meta">${t.client?`<span class="pill">${t.client}</span>`:''}${t.assignedName?`<span class="pill">Responsável: ${t.assignedName}</span>`:''}${t.date?`<span class="pill">Prazo: ${formatDate(t.date)}</span>`:''}${t.value?`<span class="pill">${t.value}</span>`:''}</div>
+    ${t.internalComment?`<div class="comment-box"><b>Comentário interno:</b><br>${t.internalComment}</div>`:''}
+    <div class="actions"><button class="btn-dark" onclick="moveInternal('${t.id}',-1)">← Voltar</button><button class="btn-dark" onclick="moveInternal('${t.id}',1)">Avançar →</button><button class="btn-blue" onclick="quickComment('${t.id}')">Comentar</button><button class="btn-green" onclick="finishInternal('${t.id}')">Concluir</button></div>
   </div>`;
+}
+
+function renderTeam(){
+  const grid = document.getElementById('teamGrid');
+  const summary = document.getElementById('teamSummary');
+  const q = (document.getElementById('teamSearch')?.value || '').toLowerCase();
+
+  const list = teamMembers.filter(m =>
+    (m.name||'').toLowerCase().includes(q) ||
+    (m.email||'').toLowerCase().includes(q) ||
+    (m.role||'').toLowerCase().includes(q)
+  );
+
+  const open = internalTasks.filter(t => t.status !== 'Entregue').length;
+  const late = internalTasks.filter(isLate).length;
+  const review = internalTasks.filter(t => t.status === 'Pronto para Revisão').length;
+  const active = teamMembers.filter(m => m.status !== 'Finalizado').length;
+
+  summary.innerHTML = `
+    <div class="stat"><p>Tarefas abertas</p><strong>${open}</strong></div>
+    <div class="stat"><p>Atrasadas</p><strong>${late}</strong></div>
+    <div class="stat"><p>Pronto revisão</p><strong>${review}</strong></div>
+    <div class="stat"><p>Equipe ativa</p><strong>${active}</strong></div>
+  `;
+
+  grid.innerHTML = list.length ? list.map(m => {
+    const tasks = internalTasks.filter(t => t.assignedEmail === m.email);
+    const opened = tasks.filter(t => t.status !== 'Entregue').length;
+    const delayed = tasks.filter(isLate).length;
+    return `<div class="card">
+      <h3>${m.name}</h3>
+      <p>${m.role || 'Sem função cadastrada.'}</p>
+      <div class="meta">
+        <span class="pill">${m.permission || 'Operacional'}</span>
+        <span class="pill">${m.status || 'Ativo'}</span>
+        <span class="pill">${m.email || ''}</span>
+        <span class="pill">${opened} abertas</span>
+        <span class="pill">${delayed} atrasadas</span>
+      </div>
+      <div class="actions">
+        <button class="btn-dark" onclick="editTeamMember('${m.id}')">Editar</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Nenhum funcionário cadastrado.</div>';
+
+  fillTeamSelects();
 }
 
 function renderClients(){
@@ -299,8 +350,8 @@ function renderClients(){
 }
 function showClientPanelTab(){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab')[4].classList.add('active');
-  ['dashboard','internal','clients','demands'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
+  document.querySelectorAll('.tab')[5].classList.add('active');
+  ['dashboard','internal','team','clients','demands'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
   document.getElementById('clientPanelView').classList.remove('hidden');
 }
 function renderDemands(){
@@ -329,40 +380,103 @@ function renderClientPanel(clientId){
 }
 function demandCard(d){
   const c=clientById(d.clientId), late=isLate(d), approved=['Aprovado','Publicado'].includes(d.status), adjust=d.status==='Ajustes solicitados', waiting=d.status==='Aguardando você';
-  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions"><button class="icon" onclick="editDemand('${d.id}')">✏️</button></div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p><div class="meta"><span class="pill">${c?c.name:'Sem cliente'}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button><button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
+  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions"><button class="icon" onclick="editDemand('${d.id}')">✏️</button></div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p><div class="meta"><span class="pill">${c?c.name:'Sem cliente'}</span>${d.assignedName?`<span class="pill">Responsável: ${d.assignedName}</span>`:''}${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button><button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
 }
 
 function fillSelects(){
   document.getElementById('demandClient').innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('agencyClientFilter').innerHTML = '<option>Todos</option>' + clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
-function fillInternalStatus(){ document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join(''); }
+function fillTeamSelects(){
+  const demandAssigned = document.getElementById('demandAssigned');
+  if(demandAssigned){
+    demandAssigned.innerHTML = '<option value="">Sem responsável interno</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+  }
+
+  const internalAssigned = document.getElementById('internalAssigned');
+  if(internalAssigned){
+    internalAssigned.innerHTML = '<option value="">Sem responsável</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+  }
+}
+
+function fillInternalStatus(){ 
+  document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join('');
+  fillTeamSelects();
+}
+
+function openTeamModal(){
+  editingTeam = null;
+  document.getElementById('teamModalTitle').textContent = 'Novo funcionário';
+  document.getElementById('deleteTeamBtn').style.display = 'none';
+  ['teamName','teamEmail','teamRole','teamObs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('teamPermission').value = 'Operacional';
+  document.getElementById('teamStatus').value = 'Ativo';
+  document.getElementById('teamModal').classList.add('active');
+}
+
+function editTeamMember(id){
+  const m = teamMembers.find(x => x.id === id);
+  if(!m) return;
+  editingTeam = id;
+  document.getElementById('teamModalTitle').textContent = 'Editar funcionário';
+  document.getElementById('deleteTeamBtn').style.display = 'inline-block';
+  document.getElementById('teamName').value = m.name || '';
+  document.getElementById('teamEmail').value = m.email || '';
+  document.getElementById('teamRole').value = m.role || '';
+  document.getElementById('teamPermission').value = m.permission || 'Operacional';
+  document.getElementById('teamStatus').value = m.status || 'Ativo';
+  document.getElementById('teamObs').value = m.obs || '';
+  document.getElementById('teamModal').classList.add('active');
+}
+
+function saveTeamMember(){
+  const data = {
+    name: teamName.value.trim(),
+    email: teamEmail.value.trim(),
+    role: teamRole.value.trim(),
+    permission: teamPermission.value,
+    status: teamStatus.value,
+    obs: teamObs.value.trim()
+  };
+
+  if(!data.name){ alert('Coloque o nome do funcionário.'); return; }
+  if(!data.email){ alert('Coloque o e-mail do funcionário.'); return; }
+
+  if(editingTeam){
+    const i = teamMembers.findIndex(m => m.id === editingTeam);
+    teamMembers[i] = {...teamMembers[i], ...data};
+  } else {
+    teamMembers.push({id: crypto.randomUUID(), ...data});
+  }
+
+  saveAll();
+  closeModals();
+  refreshAll();
+}
+
+function deleteTeamMember(){
+  if(!editingTeam) return;
+  if(confirm('Excluir funcionário da equipe?')){
+    teamMembers = teamMembers.filter(m => m.id !== editingTeam);
+    internalTasks = internalTasks.map(t => t.assignedEmail === editingTeam ? {...t, assignedEmail:'', assignedName:''} : t);
+    saveAll();
+    closeModals();
+    refreshAll();
+  }
+}
 
 function openClientModal(){ editingClient=null; document.getElementById('clientModalTitle').textContent='Novo cliente'; document.getElementById('deleteClientBtn').style.display='none'; ['clientName','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id=>document.getElementById(id).value=''); document.getElementById('clientStatus').value='Ativo'; document.getElementById('clientModal').classList.add('active'); }
 function editClient(id){ const c=clientById(id); if(!c)return; editingClient=id; document.getElementById('clientModalTitle').textContent='Editar cliente'; document.getElementById('deleteClientBtn').style.display='inline-block'; document.getElementById('clientName').value=c.name||''; document.getElementById('clientWhatsapp').value=c.whatsapp||''; document.getElementById('clientDrive').value=c.drive||''; document.getElementById('clientInstagram').value=c.instagram||''; document.getElementById('clientStatus').value=c.status||'Ativo'; document.getElementById('clientObs').value=c.obs||''; document.getElementById('clientModal').classList.add('active'); }
 function saveClient(){ const data={name:clientName.value.trim(),whatsapp:clientWhatsapp.value.trim(),drive:clientDrive.value.trim(),instagram:clientInstagram.value.trim(),status:clientStatus.value,obs:clientObs.value.trim()}; if(!data.name){alert('Coloque o nome do cliente.');return;} if(editingClient){const i=clients.findIndex(c=>c.id===editingClient);clients[i]={...clients[i],...data};}else clients.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll(); }
 function deleteClient(){ if(!editingClient)return; if(confirm('Excluir cliente e todas as demandas dele?')){clients=clients.filter(c=>c.id!==editingClient);demands=demands.filter(d=>d.clientId!==editingClient);selectedClientId=clients[0]?.id||null;saveAll();closeModals();refreshAll();}}
 
-function openDemandModal(clientId){ editingDemand=null; demandModalTitle.textContent='Nova demanda'; deleteDemandBtn.style.display='none'; fillSelects(); demandClient.value=clientId||selectedClientId||clients[0]?.id||''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id=>document.getElementById(id).value=''); demandType.value='Estratégia'; demandStatus.value='Estratégia'; demandPriority.value='Normal'; demandModal.classList.add('active');}
-function editDemand(id){ const d=demands.find(x=>x.id===id); if(!d)return; editingDemand=id; fillSelects(); demandModalTitle.textContent='Editar demanda'; deleteDemandBtn.style.display='inline-block'; demandClient.value=d.clientId; demandTitle.value=d.title||''; demandType.value=d.type||'Estratégia'; demandStatus.value=d.status||'Estratégia'; demandDate.value=d.date||''; demandPriority.value=d.priority||'Normal'; demandLink.value=d.link||''; demandDesc.value=d.desc||''; demandComment.value=d.comment||''; demandModal.classList.add('active');}
-function saveDemand(){ const data={clientId:demandClient.value,title:demandTitle.value.trim(),type:demandType.value,status:demandStatus.value,date:demandDate.value,priority:demandPriority.value,link:demandLink.value.trim(),desc:demandDesc.value.trim(),comment:demandComment.value.trim()}; if(!data.clientId){alert('Cadastre um cliente primeiro.');return;} if(!data.title){alert('Coloque o nome da demanda.');return;} if(editingDemand){const i=demands.findIndex(d=>d.id===editingDemand);demands[i]={...demands[i],...data};}else demands.push({id:crypto.randomUUID(),...data}); selectedClientId=data.clientId; saveAll(); closeModals(); refreshAll();}
+function openDemandModal(clientId){ editingDemand=null; demandModalTitle.textContent='Nova demanda'; deleteDemandBtn.style.display='none'; fillSelects(); demandClient.value=clientId||selectedClientId||clients[0]?.id||''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id=>document.getElementById(id).value=''); demandType.value='Estratégia'; demandStatus.value='Estratégia'; demandPriority.value='Normal'; fillTeamSelects(); demandAssigned.value=''; demandModal.classList.add('active');}
+function editDemand(id){ const d=demands.find(x=>x.id===id); if(!d)return; editingDemand=id; fillSelects(); demandModalTitle.textContent='Editar demanda'; deleteDemandBtn.style.display='inline-block'; demandClient.value=d.clientId; demandTitle.value=d.title||''; demandType.value=d.type||'Estratégia'; demandStatus.value=d.status||'Estratégia'; demandDate.value=d.date||''; demandPriority.value=d.priority||'Normal'; fillTeamSelects(); demandAssigned.value=d.assignedEmail||''; demandLink.value=d.link||''; demandDesc.value=d.desc||''; demandComment.value=d.comment||''; demandModal.classList.add('active');}
+function saveDemand(){ const assigned = teamMembers.find(m => m.email === demandAssigned.value);
+  const data={clientId:demandClient.value,title:demandTitle.value.trim(),type:demandType.value,status:demandStatus.value,date:demandDate.value,priority:demandPriority.value,assignedEmail:demandAssigned.value||'',assignedName:assigned?.name||'',link:demandLink.value.trim(),desc:demandDesc.value.trim(),comment:demandComment.value.trim()}; if(!data.clientId){alert('Cadastre um cliente primeiro.');return;} if(!data.title){alert('Coloque o nome da demanda.');return;} if(editingDemand){const i=demands.findIndex(d=>d.id===editingDemand);demands[i]={...demands[i],...data};}else demands.push({id:crypto.randomUUID(),...data}); selectedClientId=data.clientId; saveAll(); closeModals(); refreshAll();}
 function deleteDemand(){ if(!editingDemand)return; if(confirm('Excluir essa demanda?')){demands=demands.filter(d=>d.id!==editingDemand);saveAll();closeModals();refreshAll();}}
 function approveDemand(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aprovado';saveAll();refreshAll();}}
 function waitingClient(id){ const d=demands.find(x=>x.id===id); if(d){d.status='Aguardando você';saveAll();refreshAll();}}
 function requestAdjust(id){ const text=prompt('Qual ajuste o cliente pediu?'); const d=demands.find(x=>x.id===id); if(d){d.status='Ajustes solicitados';d.comment=text||d.comment;saveAll();refreshAll();}}
 
-function openInternalModal(){ editingInternal=null; fillInternalStatus(); internalModalTitle.textContent='Nova tarefa interna'; deleteInternalBtn.style.display='none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc'].forEach(id=>document.getElementById(id).value=''); internalType.value='Edição de Vídeo'; internalPriority.value='Normal'; internalStatus.value='A Resolver'; internalModal.classList.add('active');}
-function editInternal(id){ const t=internalTasks.find(x=>x.id===id); if(!t)return; editingInternal=id; fillInternalStatus(); internalModalTitle.textContent='Editar tarefa interna'; deleteInternalBtn.style.display='inline-block'; internalTitle.value=t.title||''; internalClient.value=t.client||''; internalValue.value=t.value||''; internalType.value=t.type||'Edição de Vídeo'; internalPriority.value=t.priority||'Normal'; internalStatus.value=t.status||'A Resolver'; internalDate.value=t.date||''; internalDesc.value=t.desc||''; internalModal.classList.add('active');}
-function saveInternal(){ const data={title:internalTitle.value.trim(),client:internalClient.value.trim(),value:internalValue.value.trim(),type:internalType.value,priority:internalPriority.value,status:internalStatus.value,date:internalDate.value,desc:internalDesc.value.trim()}; if(!data.title){alert('Coloque o nome da tarefa.');return;} if(editingInternal){const i=internalTasks.findIndex(t=>t.id===editingInternal);internalTasks[i]={...internalTasks[i],...data};}else internalTasks.push({id:crypto.randomUUID(),...data}); saveAll(); closeModals(); refreshAll();}
-function deleteInternal(){ if(!editingInternal)return; if(confirm('Excluir essa tarefa?')){internalTasks=internalTasks.filter(t=>t.id!==editingInternal);saveAll();closeModals();refreshAll();}}
-function moveInternal(id,dir){ const t=internalTasks.find(x=>x.id===id); if(!t)return; const i=internalStatuses.indexOf(t.status); t.status=internalStatuses[Math.max(0,Math.min(internalStatuses.length-1,i+dir))]; saveAll(); refreshAll();}
-function finishInternal(id){ const t=internalTasks.find(x=>x.id===id); if(t){t.status='Entregue';saveAll();refreshAll();}}
-
-function openWhats(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
-function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active')); }
-function refreshAll(){ renderDashboard(); renderInternal(); renderClients(); renderDemands(); renderClientPanel(selectedClientId); }
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModals(); });
-fillSelects(); fillInternalStatus(); refreshAll();
-</script>
-</body>
-</html>
+function openInternalModal(){ editingInternal=null; fillInternalStatus(); internalModalTitle.textContent='Nova tarefa interna'; del
