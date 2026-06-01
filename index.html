@@ -650,12 +650,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       </div>
     </div>
     <div class="form">
-      <div class="upload-box full">
-        <label for="agencyLogoFile">Logo da Agência Humaniza</label>
-        <input id="agencyLogoFile" type="file" accept="image/*">
-        <small>Você pode enviar do computador ou celular. PNG com fundo transparente fica mais bonito.</small>
-      </div>
-      <input id="agencyLogoLink" class="full" placeholder="Ou cole aqui um link da logo no Drive, site ou imagem online">
+      <input id="agencyLogoFile" type="file" style="display:none">
+      <input id="agencyLogoLink" class="full" placeholder="Cole aqui o link direto da logo da Agência Humaniza">
     </div>
     <div class="actions">
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
@@ -670,12 +666,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="form">
       <input id="teamName" placeholder="Nome do funcionário" class="full">
       <input id="teamEmail" placeholder="E-mail de login do funcionário">
-      <div class="upload-box full">
-        <label for="teamPhotoFile">Foto do funcionário</label>
-        <input id="teamPhotoFile" type="file" accept="image/*">
-        <small>Use uma foto quadrada, se possível.</small>
-      </div>
-      <input id="teamPhotoLink" class="full" placeholder="Ou cole aqui um link da foto no Drive, site ou imagem online">
+      <input id="teamPhotoFile" type="file" style="display:none">
+      <input id="teamPhotoLink" class="full" placeholder="Cole aqui o link direto da foto do funcionário">
       <input id="teamRole" placeholder="Função. Ex: Editor, Designer, Social Media">
       <select id="teamPermission">
         <option>Operacional</option>
@@ -699,11 +691,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       <input id="clientName" placeholder="Nome do cliente" class="full">
       <input id="clientEmail" placeholder="E-mail de login do cliente">
       <input id="clientLogoLink" class="full" placeholder="Link da logo do cliente no Drive, site ou imagem online">
-      <div class="upload-box full">
-        <label for="clientLogoFile">Logo do cliente</label>
-        <input id="clientLogoFile" type="file" accept="image/*">
-        <small>Clique para enviar a logo direto do computador. PNG ou JPG.</small>
-      </div>
+      <input id="clientLogoFile" type="file" style="display:none">
       <input id="clientWhatsapp" placeholder="WhatsApp. Ex: 43999999999">
       <input id="clientDrive" placeholder="Link da pasta do Drive">
       <input id="clientInstagram" placeholder="Instagram do cliente">
@@ -730,11 +718,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
       <select id="demandAssigned"><option value="">Sem responsável interno</option></select>
       <input id="demandLink" class="full" placeholder="Link do vídeo, Drive, arte ou pasta">
-      <div class="upload-box full">
-        <label for="demandImageFile">Imagem para aprovação</label>
-        <input id="demandImageFile" type="file" accept="image/*">
-        <small>Use para enviar arte, capa, foto ou imagem que o cliente precisa aprovar.</small>
-      </div>
+      <input id="demandImageFile" type="file" style="display:none">
+      <input id="demandImageLink" class="full" placeholder="Link da imagem para aprovação. Ex: Drive, Canva, Dropbox ou link direto">
       <textarea id="demandDesc" class="full" rows="4" placeholder="Descrição da demanda"></textarea>
       <textarea id="demandComment" class="full" rows="3" placeholder="Comentário do cliente ou ajuste solicitado"></textarea>
     </div>
@@ -773,7 +758,6 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB2xU6wgDjswece50JVE-thiCb40wP-58M",
@@ -789,7 +773,6 @@ const ADMIN_EMAIL = "agenciahumanizamedia@gmail.com";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 let currentUser = null;
 let isAdmin = false;
@@ -816,14 +799,7 @@ const internalStatuses = ['A Resolver','Em Produção','Pronto para Revisão','A
 
 
 async function uploadSelectedFile(inputId, folder){
-  const input = document.getElementById(inputId);
-  if(!input || !input.files || !input.files[0]) return "";
-  const file = input.files[0];
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${folder}/${Date.now()}-${safeName}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
+  return "";
 }
 
 window.login = async function(){
@@ -1156,9 +1132,8 @@ window.openSettingsModal = function(){
 }
 
 window.saveSettings = async function(){
-  const uploadedLogo = await uploadSelectedFile('agencyLogoFile', 'agency-logo');
   const manualLogo = document.getElementById('agencyLogoLink')?.value.trim() || '';
-  const logoUrl = uploadedLogo || manualLogo || appSettings.logoUrl || '';
+  const logoUrl = manualLogo || appSettings.logoUrl || '';
   await setDoc(doc(db, 'settings', 'app'), {
     logoUrl,
     name: 'Agência Humaniza',
@@ -1195,12 +1170,11 @@ window.editTeamMember = function(id){
 }
 window.saveTeamMember = async function(){
   const existing = editingTeam ? teamMembers.find(x => x.id === editingTeam) : null;
-  const uploadedPhoto = await uploadSelectedFile('teamPhotoFile', 'team-photos');
   const manualPhoto = document.getElementById('teamPhotoLink')?.value.trim() || '';
   const data = {
     name: teamName.value.trim(),
     email: teamEmail.value.trim(),
-    photoUrl: uploadedPhoto || manualPhoto || existing?.photoUrl || '',
+    photoUrl: manualPhoto || existing?.photoUrl || '',
     role: teamRole.value.trim(),
     permission: teamPermission.value,
     status: teamStatus.value,
@@ -1225,12 +1199,11 @@ window.openClientModal = function(){ editingClient = null; document.getElementBy
 window.editClient = function(id){ const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; if(document.getElementById('clientLogoLink')) document.getElementById('clientLogoLink').value = c.logo || ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || ''; document.getElementById('clientModal').classList.add('active'); }
 window.saveClient = async function(){
   const existing = editingClient ? clientById(editingClient) : null;
-  const uploadedLogo = await uploadSelectedFile('clientLogoFile', 'client-logos');
   const manualLogo = document.getElementById('clientLogoLink')?.value.trim() || '';
   const data = {
     name: clientName.value.trim(),
     email: clientEmail.value.trim(),
-    logo: uploadedLogo || manualLogo || existing?.logo || '',
+    logo: manualLogo || existing?.logo || '',
     whatsapp: clientWhatsapp.value.trim(),
     drive: clientDrive.value.trim(),
     instagram: clientInstagram.value.trim(),
@@ -1246,13 +1219,12 @@ window.saveClient = async function(){
 }
 window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
 
-window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandDesc','demandComment'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal'; document.getElementById('demandModal').classList.add('active'); }
-window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandModal').classList.add('active'); }
+window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal'; document.getElementById('demandModal').classList.add('active'); }
+window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandModal').classList.add('active'); }
 window.saveDemand = async function(){
   const c = clientById(demandClient.value);
   const assigned = teamMembers.find(m => m.email === demandAssigned.value);
-  const existing = editingDemand ? demands.find(x => x.id === editingDemand) : null;
-  const uploadedImage = await uploadSelectedFile('demandImageFile', 'demand-images');
+  const imageLink = document.getElementById('demandImageLink')?.value.trim() || '';
   const data = {
     clientId: demandClient.value,
     clientEmail: c?.email || '',
@@ -1264,7 +1236,7 @@ window.saveDemand = async function(){
     assignedEmail: demandAssigned.value || '',
     assignedName: assigned?.name || '',
     link: demandLink.value.trim(),
-    imageUrl: uploadedImage || existing?.imageUrl || '',
+    imageUrl: imageLink,
     desc: demandDesc.value.trim(),
     comment: demandComment.value.trim(),
     updatedAt: serverTimestamp()
