@@ -535,6 +535,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 @media(max-width:1100px){.planning-grid,.brand-library-grid{grid-template-columns:1fr 1fr}.workflow-line{grid-template-columns:1fr 1fr}.calendar-real{min-width:980px}}
 @media(max-width:720px){.planning-grid,.brand-library-grid,.workflow-line{grid-template-columns:1fr}.calendar-scroll{overflow-x:auto;margin-left:-14px;margin-right:-14px;padding:0 14px 12px}.calendar-real{min-width:980px}.calendar-day{min-height:145px}}
 
+
+  .member-panel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.member-panel-list{display:grid;gap:10px;margin-top:12px}.member-work-item{background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:14px}.member-work-item h4{margin:0 0 8px}.responsibility{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:#242018;color:#e9c979;font-size:12px;font-weight:700}.team-work-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}.team-work-section{margin-top:22px}.team-work-section h3{margin-bottom:10px}@media(max-width:800px){.member-panel-grid,.team-work-summary{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -604,8 +606,10 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   <section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div><div class="planning-grid" id="capturesGrid"></div></section>
   <section id="libraryView" class="hidden"><div class="top"><h2>Biblioteca da Marca</h2><button id="btnLibraryEdit" onclick="openClientModal()">Editar cliente</button></div><div id="libraryContent"></div></section>
   <section id="internalView" class="hidden">
-    <div class="top"><h2>Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa interna..." oninput="renderInternal()"></div>
-    <div class="board-wrap"><div class="board" id="internalBoard"></div></div>
+    <div class="top"><h2 id="internalViewTitle">Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa..." oninput="renderInternal()"></div>
+    <div id="teamWorkSummary" class="team-work-summary" style="display:none"></div>
+    <div class="team-work-section"><div class="board-wrap"><div class="board" id="internalBoard"></div></div></div>
+    <div id="teamClientDemandSection" class="team-work-section" style="display:none"><h3>Demandas de clientes atribuídas a mim</h3><div class="board-wrap"><div class="board" id="teamClientDemandBoard"></div></div></div>
   </section>
 
   <section id="teamView" class="hidden">
@@ -672,6 +676,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       <select id="teamPermission">
         <option>Operacional</option>
         <option>Líder</option>
+        <option>Gestor</option>
       </select>
       <select id="teamStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="teamObs" class="full" rows="4" placeholder="Observações internas"></textarea>
@@ -683,6 +688,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     </div>
   </div>
 </div>
+
+<div class="modal" id="memberPanelModal"><div class="modal-card" style="max-width:1050px"><div class="top"><div><h2 id="memberPanelTitle">Painel do funcionário</h2><p id="memberPanelSubtitle" style="color:#A6A6A6;margin:4px 0 0"></p></div><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="memberPanelContent"></div></div></div>
 
 <div class="modal" id="clientModal">
   <div class="modal-card">
@@ -794,7 +801,7 @@ let appSettings = {};
 let unsubSettings = null;
 let unsubMacro = null, unsubCalendar = null, unsubScripts = null, unsubCaptures = null;
 
-const demandStatuses = ['Estratégia','Em produção','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
+const demandStatuses = ['Estratégia','Em produção','Revisão interna','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
 const internalStatuses = ['A Resolver','Em Produção','Pronto para Revisão','Ajustes Internos','Aprovado Internamente','Entregue ao Cliente','Entregue'];
 
 
@@ -871,7 +878,7 @@ function adjustViewByRole(){
 
   if(isTeamMember){
     updateMobileMenuByRole();
-    tabs.forEach((tab, index) => { if(![2,3,4,5,6].includes(index)) tab.style.display = 'none'; });
+    tabs.forEach((tab, index) => { if(![2,3,4,5,6,9].includes(index)) tab.style.display = 'none'; });
     showView('internal', tabs[6]);
   } else {
     updateMobileMenuByRole();
@@ -909,7 +916,16 @@ function startListeners(){
     unsubClients = onSnapshot(collection(db, 'clients'), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = selectedClientId || clients[0]?.id || null; refreshAll(); });
     unsubDemands = onSnapshot(collection(db, 'demands'), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
     unsubInternal = onSnapshot(collection(db, 'internalTasks'), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+  } else if(isTeamMember){
+    // Funcionário: carrega as demandas e tarefas atribuídas ao próprio e-mail.
+    // A lista de clientes fica vazia porque dados administrativos de clientes
+    // continuam restritos ao admin / ao próprio cliente.
+    clients = [];
+    selectedClientId = null;
+    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('assignedEmail','==', currentUser.email)), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubInternal = onSnapshot(query(collection(db, 'internalTasks'), where('assignedEmail','==', currentUser.email)), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
   } else {
+    // Cliente: carrega somente o próprio cadastro e as próprias demandas.
     unsubClients = onSnapshot(query(collection(db, 'clients'), where('email','==', currentUser.email)), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = clients[0]?.id || null; refreshAll(); });
     unsubDemands = onSnapshot(query(collection(db, 'demands'), where('clientEmail','==', currentUser.email)), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
     unsubInternal = onSnapshot(query(collection(db, 'internalTasks'), where('assignedEmail','==', currentUser.email)), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
@@ -918,7 +934,7 @@ function startListeners(){
 
 window.showView = function(view, el){
   if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel'].includes(view)) return;
-  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal'].includes(view)) return;
+  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands'].includes(view)) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
   ['dashboard','macro','calendar','scripts','captures','library','internal','team','clients','demands','clientPanel'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
@@ -980,12 +996,28 @@ window.renderLibrary=function(){ const c=isAdmin?currentVisibleClient():clients[
 window.renderInternal = function(){
   if(!isAdmin && !isTeamMember) return;
   fillInternalStatus();
+  const title = document.getElementById('internalViewTitle');
+  const summary = document.getElementById('teamWorkSummary');
+  const demandSection = document.getElementById('teamClientDemandSection');
+  if(title) title.textContent = isTeamMember && !isAdmin ? 'Meu trabalho' : 'Painel interno da agência';
+  if(summary) summary.style.display = isTeamMember && !isAdmin ? 'grid' : 'none';
+  if(demandSection) demandSection.style.display = isTeamMember && !isAdmin ? 'block' : 'none';
   const q = (document.getElementById('internalSearch')?.value || '').toLowerCase();
   const data = internalTasks.filter(t => (t.title||'').toLowerCase().includes(q) || (t.client||'').toLowerCase().includes(q));
   document.getElementById('internalBoard').innerHTML = internalStatuses.map(st => {
     const items = data.filter(t => t.status === st);
     return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(internalCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
   }).join('');
+  if(isTeamMember && !isAdmin){
+    const all=[...internalTasks,...demands];
+    const open=all.filter(x=>!['Entregue','Aprovado','Publicado'].includes(x.status)).length;
+    const late=all.filter(isLate).length;
+    const review=all.filter(x=>['Pronto para Revisão','Revisão interna'].includes(x.status)).length;
+    const waiting=demands.filter(x=>x.status==='Aguardando você').length;
+    summary.innerHTML=`<div class="stat"><p>Em aberto</p><strong>${open}</strong></div><div class="stat"><p>Atrasadas</p><strong>${late}</strong></div><div class="stat"><p>Em revisão</p><strong>${review}</strong></div><div class="stat"><p>Aguardando cliente</p><strong>${waiting}</strong></div>`;
+    const board=document.getElementById('teamClientDemandBoard');
+    if(board) board.innerHTML=demandStatuses.map(st=>{const items=demands.filter(d=>d.status===st);return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>`}).join('');
+  }
 }
 function internalCard(t){
   const canEdit = isAdmin || currentTeamMember?.permission === 'Líder' || t.assignedEmail === currentUser?.email;
@@ -1015,21 +1047,31 @@ window.renderTeam = function(){
   const summary = document.getElementById('teamSummary');
   const q = (document.getElementById('teamSearch')?.value || '').toLowerCase();
   const list = teamMembers.filter(m => (m.name||'').toLowerCase().includes(q) || (m.email||'').toLowerCase().includes(q) || (m.role||'').toLowerCase().includes(q));
-  const totalOpen = internalTasks.filter(t => t.status !== 'Entregue').length;
-  const totalLate = internalTasks.filter(isLate).length;
-  const review = internalTasks.filter(t => t.status === 'Pronto para Revisão').length;
+
+  const openInternal = internalTasks.filter(t => t.status !== 'Entregue');
+  const openDemands = demands.filter(d => !['Aprovado','Publicado'].includes(d.status));
+  const totalOpen = openInternal.length + openDemands.length;
+  const totalLate = [...internalTasks, ...demands].filter(isLate).length;
+  const review = internalTasks.filter(t => t.status === 'Pronto para Revisão').length + demands.filter(d => ['Aguardando aprovação','Revisão interna'].includes(d.status)).length;
+
   summary.innerHTML = `
-    <div class="stat"><p>Tarefas abertas</p><strong>${totalOpen}</strong></div>
+    <div class="stat"><p>Tarefas + demandas abertas</p><strong>${totalOpen}</strong></div>
     <div class="stat"><p>Atrasadas</p><strong>${totalLate}</strong></div>
-    <div class="stat"><p>Pronto revisão</p><strong>${review}</strong></div>
+    <div class="stat"><p>Em revisão / aprovação</p><strong>${review}</strong></div>
     <div class="stat"><p>Equipe ativa</p><strong>${teamMembers.filter(m => m.status !== 'Finalizado').length}</strong></div>
   `;
+
   grid.innerHTML = list.length ? list.map(m => {
-    const tasks = internalTasks.filter(t => t.assignedEmail === m.email);
-    const open = tasks.filter(t => t.status !== 'Entregue').length;
-    const late = tasks.filter(isLate).length;
-    const review = tasks.filter(t => t.status === 'Pronto para Revisão').length;
-    return `<div class="card">${m.photoUrl?`<div class="avatar-box"><img src="${m.photoUrl}" alt="${m.name}"></div>`:''}<h3>${m.name}</h3><p>${m.role || 'Sem função cadastrada.'}</p><div class="meta"><span class="pill">${m.permission || 'Operacional'}</span><span class="pill">${m.status || 'Ativo'}</span><span class="pill">${m.email || ''}</span><span class="pill">${open} abertas</span><span class="pill">${late} atrasadas</span><span class="pill">${review} revisão</span></div><div class="actions"><button class="btn-dark" onclick="editTeamMember('${m.id}')">Editar</button></div></div>`;
+    const memberEmail = (m.email || '').trim().toLowerCase();
+    const tasks = internalTasks.filter(t => (t.assignedEmail || '').trim().toLowerCase() === memberEmail);
+    const memberDemands = demands.filter(d => (d.assignedEmail || '').trim().toLowerCase() === memberEmail);
+    const openTasks = tasks.filter(t => t.status !== 'Entregue').length;
+    const openClientDemands = memberDemands.filter(d => !['Aprovado','Publicado'].includes(d.status)).length;
+    const open = openTasks + openClientDemands;
+    const late = [...tasks, ...memberDemands].filter(isLate).length;
+    const review = tasks.filter(t => t.status === 'Pronto para Revisão').length + memberDemands.filter(d => ['Aguardando aprovação','Revisão interna'].includes(d.status)).length;
+
+    return `<div class="card">${m.photoUrl?`<div class="avatar-box"><img src="${m.photoUrl}" alt="${m.name}"></div>`:''}<h3>${m.name}</h3><p>${m.role || 'Sem função cadastrada.'}</p><div class="meta"><span class="pill">${m.permission || 'Operacional'}</span><span class="pill">${m.status || 'Ativo'}</span><span class="pill">${m.email || ''}</span><span class="pill">${open} abertas</span><span class="pill">${openClientDemands} demandas cliente</span><span class="pill">${late} atrasadas</span><span class="pill">${review} revisão/aprovação</span></div><div class="actions"><button onclick="openMemberPanel('${m.id}')">Abrir painel</button><button class="btn-dark" onclick="editTeamMember('${m.id}')">Editar</button></div></div>`;
   }).join('') : '<div class="empty">Nenhum funcionário cadastrado.</div>';
   fillTeamSelects();
 }
@@ -1057,9 +1099,11 @@ function showClientPanelTab(){
 window.showClientPanelTab = showClientPanelTab;
 
 window.renderDemands = function(){
-  if(!isAdmin) return;
-  fillSelects();
-  const filter = document.getElementById('agencyClientFilter').value;
+  if(!isAdmin && !isTeamMember) return;
+  if(isAdmin) fillSelects();
+  const filterEl = document.getElementById('agencyClientFilter');
+  if(filterEl) filterEl.style.display = isAdmin ? '' : 'none';
+  const filter = isAdmin && filterEl ? filterEl.value : 'Todos';
   const data = filter === 'Todos' ? demands : demands.filter(d => d.clientId === filter);
   document.getElementById('demandsBoard').innerHTML = demandStatuses.map(st => {
     const items = data.filter(d => d.status === st);
@@ -1079,8 +1123,17 @@ window.renderClientPanel = function(clientId){
   content.innerHTML = `<div class="client-header"><div class="client-title-row">${c.logo?`<div class="brand-logo-box"><img src="${c.logo}" alt="Logo ${c.name}"></div>`:''}<div><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">${c.obs||''}</p></div></div><div class="meta"><span class="pill">${c.status||'Ativo'}</span>${c.instagram?`<span class="pill">${c.instagram}</span>`:''}${c.drive?'<span class="pill">Drive cadastrado</span>':''}</div><div class="actions">${isAdmin?`<button class="btn-blue" onclick="openDemandModal('${c.id}')">+ Nova demanda</button>`:''}${c.drive?`<button class="btn-dark" onclick="window.open('${c.drive}','_blank')">Abrir Drive</button>`:''}${c.whatsapp?`<button class="btn-green" onclick="openWhats('${c.whatsapp}','Oi! Tudo bem? Passando para atualizar as demandas da ${c.name}.')">WhatsApp</button>`:''}</div></div><div class="stats"><div class="stat"><p>Total</p><strong>${data.length}</strong></div><div class="stat"><p>Aguardando aprovação</p><strong>${approval.length}</strong></div><div class="stat"><p>Aguardando você</p><strong>${waiting.length}</strong></div><div class="stat"><p>Progresso do mês</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div></div><div class="todo-list"><div class="todo"><h4>✅ Aprovar conteúdo</h4><p>${approval.length?`${approval.length} demanda(s) aguardando aprovação.`:'Nenhuma aprovação pendente.'}</p></div><div class="todo"><h4>📩 Aguardando você</h4><p>${waiting.length?`${waiting.length} item(ns) precisam de retorno ou material.`:'Nada pendente com o cliente.'}</p></div><div class="todo"><h4>⚠️ Atenção</h4><p>${late.length?`${late.length} demanda(s) atrasada(s).`:'Tudo dentro do prazo.'}</p></div></div><div class="board-wrap"><div class="board">${demandStatuses.map(st => { const items=data.filter(d => d.status===st); return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>` }).join('')}</div></div>`;
 }
 function demandCard(d){
-  const c = clientById(d.clientId), late = isLate(d), approved = ['Aprovado','Publicado'].includes(d.status), adjust = d.status === 'Ajustes solicitados', waiting = d.status === 'Aguardando você';
-  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions">${isAdmin?`<button class="icon" onclick="editDemand('${d.id}')">✏️</button>`:''}</div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?'<span class="badge b-yellow">Aguardando você</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p>${d.imageUrl?`<img class="demand-image" src="${d.imageUrl}" alt="Imagem da demanda">`:''}<div class="meta"><span class="pill">${c?c.name:'Cliente'}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions"><button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button>${isAdmin?`<button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardando você</button>`:''}${d.imageUrl?`<button class="btn-blue" onclick="window.open('${d.imageUrl}','_blank')">Abrir imagem</button>`:''}${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
+  const c = clientById(d.clientId), late = isLate(d), approved = ['Aprovado','Publicado'].includes(d.status), adjust = d.status === 'Ajustes solicitados', waiting = d.status === 'Aguardando você', reviewInternal=d.status==='Revisão interna';
+  const responsibility = waiting ? (isAdmin ? `Aguardando cliente${c?.name?`: ${c.name}`:''}` : (isTeamMember ? 'Aguardando cliente' : 'Aguardando você')) : (reviewInternal ? 'Aguardando revisão do admin' : (d.assignedName ? `Responsável: ${d.assignedName}` : 'Sem responsável interno'));
+  let actions='';
+  if(isAdmin){
+    actions=`<button class="btn-dark" onclick="editDemand('${d.id}')">Editar</button>${reviewInternal?`<button class="btn-green" onclick="approveInternalDemand('${d.id}')">Aprovar internamente</button><button class="btn-gold" onclick="requestTeamAdjust('${d.id}')">Solicitar ajuste</button>`:''}<button class="btn-gold" onclick="waitingClient('${d.id}')">Aguardar cliente</button>`;
+  } else if(isTeamMember){
+    actions=`${!reviewInternal && !approved?`<button class="btn-green" onclick="sendDemandReview('${d.id}')">Enviar para revisão</button>`:''}<button class="btn-blue" onclick="teamDemandComment('${d.id}')">Comentar</button>`;
+  } else {
+    actions=d.status==='Aguardando aprovação'?`<button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button>`:'';
+  }
+  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions">${isAdmin?`<button class="icon" onclick="editDemand('${d.id}')">✏️</button>`:''}</div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?`<span class="badge b-yellow">${isAdmin||isTeamMember?'Aguardando cliente':'Aguardando você'}</span>`:''}${reviewInternal?'<span class="badge b-yellow">Revisão interna</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p>${d.imageUrl?`<img class="demand-image" src="${d.imageUrl}" alt="Imagem da demanda">`:''}<div class="meta"><span class="pill">${c?c.name:'Cliente'}</span>${d.assignedName?`<span class="pill">Responsável: ${d.assignedName}</span>`:''}${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div><span class="responsibility">${responsibility}</span>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions">${actions}${d.imageUrl?`<button class="btn-blue" onclick="window.open('${d.imageUrl}','_blank')">Abrir imagem</button>`:''}${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
 }
 function fillSelects(){
   if(!isAdmin) return;
@@ -1220,7 +1273,7 @@ window.saveClient = async function(){
 window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
 
 window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal'; document.getElementById('demandModal').classList.add('active'); }
-window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandModal').classList.add('active'); }
+window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandAssigned').value = d.assignedEmail || ''; document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandModal').classList.add('active'); }
 window.saveDemand = async function(){
   const c = clientById(demandClient.value);
   const assigned = teamMembers.find(m => m.email === demandAssigned.value);
@@ -1262,8 +1315,14 @@ window.saveInternal = async function(){ const assigned = teamMembers.find(m => m
   const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: internalAssigned.value || '', assignedName: assigned?.name || '', status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } if(editingInternal) await setDoc(doc(db,'internalTasks',editingInternal), data, {merge:true}); else await addDoc(collection(db,'internalTasks'), {...data, createdAt: serverTimestamp()}); closeModals(); }
 window.deleteInternal = async function(){ if(!editingInternal) return; if(confirm('Excluir essa tarefa?')){ await deleteDoc(doc(db,'internalTasks',editingInternal)); closeModals(); } }
 window.moveInternal = async function(id, dir){ const t = internalTasks.find(x => x.id === id); if(!t) return; const i = internalStatuses.indexOf(t.status); const status = internalStatuses[Math.max(0, Math.min(internalStatuses.length-1, i+dir))]; await setDoc(doc(db,'internalTasks',id), {status, updatedAt:serverTimestamp()}, {merge:true}); }
-window.finishInternal = async function(id){ await setDoc(doc(db,'internalTasks',id), {status:'Entregue', updatedAt:serverTimestamp()}, {merge:true}); }
+window.finishInternal = async function(id){ const status=(isTeamMember&&!isAdmin)?'Pronto para Revisão':'Entregue'; await setDoc(doc(db,'internalTasks',id), {status, lastActionBy:currentUser?.email||'', lastActionName:currentTeamMember?.name||(isAdmin?'Admin':''), updatedAt:serverTimestamp()}, {merge:true}); }
 
+
+window.sendDemandReview=async function(id){ await setDoc(doc(db,'demands',id),{status:'Revisão interna',lastActionBy:currentUser?.email||'',lastActionName:currentTeamMember?.name||'',updatedAt:serverTimestamp()},{merge:true}); }
+window.approveInternalDemand=async function(id){ await setDoc(doc(db,'demands',id),{status:'Aguardando aprovação',lastActionBy:currentUser?.email||'',lastActionName:'Admin',updatedAt:serverTimestamp()},{merge:true}); }
+window.requestTeamAdjust=async function(id){ const text=prompt('Qual ajuste a equipe precisa fazer?'); if(text===null)return; await setDoc(doc(db,'demands',id),{status:'Ajustes solicitados',comment:text||'',lastActionBy:currentUser?.email||'',lastActionName:'Admin',updatedAt:serverTimestamp()},{merge:true}); }
+window.teamDemandComment=async function(id){ const d=demands.find(x=>x.id===id); const text=prompt('Comentário sobre a demanda:',d?.comment||''); if(text!==null) await setDoc(doc(db,'demands',id),{comment:text,lastActionBy:currentUser?.email||'',lastActionName:currentTeamMember?.name||'',updatedAt:serverTimestamp()},{merge:true}); }
+window.openMemberPanel=function(id){ const m=teamMembers.find(x=>x.id===id); if(!m)return; const email=(m.email||'').trim().toLowerCase(); const tasks=internalTasks.filter(t=>(t.assignedEmail||'').trim().toLowerCase()===email); const ds=demands.filter(d=>(d.assignedEmail||'').trim().toLowerCase()===email); const all=[...tasks,...ds]; const open=all.filter(x=>!['Entregue','Aprovado','Publicado'].includes(x.status)).length; const late=all.filter(isLate).length; const review=all.filter(x=>['Pronto para Revisão','Revisão interna'].includes(x.status)).length; const done=all.filter(x=>['Entregue','Aprovado','Publicado'].includes(x.status)).length; document.getElementById('memberPanelTitle').textContent=m.name; document.getElementById('memberPanelSubtitle').textContent=`${m.role||'Equipe'} • ${m.permission||'Operacional'} • ${m.email||''}`; const item=(x,kind)=>`<div class="member-work-item"><h4>${x.title||'Sem título'}</h4><div class="meta"><span class="pill">${kind}</span><span class="pill">${x.status||''}</span>${x.date?`<span class="pill">Prazo: ${formatDate(x.date)}</span>`:''}${x.priority?`<span class="pill">${x.priority}</span>`:''}</div><p>${x.desc||x.internalComment||''}</p>${kind==='Demanda de cliente'?`<button class="btn-dark" onclick="closeModals(); showView('demands',document.querySelectorAll('.tab')[9])">Abrir demandas</button>`:''}</div>`; document.getElementById('memberPanelContent').innerHTML=`<div class="member-panel-grid"><div class="stat"><p>Em aberto</p><strong>${open}</strong></div><div class="stat"><p>Atrasadas</p><strong>${late}</strong></div><div class="stat"><p>Em revisão</p><strong>${review}</strong></div><div class="stat"><p>Concluídas</p><strong>${done}</strong></div></div><h3>Demandas de clientes</h3><div class="member-panel-list">${ds.length?ds.map(x=>item(x,'Demanda de cliente')).join(''):'<div class="empty">Nenhuma demanda atribuída.</div>'}</div><h3 style="margin-top:22px">Tarefas internas</h3><div class="member-panel-list">${tasks.length?tasks.map(x=>item(x,'Tarefa interna')).join(''):'<div class="empty">Nenhuma tarefa interna atribuída.</div>'}</div>`; document.getElementById('memberPanelModal').classList.add('active'); }
 window.quickComment = async function(id){
   const t = internalTasks.find(x => x.id === id);
   const text = prompt('Comentário interno:', t?.internalComment || '');
@@ -1273,7 +1332,7 @@ window.quickComment = async function(id){
 }
 window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); }
+function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
 
 
@@ -1307,6 +1366,7 @@ function renderMobileMenuItems(){
       {label:'📹 Captação', action:"mobileGo('captures')"},
       {label:'📚 Biblioteca', action:"mobileGo('library')"},
       {label:'📋 Minhas tarefas', action:"mobileGo('internal')"},
+      {label:'🗂️ Minhas demandas', action:"mobileGo('demands')"},
       {divider:true},
       {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
     ];
@@ -1346,7 +1406,7 @@ window.closeMobileMenu = function(){
 
 window.mobileGo = function(view){
   if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel'].includes(view)) return;
-  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal'].includes(view)) return;
+  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands'].includes(view)) return;
   closeMobileMenu();
 
   const tabMap = {
