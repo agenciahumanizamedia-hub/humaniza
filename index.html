@@ -552,6 +552,11 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .attention-row,.notification-row{background:#202020;border:1px solid #333;border-radius:13px;padding:14px;margin:10px 0;cursor:pointer}.attention-row:hover,.notification-row:hover{border-color:#5B56FF}.notification-row.unread{border-color:#5B56FF}.notification-row p{margin:6px 0;color:#A6A6A6}#notificationCount{display:inline-block;min-width:18px;padding:2px 5px;border-radius:999px;background:#5B56FF;font-size:11px}
 .trash-card{background:#242424;border:1px solid #333;border-radius:14px;padding:15px;margin:10px 0}
 .trash-card h4{margin:0 0 8px}.trash-card p{color:#A6A6A6}
+
+.default-team-label{display:block;font-size:13px;font-weight:700;color:#d7d7d7;margin:12px 0 6px}
+
+.field-label{display:block;font-size:13px;font-weight:700;color:#d7d7d7;margin:10px 0 6px}
+.field-help{font-size:12px;font-weight:400;color:#9f9f9f;margin:4px 0 10px}
 </style>
 </head>
 <body>
@@ -666,13 +671,13 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 
 <div class="modal" id="macroModal"><div class="modal-card"><h2 id="macroModalTitle">Novo planejamento macro</h2><div class="form"><select id="macroClient" class="full"></select><input id="macroTitle" class="full" placeholder="Nome da campanha"><input id="macroMonth" type="month"><select id="macroStatus"><option>Em elaboração</option><option>Enviado para aprovação</option><option>Aprovado</option><option>Ajustes solicitados</option></select><textarea id="macroGoal" class="full" rows="3" placeholder="Objetivo da campanha"></textarea><textarea id="macroDates" class="full" rows="3" placeholder="Datas sazonais"></textarea><textarea id="macroStrategy" class="full" rows="5" placeholder="Estratégia macro"></textarea><textarea id="macroClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteMacroBtn" onclick="deleteMacro()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveMacro()">Salvar</button></div></div></div>
-<div class="modal" id="calendarModal"><div class="modal-card"><h2 id="calendarModalTitle">Novo item no calendário</h2><div class="form"><select id="calendarClient" class="full"></select><input id="calendarDate" type="date"><select id="calendarFormat"><option>Reels</option><option>Carrossel</option><option>Post Estático</option><option>Stories</option><option>Vídeo</option><option>Outro</option></select><input id="calendarTheme" class="full" placeholder="Tema do conteúdo"><select id="calendarStatus"><option>Ideia</option><option>Em roteiro</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Publicado</option></select><select id="calendarVisibility"><option>Visível para cliente</option><option>Apenas equipe</option><option>Apenas admin</option></select><select id="calendarResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><textarea id="calendarTeamNote" class="full" rows="3" placeholder="Observação da equipe"></textarea><textarea id="calendarClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCalendarBtn" onclick="deleteCalendarItem()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCalendarItem()">Salvar</button></div></div></div>
+<div class="modal" id="calendarModal"><div class="modal-card"><h2 id="calendarModalTitle">Novo item no calendário</h2><div class="form"><select id="calendarClient" class="full"></select><input id="calendarDate" type="date"><select id="calendarFormat"><option>Reels</option><option>Carrossel</option><option>Post Estático</option><option>Stories</option><option>Vídeo</option><option>Outro</option></select><input id="calendarTheme" class="full" placeholder="Tema do conteúdo"><select id="calendarStatus"><option>Ideia</option><option>Em roteiro</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Publicado</option></select><select id="calendarVisibility"><option>Visível para cliente</option><option>Apenas equipe</option><option>Apenas admin</option></select><select id="calendarResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><textarea id="calendarTeamNote" class="full" rows="3" placeholder="Observação da equipe"></textarea><textarea id="calendarClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCalendarBtn" onclick="deleteCalendarItem()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCalendarItem()">Salvar</button></div></div></div>
 <div class="modal" id="scriptModal"><div class="modal-card"><h2 id="scriptModalTitle">Novo roteiro</h2><div class="form">
 <select id="scriptClient" class="full"></select>
 <input id="scriptTitle" class="full" placeholder="Título / tema do conteúdo">
 <select id="scriptFormat" onchange="updateScriptFormatFields()"><option value="Vídeo / Reel">Vídeo / Reel</option><option value="Carrossel">Carrossel</option><option value="Estático">Estático</option></select>
 <select id="scriptStatus"><option>Escrevendo</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Gravar</option><option>Editando</option><option>Finalizado</option></select>
-<select id="scriptResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="scriptParticipants" class="participant-options"></div></div>
+<select id="scriptResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div class="field-help">Opcional. Você pode selecionar uma ou mais pessoas da equipe.</div><div id="scriptParticipants" class="participant-options"></div></div>
 <select id="scriptScheduleMode" onchange="updateScriptScheduleFields()"><option value="defined">Data definida</option><option value="tbd">Data a definir</option><option value="not-published">Não será publicado</option></select>
 <div id="scriptPublishDateWrap"><input id="scriptPublishDate" type="date" onchange="onScriptPublishDateChange()"></div>
 <div id="scriptPublishTimeWrap"><input id="scriptPublishTime" type="time" placeholder="Horário (opcional)"></div>
@@ -691,7 +696,7 @@ Card 3: ..."></textarea></div>
 <textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
 <div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
 </div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
-<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
+<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
 <div class="modal" id="settingsModal">
   <div class="modal-card">
     <h2>Configurações da Agência</h2>
@@ -753,8 +758,13 @@ Card 3: ..."></textarea></div>
       <input id="clientInstagram" placeholder="Instagram do cliente">
       <select id="clientStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="clientObs" class="full" rows="4" placeholder="Observações"></textarea>
-<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Opcional. Apenas sugere responsáveis em novos conteúdos.</p>
-<select id="clientDefaultSocial"></select><select id="clientDefaultDesigner"></select><select id="clientDefaultVideo"></select><select id="clientDefaultTraffic"></select><select id="clientDefaultLeader"></select></div>
+<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Defina quem normalmente cuida de cada área. Isso só será usado como sugestão ao criar novos conteúdos.</p>
+<label class="default-team-label">Social Media</label>
+          <select id="clientDefaultSocial"></select><label class="default-team-label">Designer</label>
+          <select id="clientDefaultDesigner"></select><label class="default-team-label">Videomaker</label>
+          <select id="clientDefaultVideo"></select><label class="default-team-label">Gestor de Tráfego</label>
+          <select id="clientDefaultTraffic"></select><label class="default-team-label">Líder / Gestor da conta</label>
+          <select id="clientDefaultLeader"></select></div>
     </div>
     <div class="actions">
       <button class="btn-danger" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir</button>
@@ -768,14 +778,19 @@ Card 3: ..."></textarea></div>
   <div class="modal-card">
     <h2 id="demandModalTitle">Nova demanda</h2>
     <div class="form">
-      <select id="demandClient" class="full"></select>
-      <input id="demandTitle" placeholder="Nome da demanda" class="full">
+      <label class="field-label">Cliente</label>
+          <select id="demandClient" class="full"></select>
+      <label class="field-label">Nome da demanda</label>
+          <input id="demandTitle" placeholder="Nome da demanda" class="full">
       <select id="demandType"><option>Estratégia</option><option>Aprovação de post</option><option>Aprovação de vídeo</option><option>Roteiro</option><option>Calendário</option><option>Aguardando cliente</option><option>Material pendente</option><option>Financeiro</option></select>
-      <select id="demandStatus"><option>Estratégia</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aguardando você</option><option>Ajustes solicitados</option><option>Aprovado</option><option>Publicado</option></select>
+      <label class="field-label">Status da demanda</label>
+          <select id="demandStatus"><option>Estratégia</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aguardando você</option><option>Ajustes solicitados</option><option>Aprovado</option><option>Publicado</option></select>
       <input id="demandDate" type="date">
-      <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
-      <select id="demandAssigned"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="demandParticipants" class="participant-options"></div></div>
-      <input id="demandLink" class="full" placeholder="Link do Drive / material para aprovação">
+      <label class="field-label">Prioridade</label>
+          <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+      <select id="demandAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="demandParticipants" class="participant-options"></div></div>
+      <label class="field-label">Material / link do Drive para aprovação</label>
+          <input id="demandLink" class="full" placeholder="Link do Drive / material para aprovação">
       <input id="demandImageFile" type="file" style="display:none">
       <input id="demandImageLink" class="full" placeholder="Link da imagem para aprovação. Ex: Drive, Canva, Dropbox ou link direto">
       <textarea id="demandDesc" class="full" rows="4" placeholder="Descrição da demanda"></textarea>
@@ -798,7 +813,7 @@ Card 3: ..."></textarea></div>
       <input id="internalValue" placeholder="Valor. Ex: R$ 1.100">
       <select id="internalType"><option>Edição de Vídeo</option><option>Cliente</option><option>Redes Sociais</option><option>Reunião</option><option>Interno</option><option>Financeiro</option></select>
       <select id="internalPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
-      <select id="internalAssigned"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+      <select id="internalAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
       <select id="internalStatus"></select>
       <input id="internalDate" type="date">
       <textarea id="internalDesc" class="full" rows="4" placeholder="Descrição"></textarea>
@@ -871,7 +886,7 @@ function pEmails(id){return [...document.querySelectorAll(`#${id} input[type=che
 function pNames(a){return (a||[]).map(e=>teamMembers.find(m=>ne(m.email)===ne(e))?.name||e)}
 function fillP(id,selected=[]){const b=document.getElementById(id);if(!b)return;const s=new Set((selected||[]).map(ne));b.innerHTML=teamMembers.filter(m=>m.status!=='Finalizado').map(m=>`<label><input type="checkbox" value="${m.email||''}" ${s.has(ne(m.email))?'checked':''}>${m.name||m.email}</label>`).join('')}
 function involved(x,email){return ne(x?.responsibleEmail||x?.assignedEmail)===ne(email)||(x?.participantEmails||[]).some(e=>ne(e)===ne(email))}
-function optionsTeam(){return `<option value="">A definir</option><option value="${OUT_OF_SCOPE}">Humaniza não cuida desta frente</option>`+teamMembers.filter(m=>m.status!=='Finalizado').map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join('')}
+function optionsTeam(){return `<option value="">Selecionar responsável</option><option value="${OUT_OF_SCOPE}">Humaniza não cuida desta frente</option>`+teamMembers.filter(m=>m.status!=='Finalizado').map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join('')}
 function fillDefaults(c=null){[['clientDefaultSocial','defaultSocialEmail'],['clientDefaultDesigner','defaultDesignerEmail'],['clientDefaultVideo','defaultVideoEmail'],['clientDefaultTraffic','defaultTrafficEmail'],['clientDefaultLeader','defaultLeaderEmail']].forEach(([id,k])=>{const e=document.getElementById(id);if(e){e.innerHTML=optionsTeam();e.value=c?.[k]||''}})}
 function defaultResp(cid,k){const c=clientById(cid);return c?.[k]||''}
 function wDate(x,k){return k==='Roteiro'?(x.publishDate||x.captureDate||''):(x.date||'')}
@@ -1076,7 +1091,7 @@ function startListeners(){
 
   if(isAdmin){
     unsubClients = onSnapshot(collection(db, 'clients'), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = selectedClientId || clients[0]?.id || null; refreshAll(); });
-    unsubDemands = onSnapshot(collection(db, 'demands'), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubDemands = onSnapshot(collection(db, 'demands'), snap => { splitDemandTrash(snap.docs.map(d => ({id:d.id, ...d.data()}))); refreshAll(); });
     unsubInternal = onSnapshot(collection(db, 'internalTasks'), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
   } else if(isTeamMember){
     // Funcionário: carrega as demandas e tarefas atribuídas ao próprio e-mail.
@@ -1084,12 +1099,12 @@ function startListeners(){
     // continuam restritos ao admin / ao próprio cliente.
     clients = [];
     selectedClientId = null;
-    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('assignedEmail','==', currentUser.email)), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('assignedEmail','==', currentUser.email)), snap => { splitDemandTrash(snap.docs.map(d => ({id:d.id, ...d.data()}))); refreshAll(); });
     unsubInternal = onSnapshot(query(collection(db, 'internalTasks'), where('assignedEmail','==', currentUser.email)), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
   } else {
     // Cliente: carrega somente o próprio cadastro e as próprias demandas.
     unsubClients = onSnapshot(query(collection(db, 'clients'), where('email','==', currentUser.email)), snap => { clients = snap.docs.map(d => ({id:d.id, ...d.data()})); selectedClientId = clients[0]?.id || null; refreshAll(); });
-    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('clientEmail','==', currentUser.email)), snap => { demands = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
+    unsubDemands = onSnapshot(query(collection(db, 'demands'), where('clientEmail','==', currentUser.email)), snap => { splitDemandTrash(snap.docs.map(d => ({id:d.id, ...d.data()}))); refreshAll(); });
     unsubInternal = onSnapshot(query(collection(db, 'internalTasks'), where('assignedEmail','==', currentUser.email)), snap => { internalTasks = snap.docs.map(d => ({id:d.id, ...d.data()})); refreshAll(); });
   }
 }
@@ -1149,7 +1164,7 @@ function currentVisibleClient(){ return selectedClientId ? clientById(selectedCl
 function monthFromDate(date){ return (date || '').slice(0,7); }
 function scopeByClient(list){ if(isAdmin) return list; let base=list.filter(x=>x.clientEmail===currentUser?.email || involved(x,currentUser?.email)); if(!isTeamMember) base=base.filter(x=>x.visibility!=='Apenas equipe' && x.visibility!=='Apenas admin'); return base; }
 function collectionDataWithClient(clientId){ const c=clientById(clientId); return {clientId, clientEmail:c?.email||''}; }
-function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); ['macroClient','calendarClient','scriptClient','captureClient'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=clientOptions; if(current && [...el.options].some(o=>o.value===current)) el.value=current;}}); const filter=document.getElementById('calendarClientFilter'); if(filter){const currentFilter=filter.value||'Todos'; filter.innerHTML='<option value="Todos">Todos os clientes</option>'+clientOptions; if([...filter.options].some(o=>o.value===currentFilter)) filter.value=currentFilter;} const people='<option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>'+teamMembers.map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join(''); ['calendarResponsible','scriptResponsible','captureResponsible'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=people; if([...el.options].some(o=>o.value===current)) el.value=current;}}); fillP('scriptParticipants',pEmails('scriptParticipants'));fillP('captureParticipants',pEmails('captureParticipants')); const month=document.getElementById('calendarMonthFilter'); if(month&&!month.value){const d=new Date(); month.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;} }
+function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); ['macroClient','calendarClient','scriptClient','captureClient'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=clientOptions; if(current && [...el.options].some(o=>o.value===current)) el.value=current;}}); const filter=document.getElementById('calendarClientFilter'); if(filter){const currentFilter=filter.value||'Todos'; filter.innerHTML='<option value="Todos">Todos os clientes</option>'+clientOptions; if([...filter.options].some(o=>o.value===currentFilter)) filter.value=currentFilter;} const people='<option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>'+teamMembers.map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join(''); ['calendarResponsible','scriptResponsible','captureResponsible'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=people; if([...el.options].some(o=>o.value===current)) el.value=current;}}); fillP('scriptParticipants',pEmails('scriptParticipants'));fillP('captureParticipants',pEmails('captureParticipants')); const month=document.getElementById('calendarMonthFilter'); if(month&&!month.value){const d=new Date(); month.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;} }
 window.renderMacro=function(){ fillPlanningSelects(); if(btnMacroNew) btnMacroNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(macroPlans); macroGrid.innerHTML=data.length?data.map(m=>{const c=clientById(m.clientId); return `<div class="planning-card"><h3>${m.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${m.month||''}</span><span class="pill">${m.status||''}</span></div><p><b>Objetivo:</b> ${m.goal||''}</p><div class="script-block"><b>Datas</b><p>${m.dates||''}</p></div><div class="script-block"><b>Estratégia</b><p>${m.strategy||''}</p></div>${m.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${m.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editMacro('${m.id}')">Editar</button>`:`<button onclick="approveMacro('${m.id}')">Aprovar macro</button><button class="btn-dark" onclick="commentMacro('${m.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum planejamento macro cadastrado.</div>'; }
 window.renderCalendar=function(){ fillPlanningSelects(); if(btnCalendarNew) btnCalendarNew.style.display=isAdmin?'inline-block':'none'; const filter=calendarClientFilter?.value||'Todos'; const month=calendarMonthFilter?.value||new Date().toISOString().slice(0,7); let data=scopeByClient(calendarItems); if(filter!=='Todos') data=data.filter(x=>x.clientId===filter); data=data.filter(x=>(x.date||'').startsWith(month)); const [year,mon]=month.split('-').map(Number); const first=new Date(year,mon-1,1); const days=new Date(year,mon,0).getDate(); const start=(first.getDay()+6)%7; const total=Math.ceil((start+days)/7)*7; const weekdays=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(w=>`<div class="calendar-weekday">${w}</div>`).join(''); const cells=Array.from({length:total},(_,i)=>{const day=i-start+1; if(day<1||day>days) return `<div class="calendar-day muted"></div>`; const dateStr=`${month}-${String(day).padStart(2,'0')}`; const items=data.filter(x=>x.date===dateStr); return `<div class="calendar-day"><strong>${day}</strong>${items.length?items.map(item=>`<div class="calendar-item" onclick="${isAdmin?`editCalendarItem('${item.id}')`:`commentCalendarItem('${item.id}')`}"><b>${item.format}</b>${item.theme}<small>${item.status} • ${responsibilityLabel(item).replace('Responsável: ','')}</small></div>`).join(''):`<div class="calendar-empty-line"></div><div class="calendar-empty-line"></div>`}</div>`}).join(''); calendarGrid.innerHTML=weekdays+cells; }
 window.renderScripts=function(){ if(btnScriptNew) btnScriptNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(scripts); scriptsGrid.innerHTML=data.length?data.map(s=>{const c=clientById(s.clientId); const schedule=s.scheduleMode==='tbd'?'Data a definir':(s.scheduleMode==='not-published'?'Não será publicado':(s.publishDate?`Publicação: ${formatDate(s.publishDate)}`:'Data a definir')); const body=s.format==='Carrossel'?`<div class="script-block"><b>Cards${s.cardCount?' • '+s.cardCount:''}</b><p>${s.cards||''}</p></div>`:(s.format==='Estático'?`<div class="script-block"><b>Texto da arte</b><p>${s.artText||''}</p></div><div class="script-block"><b>Direção visual</b><p>${s.artDirection||''}</p></div>`:`<div class="script-block"><b>Cenas / falas</b><p>${s.scenes||''}</p></div>`); return `<div class="planning-card"><h3>${s.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${s.format||'Vídeo / Reel'}</span><span class="pill">${s.status||''}</span><span class="pill">${responsibilityLabel(s)}</span><span class="pill">${schedule}</span></div><p><b>Objetivo:</b> ${s.goal||''}</p><div class="script-block"><b>Gancho</b><p>${s.hook||''}</p></div>${body}<div class="script-block"><b>CTA</b><p>${s.cta||''}</p></div>${s.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${s.clientNote}</div>`:''}<div class="actions">${s.approvalLink?`<button class="btn-blue" onclick="window.open('${s.approvalLink}','_blank')">Ver material no Drive</button>`:''}${s.referenceLink&&isAdmin?`<button class="btn-dark" onclick="window.open('${s.referenceLink}','_blank')">Abrir referência</button>`:''}${isAdmin?`<button class="btn-dark" onclick="editScript('${s.id}')">Editar</button>`:`<button onclick="approveScript('${s.id}')">Aprovar roteiro</button><button class="btn-dark" onclick="commentScript('${s.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum roteiro cadastrado.</div>'; }
@@ -1306,9 +1321,9 @@ function fillSelects(){
 }
 function fillTeamSelects(){
   const demandAssigned = document.getElementById('demandAssigned');
-  if(demandAssigned) demandAssigned.innerHTML = '<option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+  if(demandAssigned) demandAssigned.innerHTML = '<option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
   const internalAssigned = document.getElementById('internalAssigned');
-  if(internalAssigned) internalAssigned.innerHTML = '<option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
+  if(internalAssigned) internalAssigned.innerHTML = '<option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>' + teamMembers.map(m => `<option value="${m.email}">${m.name} • ${m.role || 'Equipe'}</option>`).join('');
 }
 function fillInternalStatus(){ if(!isAdmin) return; document.getElementById('internalStatus').innerHTML = internalStatuses.map(s => `<option>${s}</option>`).join(''); fillTeamSelects(); }
 
@@ -1565,7 +1580,18 @@ window.saveDemand = async function(){
   selectedClientId = data.clientId;
   closeModals();
 }
-window.deleteDemand = async function(){ if(!editingDemand) return; if(confirm('Excluir essa demanda?')){ await deleteDoc(doc(db,'demands',editingDemand)); closeModals(); } }
+window.deleteDemand = async function(){
+  if(!editingDemand) return;
+  const d=demands.find(x=>x.id===editingDemand);
+  if(!confirm(`Mover "${d?.title||'esta demanda'}" para a Lixeira?\n\nVocê poderá restaurar depois.`)) return;
+  await setDoc(doc(db,'demands',editingDemand),{
+    archived:true,
+    archivedAt:serverTimestamp(),
+    archivedBy:ne(currentUser?.email),
+    updatedAt:serverTimestamp()
+  },{merge:true});
+  closeModals();
+}
 window.approveDemand = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aprovado', updatedAt:serverTimestamp()}, {merge:true}); }
 window.waitingClient = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aguardando você', updatedAt:serverTimestamp()}, {merge:true}); }
 window.requestAdjust = async function(id){ const text = prompt('Qual ajuste deseja solicitar?'); await setDoc(doc(db,'demands',id), {status:'Ajustes solicitados', comment:text||'', updatedAt:serverTimestamp()}, {merge:true}); }
