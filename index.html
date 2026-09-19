@@ -537,6 +537,21 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 
   .member-panel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.member-panel-list{display:grid;gap:10px;margin-top:12px}.member-work-item{background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:14px}.member-work-item h4{margin:0 0 8px}.responsibility{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:#242018;color:#e9c979;font-size:12px;font-weight:700}.team-work-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}.team-work-section{margin-top:22px}.team-work-section h3{margin-bottom:10px}@media(max-width:800px){.member-panel-grid,.team-work-summary{grid-template-columns:repeat(2,1fr)}}
+
+/* V14 fluxo seguro */
+.clickable{cursor:pointer}.clickable:hover{border-color:#5B56FF}
+.participant-box,.default-team-box{background:#202020;border:1px solid #333;border-radius:12px;padding:12px}
+.participant-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.participant-options label{display:flex;gap:6px;align-items:center;background:#2A2A2A;border-radius:999px;padding:7px 10px;font-size:12px}
+.participant-options input{width:auto}
+.work-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.work-tabs button.active{background:#5B56FF}
+.work-list{display:grid;gap:12px}.work-item{background:#242424;border:1px solid #333;border-radius:14px;padding:15px}
+.bulkbar{display:none;gap:8px;flex-wrap:wrap;background:#242424;border:1px solid #5B56FF;border-radius:14px;padding:12px;margin-bottom:14px}.bulkbar.active{display:flex}
+.selectline{font-size:12px;color:#A6A6A6;display:flex;gap:6px;align-items:center}.selectline input{width:auto}
+@media(max-width:720px){.participant-options{flex-direction:column}.bulkbar button,.bulkbar select{width:100%}}
+.attention-row,.notification-row{background:#202020;border:1px solid #333;border-radius:13px;padding:14px;margin:10px 0;cursor:pointer}.attention-row:hover,.notification-row:hover{border-color:#5B56FF}.notification-row.unread{border-color:#5B56FF}.notification-row p{margin:6px 0;color:#A6A6A6}#notificationCount{display:inline-block;min-width:18px;padding:2px 5px;border-radius:999px;background:#5B56FF;font-size:11px}
+.trash-card{background:#242424;border:1px solid #333;border-radius:14px;padding:15px;margin:10px 0}
+.trash-card h4{margin:0 0 8px}.trash-card p{color:#A6A6A6}
 </style>
 </head>
 <body>
@@ -557,6 +572,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   <div class="logo" id="appBrandLogo">Agência Humaniza</div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
+    <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
     <button onclick="openClientModal()">+ Cliente</button>
     <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
     <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
@@ -587,10 +603,13 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="tab" onclick="showView('team', this)">👨‍💻 Equipe</div>
     <div class="tab" onclick="showView('clients', this)">👥 Clientes</div>
     <div class="tab" onclick="showView('demands', this)">🗂️ Demandas clientes</div>
+    <div class="tab" id="trashTabBtn" onclick="openTrash(this)">🗑️ Lixeira</div>
     <div class="tab" onclick="showView('clientPanel', this)">🖥️ Tela do cliente</div>
   </div>
 
   <section id="dashboardView"></section>
+<div class="modal" id="attentionModal"><div class="modal-card" style="max-width:900px"><div class="top"><h2 id="attentionTitle">Itens</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="attentionList"></div></div></div>
+<div class="modal" id="notificationsModal"><div class="modal-card" style="max-width:760px"><div class="top"><h2>Notificações</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="notificationsList"></div></div></div>
 
 
   <section id="macroView" class="hidden">
@@ -608,6 +627,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   <section id="internalView" class="hidden">
     <div class="top"><h2 id="internalViewTitle">Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa..." oninput="renderInternal()"></div>
     <div id="teamWorkSummary" class="team-work-summary" style="display:none"></div>
+<div id="unifiedWorkArea" style="display:none"><div id="workTabs" class="work-tabs"></div><div id="workList" class="work-list"></div></div>
     <div class="team-work-section"><div class="board-wrap"><div class="board" id="internalBoard"></div></div></div>
     <div id="teamClientDemandSection" class="team-work-section" style="display:none"><h3>Demandas de clientes atribuídas a mim</h3><div class="board-wrap"><div class="board" id="teamClientDemandBoard"></div></div></div>
   </section>
@@ -627,8 +647,14 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   </section>
 
   <section id="demandsView" class="hidden">
-    <div class="top"><h2>Todas as demandas dos clientes</h2><select style="max-width:320px" id="agencyClientFilter" onchange="renderDemands()"></select></div>
+    <div class="top"><h2>Todas as demandas dos clientes</h2><div class="calendar-toolbar"><select style="max-width:320px" id="agencyClientFilter" onchange="demandFilterChanged()"></select><button id="selectVisibleBtn" class="btn-dark" onclick="selectVisibleDemands()">Selecionar visíveis</button></div></div>
+    <div id="demandBulkBar" class="bulkbar"><strong id="demandBulkCount">0 selecionadas</strong><select id="bulkStatus" style="max-width:220px"></select><button class="btn-dark" onclick="bulkStatusApply()">Alterar status</button><select id="bulkResponsible" style="max-width:260px"></select><button class="btn-dark" onclick="bulkResponsibleApply()">Responsável</button><button class="btn-green" onclick="bulkApproval()">Enviar aprovação</button><button class="btn-blue" onclick="bulkNotify()">Notificar</button><button class="btn-danger" onclick="bulkDeleteDemands()">Excluir selecionadas</button><button class="btn-dark" onclick="clearDemandSelection()">Limpar</button></div>
     <div class="board-wrap"><div class="board" id="demandsBoard"></div></div>
+  </section>
+
+  <section id="trashView" class="hidden">
+    <div class="top"><div><h2>Lixeira</h2><p style="color:#A6A6A6">Itens removidos podem ser restaurados. A exclusão definitiva exige confirmação extra.</p></div></div>
+    <div id="trashList"></div>
   </section>
 
   <section id="clientPanelView" class="hidden">
@@ -646,7 +672,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 <input id="scriptTitle" class="full" placeholder="Título / tema do conteúdo">
 <select id="scriptFormat" onchange="updateScriptFormatFields()"><option value="Vídeo / Reel">Vídeo / Reel</option><option value="Carrossel">Carrossel</option><option value="Estático">Estático</option></select>
 <select id="scriptStatus"><option>Escrevendo</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Gravar</option><option>Editando</option><option>Finalizado</option></select>
-<select id="scriptResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+<select id="scriptResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="scriptParticipants" class="participant-options"></div></div>
 <select id="scriptScheduleMode" onchange="updateScriptScheduleFields()"><option value="defined">Data definida</option><option value="tbd">Data a definir</option><option value="not-published">Não será publicado</option></select>
 <div id="scriptPublishDateWrap"><input id="scriptPublishDate" type="date" onchange="onScriptPublishDateChange()"></div>
 <div id="scriptPublishTimeWrap"><input id="scriptPublishTime" type="time" placeholder="Horário (opcional)"></div>
@@ -665,7 +691,7 @@ Card 3: ..."></textarea></div>
 <textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
 <div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
 </div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
-<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
+<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
 <div class="modal" id="settingsModal">
   <div class="modal-card">
     <h2>Configurações da Agência</h2>
@@ -727,6 +753,8 @@ Card 3: ..."></textarea></div>
       <input id="clientInstagram" placeholder="Instagram do cliente">
       <select id="clientStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="clientObs" class="full" rows="4" placeholder="Observações"></textarea>
+<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Opcional. Apenas sugere responsáveis em novos conteúdos.</p>
+<select id="clientDefaultSocial"></select><select id="clientDefaultDesigner"></select><select id="clientDefaultVideo"></select><select id="clientDefaultTraffic"></select><select id="clientDefaultLeader"></select></div>
     </div>
     <div class="actions">
       <button class="btn-danger" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir</button>
@@ -746,8 +774,8 @@ Card 3: ..."></textarea></div>
       <select id="demandStatus"><option>Estratégia</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aguardando você</option><option>Ajustes solicitados</option><option>Aprovado</option><option>Publicado</option></select>
       <input id="demandDate" type="date">
       <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
-      <select id="demandAssigned"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
-      <input id="demandLink" class="full" placeholder="Link do vídeo, Drive, arte ou pasta">
+      <select id="demandAssigned"><option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="demandParticipants" class="participant-options"></div></div>
+      <input id="demandLink" class="full" placeholder="Link do Drive / material para aprovação">
       <input id="demandImageFile" type="file" style="display:none">
       <input id="demandImageLink" class="full" placeholder="Link da imagem para aprovação. Ex: Drive, Canva, Dropbox ou link direto">
       <textarea id="demandDesc" class="full" rows="4" placeholder="Descrição da demanda"></textarea>
@@ -822,6 +850,11 @@ let captures = [];
 let editingMacro = null, editingCalendar = null, editingScript = null, editingCapture = null;
 let appSettings = {};
 let unsubSettings = null;
+let selectedDemandIds=new Set();
+let notifications=[];
+let trashedDemands=[];
+let unsubNotifications=null;
+let workFilter='Hoje';
 let unsubMacro = null, unsubCalendar = null, unsubScripts = null, unsubCaptures = null;
 
 const demandStatuses = ['Estratégia','Em produção','Revisão interna','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
@@ -830,6 +863,99 @@ const OUT_OF_SCOPE = '__HUMANIZA_OUT_OF_SCOPE__';
 function responsibilityData(value){ const v=(value||'').trim(); if(v===OUT_OF_SCOPE) return {responsibleEmail:'',responsibleName:'',responsibilityScope:'outside'}; if(!v) return {responsibleEmail:'',responsibleName:'',responsibilityScope:'pending'}; const m=teamMembers.find(x=>(x.email||'').trim().toLowerCase()===v.toLowerCase()); return {responsibleEmail:v,responsibleName:m?.name||'',responsibilityScope:'assigned'}; }
 function responsibilityLabel(x){ if(x?.responsibilityScope==='outside') return 'Fora do escopo Humaniza'; if(x?.responsibleName||x?.assignedName) return `Responsável: ${x.responsibleName||x.assignedName}`; return 'Responsável: A definir'; }
 function selectResponsibilityValue(x,emailField='responsibleEmail'){ return x?.responsibilityScope==='outside' ? OUT_OF_SCOPE : (x?.[emailField]||''); }
+
+function ne(v){return String(v||'').trim().toLowerCase()}
+function splitDemandTrash(rows){trashedDemands=rows.filter(x=>x.archived===true);demands=rows.filter(x=>x.archived!==true)}
+
+function pEmails(id){return [...document.querySelectorAll(`#${id} input[type=checkbox]:checked`)].map(x=>x.value)}
+function pNames(a){return (a||[]).map(e=>teamMembers.find(m=>ne(m.email)===ne(e))?.name||e)}
+function fillP(id,selected=[]){const b=document.getElementById(id);if(!b)return;const s=new Set((selected||[]).map(ne));b.innerHTML=teamMembers.filter(m=>m.status!=='Finalizado').map(m=>`<label><input type="checkbox" value="${m.email||''}" ${s.has(ne(m.email))?'checked':''}>${m.name||m.email}</label>`).join('')}
+function involved(x,email){return ne(x?.responsibleEmail||x?.assignedEmail)===ne(email)||(x?.participantEmails||[]).some(e=>ne(e)===ne(email))}
+function optionsTeam(){return `<option value="">A definir</option><option value="${OUT_OF_SCOPE}">Humaniza não cuida desta frente</option>`+teamMembers.filter(m=>m.status!=='Finalizado').map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join('')}
+function fillDefaults(c=null){[['clientDefaultSocial','defaultSocialEmail'],['clientDefaultDesigner','defaultDesignerEmail'],['clientDefaultVideo','defaultVideoEmail'],['clientDefaultTraffic','defaultTrafficEmail'],['clientDefaultLeader','defaultLeaderEmail']].forEach(([id,k])=>{const e=document.getElementById(id);if(e){e.innerHTML=optionsTeam();e.value=c?.[k]||''}})}
+function defaultResp(cid,k){const c=clientById(cid);return c?.[k]||''}
+function wDate(x,k){return k==='Roteiro'?(x.publishDate||x.captureDate||''):(x.date||'')}
+function wDone(x){return ['Publicado','Aprovado','Entregue','Finalizado'].includes(x.status)}
+function wGroup(x,k){if(wDone(x))return 'Concluídos';if(['Pronto para Revisão','Revisão interna'].includes(x.status))return 'Em revisão';if(['Aguardando você','Aguardando aprovação'].includes(x.status))return 'Aguardando cliente';const d=wDate(x,k);if(!d)return 'Próximos';const n=new Date(),td=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;return d<td?'Atrasados':d===td?'Hoje':'Próximos'}
+function myWork(email){let a=[];internalTasks.filter(x=>involved(x,email)).forEach(x=>a.push({x,k:'Tarefa'}));demands.filter(x=>involved(x,email)).forEach(x=>a.push({x,k:'Demanda'}));scripts.filter(x=>involved(x,email)).forEach(x=>a.push({x,k:'Roteiro'}));captures.filter(x=>involved(x,email)).forEach(x=>a.push({x,k:'Captação'}));return a}
+window.setWorkFilter=g=>{workFilter=g;renderUnifiedWork()}
+function renderUnifiedWork(){const tabs=['Hoje','Atrasados','Próximos','Em revisão','Aguardando cliente','Concluídos'],all=myWork(currentUser?.email),te=document.getElementById('workTabs'),li=document.getElementById('workList');if(!te||!li)return;te.innerHTML=tabs.map(g=>`<button class="${g===workFilter?'active':''}" onclick="setWorkFilter('${g}')">${g} • ${all.filter(i=>wGroup(i.x,i.k)===g).length}</button>`).join('');const d=all.filter(i=>wGroup(i.x,i.k)===workFilter);li.innerHTML=d.length?d.map(i=>`<div class="work-item"><h4>${i.k} • ${i.x.title||'Sem título'}</h4><div class="meta"><span class="pill">${i.x.status||''}</span>${wDate(i.x,i.k)?`<span class="pill">${formatDate(wDate(i.x,i.k))}</span>`:''}</div><p><b>${ne(i.x.responsibleEmail||i.x.assignedEmail)===ne(currentUser?.email)?'Você é responsável':'Participando'}</b></p>${(i.x.participantNames||[]).length?`<p>Participantes: ${(i.x.participantNames||[]).join(', ')}</p>`:''}${i.x.approvalLink||i.x.link?`<button class="btn-blue" onclick="window.open('${i.x.approvalLink||i.x.link}','_blank')">Ver material no Drive</button>`:''}</div>`).join(''):'<div class="empty">Nenhum item nesta etapa.</div>'}
+
+
+
+
+function adminRecipients(){return [ADMIN_EMAIL.toLowerCase()]}
+function clientRecipient(clientId){const c=clientById(clientId);return c?.email?[ne(c.email)]:[]}
+async function createNotification(data){const r=[...new Set((data.recipientEmails||[]).map(ne).filter(Boolean))];if(!r.length)return;await addDoc(collection(db,'notifications'),{title:data.title||'Atualização',message:data.message||'',recipientEmails:r,type:data.type||'',entityId:data.entityId||'',clientId:data.clientId||'',readBy:[],createdBy:ne(currentUser?.email),createdAt:serverTimestamp()})}
+async function notifyFromForm(prefix,data){let r=[];if(data.responsibleEmail)r.push(data.responsibleEmail);if(data.clientId)r.push(...clientRecipient(data.clientId));r.push(...adminRecipients());r=r.filter(e=>ne(e)!==ne(currentUser?.email));await createNotification({...data,recipientEmails:r})}
+function notificationKind(n){const s=(n.type||'').toLowerCase();if(s.includes('script')||s.includes('roteiro'))return'Roteiro';if(s.includes('capture')||s.includes('capta'))return'Captação';if(s.includes('internal')||s.includes('tarefa'))return'Tarefa';return'Demanda'}
+
+window.openTrash=function(btn){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+  const v=document.getElementById('trashView');
+  if(v)v.classList.remove('hidden');
+  renderTrash();
+}
+
+window.openNotifications=function(){renderNotifications();notificationsModal.classList.add('active')}
+function renderNotifications(){const e=ne(currentUser?.email),l=document.getElementById('notificationsList');if(!l)return;const a=[...notifications].sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0));l.innerHTML=a.length?a.map(n=>`<div class="notification-row ${(n.readBy||[]).map(ne).includes(e)?'':'unread'}" onclick="openNotificationItem('${n.id}')"><strong>${n.title||'Notificação'}</strong><p>${n.message||''}</p><button>Abrir conteúdo →</button></div>`).join(''):'<div class="empty">Nenhuma notificação.</div>';const c=document.getElementById('notificationCount');if(c)c.textContent=notifications.filter(n=>!(n.readBy||[]).map(ne).includes(e)).length}
+window.openNotificationItem=async function(id){const n=notifications.find(x=>x.id===id);if(!n)return;const e=ne(currentUser?.email);await setDoc(doc(db,'notifications',id),{readBy:[...new Set([...(n.readBy||[]),e])]},{merge:true});closeModals();openOperationalItem(notificationKind(n),n.entityId,n.clientId)}
+function openOperationalItem(k,id,cid=''){if(k==='Demanda'){if(isAdmin){showView('demands',document.querySelectorAll('.tab')[9]);setTimeout(()=>editDemand(id),40)}else{selectedClientId=cid||selectedClientId;showView('clientPanel',document.querySelectorAll('.tab')[10])}}else if(k==='Roteiro'){showView('scripts',document.querySelectorAll('.tab')[3]);if(isAdmin)setTimeout(()=>editScript(id),40)}else if(k==='Captação'){showView('captures',document.querySelectorAll('.tab')[4]);if(isAdmin)setTimeout(()=>editCapture(id),40)}else{showView('internal',document.querySelectorAll('.tab')[6]);if(isAdmin)setTimeout(()=>editInternal(id),40)}}
+window.openAttentionItems=function(title,items){attentionTitle.textContent=title;attentionList.innerHTML=items.length?items.map(i=>`<div class="attention-row" onclick="closeModals();openOperationalItem('${i.kind}','${i.x.id}','${i.x.clientId||''}')"><strong>${i.x.title||i.x.theme||'Sem título'}</strong><div class="meta"><span class="pill">${i.kind}</span><span class="pill">${i.x.status||''}</span></div><button>Abrir conteúdo →</button></div>`).join(''):'<div class="empty">Nenhum item.</div>';attentionModal.classList.add('active')}
+window.dashboardAttention=function(type){const a=[...internalTasks.map(x=>({x,kind:'Tarefa'})),...demands.map(x=>({x,kind:'Demanda'}))];if(type==='late')openAttentionItems('Atrasadas',a.filter(i=>isLate(i.x)));if(type==='urgent')openAttentionItems('Urgentes',a.filter(i=>i.x.priority==='Urgente'));if(type==='waiting')openAttentionItems('Aguardando ação',a.filter(i=>['Aguardando aprovação','Aguardando você'].includes(i.x.status)))}
+function visibleDemands(){const f=document.getElementById('agencyClientFilter')?.value||'Todos';return isAdmin&&f!=='Todos'?demands.filter(d=>d.clientId===f):demands}
+function renderBulkBar(){const b=document.getElementById('demandBulkBar');if(!b)return;b.classList.toggle('active',selectedDemandIds.size>0);demandBulkCount.textContent=`${selectedDemandIds.size} selecionada(s)`;bulkStatus.innerHTML='<option value="">Escolha o status...</option>'+demandStatuses.map(x=>`<option>${x}</option>`).join('');bulkResponsible.innerHTML=optionsTeam()}
+window.toggleDemandSelection=(id,on)=>{on?selectedDemandIds.add(id):selectedDemandIds.delete(id);renderBulkBar()}
+window.clearDemandSelection=()=>{selectedDemandIds.clear();renderDemands()}
+window.demandFilterChanged=()=>{selectedDemandIds.clear();renderDemands()}
+window.selectVisibleDemands=()=>{const a=visibleDemands(),all=a.length&&a.every(x=>selectedDemandIds.has(x.id));a.forEach(x=>all?selectedDemandIds.delete(x.id):selectedDemandIds.add(x.id));renderDemands()}
+window.bulkStatusApply=async()=>{if(!isAdmin||!selectedDemandIds.size)return;const s=bulkStatus.value;if(!s)return alert('Escolha um status.');if(!confirm(`Alterar ${selectedDemandIds.size} demanda(s)?`))return;await Promise.all([...selectedDemandIds].map(id=>setDoc(doc(db,'demands',id),{status:s,updatedAt:serverTimestamp()},{merge:true})));selectedDemandIds.clear()}
+window.bulkResponsibleApply=async()=>{if(!isAdmin||!selectedDemandIds.size)return;const r=responsibilityData(bulkResponsible.value);if(!confirm(`Alterar responsável de ${selectedDemandIds.size} demanda(s)?`))return;await Promise.all([...selectedDemandIds].map(id=>setDoc(doc(db,'demands',id),{assignedEmail:r.responsibleEmail,assignedName:r.responsibleName,responsibilityScope:r.responsibilityScope,updatedAt:serverTimestamp()},{merge:true})));selectedDemandIds.clear()}
+window.bulkApproval=async()=>{if(!isAdmin||!selectedDemandIds.size)return;if(!confirm(`Enviar ${selectedDemandIds.size} demanda(s) para aprovação?`))return;const ids=[...selectedDemandIds];await Promise.all(ids.map(id=>setDoc(doc(db,'demands',id),{status:'Aguardando aprovação',updatedAt:serverTimestamp()},{merge:true})));const g={};ids.map(id=>demands.find(d=>d.id===id)).filter(Boolean).forEach(d=>(g[d.clientId]??=[]).push(d));for(const [cid,ds] of Object.entries(g))await createNotification({title:'Conteúdos para aprovação',message:`${ds.length} conteúdo(s) aguardando sua aprovação.`,recipientEmails:clientRecipient(cid),type:'demand',entityId:ds[0].id,clientId:cid});selectedDemandIds.clear()}
+window.bulkNotify=async()=>{if(!isAdmin||!selectedDemandIds.size)return;const ids=[...selectedDemandIds],r=new Set();ids.map(id=>demands.find(d=>d.id===id)).filter(Boolean).forEach(d=>{if(d.assignedEmail)r.add(d.assignedEmail);(d.participantEmails||[]).forEach(e=>r.add(e))});if(!r.size)return alert('Nenhum responsável/participante nos itens selecionados.');await createNotification({title:'Demandas precisam de atenção',message:`Há ${ids.length} demanda(s) selecionada(s).`,recipientEmails:[...r],type:'demand',entityId:ids[0]});alert('Notificação enviada.')}
+
+window.bulkDeleteDemands=async()=>{
+  if(!isAdmin||!selectedDemandIds.size)return;
+  const ids=[...selectedDemandIds];
+  const selected=ids.map(id=>demands.find(d=>d.id===id)).filter(Boolean);
+  if(!selected.length)return;
+  const ok=confirm(`Mover ${selected.length} demanda(s) para a Lixeira?\n\nVocê poderá restaurar depois. Clientes, equipe, roteiros, captações e calendário não serão alterados.`);
+  if(!ok)return;
+  await Promise.all(selected.map(d=>setDoc(doc(db,'demands',d.id),{
+    archived:true,
+    archivedAt:serverTimestamp(),
+    archivedBy:ne(currentUser?.email),
+    updatedAt:serverTimestamp()
+  },{merge:true})));
+  selectedDemandIds.clear();
+}
+function renderTrash(){
+  const box=document.getElementById('trashList');if(!box)return;
+  if(!isAdmin){box.innerHTML='<div class="empty">Acesso restrito ao administrador.</div>';return}
+  const rows=[...trashedDemands].sort((a,b)=>(b.archivedAt?.seconds||0)-(a.archivedAt?.seconds||0));
+  box.innerHTML=rows.length?rows.map(d=>{
+    const c=clientById(d.clientId);
+    return `<div class="trash-card"><h4>${d.title||'Demanda sem título'}</h4><div class="meta"><span class="pill">${c?.name||d.clientName||'Cliente'}</span><span class="pill">${d.status||''}</span></div><p>Removido por: ${d.archivedBy||'—'}</p><div class="actions"><button class="btn-green" onclick="restoreDemand('${d.id}')">Restaurar</button><button class="btn-danger" onclick="deleteDemandForever('${d.id}')">Excluir definitivamente</button></div></div>`
+  }).join(''):'<div class="empty">A lixeira está vazia.</div>';
+}
+window.restoreDemand=async function(id){
+  if(!isAdmin)return;
+  const d=trashedDemands.find(x=>x.id===id);if(!d)return;
+  if(!confirm(`Restaurar "${d.title||'esta demanda'}"?`))return;
+  await setDoc(doc(db,'demands',id),{archived:false,restoredAt:serverTimestamp(),restoredBy:ne(currentUser?.email),updatedAt:serverTimestamp()},{merge:true});
+}
+window.deleteDemandForever=async function(id){
+  if(!isAdmin)return;
+  const d=trashedDemands.find(x=>x.id===id);if(!d)return;
+  const ok=confirm(`ATENÇÃO: excluir definitivamente "${d.title||'esta demanda'}"?\n\nDepois desta ação não será possível restaurar pelo sistema.`);
+  if(!ok)return;
+  const typed=prompt('Digite EXCLUIR para confirmar a exclusão definitiva:');
+  if((typed||'').trim().toUpperCase()!=='EXCLUIR')return alert('Exclusão cancelada.');
+  await deleteDoc(doc(db,'demands',id));
+}
+
 
 
 async function uploadSelectedFile(inputId, folder){
@@ -858,7 +984,7 @@ onAuthStateChanged(auth, (user) => {
     currentUser = null;
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('appPage').classList.add('hidden');
-    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures].forEach(fn => { if(fn) fn(); });
+    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications].forEach(fn => { if(fn) fn(); });
   }
 });
 
@@ -915,12 +1041,13 @@ function adjustViewByRole(){
 }
 
 function startListeners(){
-  [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures].forEach(fn => { if(fn) fn(); });
+  [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications].forEach(fn => { if(fn) fn(); });
 
   unsubSettings = onSnapshot(doc(db, 'settings', 'app'), snap => {
     appSettings = snap.exists() ? snap.data() : {};
     renderBrandLogo();
   });
+  unsubNotifications=onSnapshot(query(collection(db,'notifications'),where('recipientEmails','array-contains',ne(currentUser.email))),snap=>{notifications=snap.docs.map(d=>({id:d.id,...d.data()}));renderNotifications()});
 
   const scopedPlanning = (name, setter) => {
     if(isAdmin){ return onSnapshot(collection(db, name), snap => { setter(snap.docs.map(d => ({id:d.id, ...d.data()}))); refreshAll(); }); }
@@ -934,7 +1061,15 @@ function startListeners(){
   unsubTeam = onSnapshot(collection(db, 'team'), snap => {
     teamMembers = snap.docs.map(d => ({id:d.id, ...d.data()}));
     currentTeamMember = teamMembers.find(m => (m.email || '').trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()) || null;
+    const becameTeam=!isTeamMember && !!currentTeamMember;
     isTeamMember = !!currentTeamMember;
+    if(!isAdmin && becameTeam){
+      [unsubMacro,unsubCalendar,unsubScripts,unsubCaptures].forEach(fn=>{if(fn)fn()});
+      unsubMacro=onSnapshot(collection(db,'macroPlans'),snap=>{macroPlans=snap.docs.map(d=>({id:d.id,...d.data()}));refreshAll()});
+      unsubCalendar=onSnapshot(collection(db,'calendarItems'),snap=>{calendarItems=snap.docs.map(d=>({id:d.id,...d.data()}));refreshAll()});
+      unsubScripts=onSnapshot(collection(db,'scripts'),snap=>{scripts=snap.docs.map(d=>({id:d.id,...d.data()}));refreshAll()});
+      unsubCaptures=onSnapshot(collection(db,'captures'),snap=>{captures=snap.docs.map(d=>({id:d.id,...d.data()}));refreshAll()});
+    }
     if(!isAdmin) adjustViewByRole();
     refreshAll();
   });
@@ -977,6 +1112,7 @@ window.showView = function(view, el){
   if(view==='clients') renderClients();
   if(view==='demands') renderDemands();
   if(view==='clientPanel') renderClientPanel(selectedClientId);
+  renderTrash();
 }
 
 function formatDate(date){ if(!date) return ''; const d = new Date(date+'T00:00:00'); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
@@ -995,15 +1131,15 @@ function renderDashboard(){
   document.getElementById('dashboardView').innerHTML = `
     <div class="stats">
       <div class="stat"><p>Total geral</p><strong>${total}</strong></div>
-      <div class="stat"><p>Atrasadas</p><strong>${late}</strong></div>
-      <div class="stat"><p>Urgentes</p><strong>${urgent}</strong></div>
+      <div class="stat clickable" onclick="dashboardAttention('late')"><p>Atrasadas</p><strong>${late}</strong><small>Clique para ver</small></div>
+      <div class="stat clickable" onclick="dashboardAttention('urgent')"><p>Urgentes</p><strong>${urgent}</strong><small>Clique para ver</small></div>
       <div class="stat"><p>Progresso geral</p><strong>${progress}%</strong><div class="progress"><span style="width:${progress}%"></span></div></div>
     </div>
     <div class="grid">
       <div class="panel"><h3>📋 Agência</h3><p>${internalTasks.length} tarefa(s) internas no painel.</p><button onclick="document.querySelectorAll('.tab')[6].click()">Abrir agência</button></div>
       <div class="panel"><h3>👨‍💻 Equipe</h3><p>${teamMembers.length} funcionário(s) cadastrado(s).</p><button onclick="document.querySelectorAll('.tab')[7].click()">Abrir equipe</button></div>
       <div class="panel"><h3>👥 Clientes</h3><p>${clients.length} cliente(s) cadastrado(s).</p><button onclick="document.querySelectorAll('.tab')[8].click()">Abrir clientes</button></div>
-      <div class="panel"><h3>⚠️ Aguardando ação</h3><p>${waiting} demanda(s) aguardando aprovação ou retorno do cliente.</p><button onclick="document.querySelectorAll('.tab')[10].click()">Tela do cliente</button></div>
+      <div class="panel clickable" onclick="dashboardAttention('waiting')"><h3>⚠️ Aguardando ação</h3><p>${waiting} demanda(s) aguardando aprovação ou retorno do cliente.</p><button>Abrir itens</button></div>
     </div>`;
 }
 
@@ -1011,9 +1147,9 @@ function renderDashboard(){
 function getScopedClientId(){ return selectedClientId || clients[0]?.id || ''; }
 function currentVisibleClient(){ return selectedClientId ? clientById(selectedClientId) : (clients[0] || null); }
 function monthFromDate(date){ return (date || '').slice(0,7); }
-function scopeByClient(list){ if(isAdmin) return list; let base=list.filter(x=>x.clientEmail===currentUser?.email || x.responsibleEmail===currentUser?.email); if(!isTeamMember) base=base.filter(x=>x.visibility!=='Apenas equipe' && x.visibility!=='Apenas admin'); return base; }
+function scopeByClient(list){ if(isAdmin) return list; let base=list.filter(x=>x.clientEmail===currentUser?.email || involved(x,currentUser?.email)); if(!isTeamMember) base=base.filter(x=>x.visibility!=='Apenas equipe' && x.visibility!=='Apenas admin'); return base; }
 function collectionDataWithClient(clientId){ const c=clientById(clientId); return {clientId, clientEmail:c?.email||''}; }
-function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); ['macroClient','calendarClient','scriptClient','captureClient'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=clientOptions; if(current && [...el.options].some(o=>o.value===current)) el.value=current;}}); const filter=document.getElementById('calendarClientFilter'); if(filter){const currentFilter=filter.value||'Todos'; filter.innerHTML='<option value="Todos">Todos os clientes</option>'+clientOptions; if([...filter.options].some(o=>o.value===currentFilter)) filter.value=currentFilter;} const people='<option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>'+teamMembers.map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join(''); ['calendarResponsible','scriptResponsible','captureResponsible'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=people; if([...el.options].some(o=>o.value===current)) el.value=current;}}); const month=document.getElementById('calendarMonthFilter'); if(month&&!month.value){const d=new Date(); month.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;} }
+function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); ['macroClient','calendarClient','scriptClient','captureClient'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=clientOptions; if(current && [...el.options].some(o=>o.value===current)) el.value=current;}}); const filter=document.getElementById('calendarClientFilter'); if(filter){const currentFilter=filter.value||'Todos'; filter.innerHTML='<option value="Todos">Todos os clientes</option>'+clientOptions; if([...filter.options].some(o=>o.value===currentFilter)) filter.value=currentFilter;} const people='<option value="">A definir</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>'+teamMembers.map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join(''); ['calendarResponsible','scriptResponsible','captureResponsible'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=people; if([...el.options].some(o=>o.value===current)) el.value=current;}}); fillP('scriptParticipants',pEmails('scriptParticipants'));fillP('captureParticipants',pEmails('captureParticipants')); const month=document.getElementById('calendarMonthFilter'); if(month&&!month.value){const d=new Date(); month.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;} }
 window.renderMacro=function(){ fillPlanningSelects(); if(btnMacroNew) btnMacroNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(macroPlans); macroGrid.innerHTML=data.length?data.map(m=>{const c=clientById(m.clientId); return `<div class="planning-card"><h3>${m.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${m.month||''}</span><span class="pill">${m.status||''}</span></div><p><b>Objetivo:</b> ${m.goal||''}</p><div class="script-block"><b>Datas</b><p>${m.dates||''}</p></div><div class="script-block"><b>Estratégia</b><p>${m.strategy||''}</p></div>${m.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${m.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editMacro('${m.id}')">Editar</button>`:`<button onclick="approveMacro('${m.id}')">Aprovar macro</button><button class="btn-dark" onclick="commentMacro('${m.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum planejamento macro cadastrado.</div>'; }
 window.renderCalendar=function(){ fillPlanningSelects(); if(btnCalendarNew) btnCalendarNew.style.display=isAdmin?'inline-block':'none'; const filter=calendarClientFilter?.value||'Todos'; const month=calendarMonthFilter?.value||new Date().toISOString().slice(0,7); let data=scopeByClient(calendarItems); if(filter!=='Todos') data=data.filter(x=>x.clientId===filter); data=data.filter(x=>(x.date||'').startsWith(month)); const [year,mon]=month.split('-').map(Number); const first=new Date(year,mon-1,1); const days=new Date(year,mon,0).getDate(); const start=(first.getDay()+6)%7; const total=Math.ceil((start+days)/7)*7; const weekdays=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(w=>`<div class="calendar-weekday">${w}</div>`).join(''); const cells=Array.from({length:total},(_,i)=>{const day=i-start+1; if(day<1||day>days) return `<div class="calendar-day muted"></div>`; const dateStr=`${month}-${String(day).padStart(2,'0')}`; const items=data.filter(x=>x.date===dateStr); return `<div class="calendar-day"><strong>${day}</strong>${items.length?items.map(item=>`<div class="calendar-item" onclick="${isAdmin?`editCalendarItem('${item.id}')`:`commentCalendarItem('${item.id}')`}"><b>${item.format}</b>${item.theme}<small>${item.status} • ${responsibilityLabel(item).replace('Responsável: ','')}</small></div>`).join(''):`<div class="calendar-empty-line"></div><div class="calendar-empty-line"></div>`}</div>`}).join(''); calendarGrid.innerHTML=weekdays+cells; }
 window.renderScripts=function(){ if(btnScriptNew) btnScriptNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(scripts); scriptsGrid.innerHTML=data.length?data.map(s=>{const c=clientById(s.clientId); const schedule=s.scheduleMode==='tbd'?'Data a definir':(s.scheduleMode==='not-published'?'Não será publicado':(s.publishDate?`Publicação: ${formatDate(s.publishDate)}`:'Data a definir')); const body=s.format==='Carrossel'?`<div class="script-block"><b>Cards${s.cardCount?' • '+s.cardCount:''}</b><p>${s.cards||''}</p></div>`:(s.format==='Estático'?`<div class="script-block"><b>Texto da arte</b><p>${s.artText||''}</p></div><div class="script-block"><b>Direção visual</b><p>${s.artDirection||''}</p></div>`:`<div class="script-block"><b>Cenas / falas</b><p>${s.scenes||''}</p></div>`); return `<div class="planning-card"><h3>${s.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${s.format||'Vídeo / Reel'}</span><span class="pill">${s.status||''}</span><span class="pill">${responsibilityLabel(s)}</span><span class="pill">${schedule}</span></div><p><b>Objetivo:</b> ${s.goal||''}</p><div class="script-block"><b>Gancho</b><p>${s.hook||''}</p></div>${body}<div class="script-block"><b>CTA</b><p>${s.cta||''}</p></div>${s.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${s.clientNote}</div>`:''}<div class="actions">${s.approvalLink?`<button class="btn-blue" onclick="window.open('${s.approvalLink}','_blank')">Ver material no Drive</button>`:''}${s.referenceLink&&isAdmin?`<button class="btn-dark" onclick="window.open('${s.referenceLink}','_blank')">Abrir referência</button>`:''}${isAdmin?`<button class="btn-dark" onclick="editScript('${s.id}')">Editar</button>`:`<button onclick="approveScript('${s.id}')">Aprovar roteiro</button><button class="btn-dark" onclick="commentScript('${s.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum roteiro cadastrado.</div>'; }
@@ -1028,7 +1164,7 @@ window.renderInternal = function(){
   const demandSection = document.getElementById('teamClientDemandSection');
   if(title) title.textContent = isTeamMember && !isAdmin ? 'Meu trabalho' : 'Painel interno da agência';
   if(summary) summary.style.display = isTeamMember && !isAdmin ? 'grid' : 'none';
-  if(demandSection) demandSection.style.display = isTeamMember && !isAdmin ? 'block' : 'none';
+  if(demandSection)demandSection.style.display='none';const uwa=document.getElementById('unifiedWorkArea');if(uwa)uwa.style.display=isTeamMember&&!isAdmin?'block':'none';
   const q = (document.getElementById('internalSearch')?.value || '').toLowerCase();
   const data = internalTasks.filter(t => (t.title||'').toLowerCase().includes(q) || (t.client||'').toLowerCase().includes(q));
   document.getElementById('internalBoard').innerHTML = internalStatuses.map(st => {
@@ -1036,12 +1172,12 @@ window.renderInternal = function(){
     return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(internalCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
   }).join('');
   if(isTeamMember && !isAdmin){
-    const all=[...internalTasks,...demands];
+    const mw=myWork(currentUser?.email),all=mw.map(i=>i.x);
     const open=all.filter(x=>!['Entregue','Aprovado','Publicado'].includes(x.status)).length;
     const late=all.filter(isLate).length;
     const review=all.filter(x=>['Pronto para Revisão','Revisão interna'].includes(x.status)).length;
     const waiting=demands.filter(x=>x.status==='Aguardando você').length;
-    summary.innerHTML=`<div class="stat"><p>Em aberto</p><strong>${open}</strong></div><div class="stat"><p>Atrasadas</p><strong>${late}</strong></div><div class="stat"><p>Em revisão</p><strong>${review}</strong></div><div class="stat"><p>Aguardando cliente</p><strong>${waiting}</strong></div>`;
+    summary.innerHTML=`<div class="stat clickable" onclick="setWorkFilter('Próximos')"><p>Em aberto</p><strong>${open}</strong></div><div class="stat clickable" onclick="setWorkFilter('Atrasados')"><p>Atrasadas</p><strong>${mw.filter(i=>wGroup(i.x,i.k)==='Atrasados').length}</strong></div><div class="stat clickable" onclick="setWorkFilter('Em revisão')"><p>Em revisão</p><strong>${mw.filter(i=>wGroup(i.x,i.k)==='Em revisão').length}</strong></div><div class="stat clickable" onclick="setWorkFilter('Aguardando cliente')"><p>Aguardando cliente</p><strong>${mw.filter(i=>wGroup(i.x,i.k)==='Aguardando cliente').length}</strong></div>`;renderUnifiedWork();
     const board=document.getElementById('teamClientDemandBoard');
     if(board) board.innerHTML=demandStatuses.map(st=>{const items=demands.filter(d=>d.status===st);return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length?items.map(demandCard).join(''):'<div class="empty">Nada aqui</div>'}</div>`}).join('');
   }
@@ -1132,7 +1268,7 @@ window.renderDemands = function(){
   if(filterEl) filterEl.style.display = isAdmin ? '' : 'none';
   const filter = isAdmin && filterEl ? filterEl.value : 'Todos';
   const data = filter === 'Todos' ? demands : demands.filter(d => d.clientId === filter);
-  document.getElementById('demandsBoard').innerHTML = demandStatuses.map(st => {
+  renderBulkBar();const sv=document.getElementById('selectVisibleBtn');if(sv)sv.style.display=isAdmin?'':'none';document.getElementById('demandsBoard').innerHTML = demandStatuses.map(st => {
     const items = data.filter(d => d.status === st);
     return `<div class="column"><div class="column-title">${st}<span class="count">${items.length}</span></div>${items.length ? items.map(demandCard).join('') : '<div class="empty">Nada aqui</div>'}</div>`;
   }).join('');
@@ -1160,7 +1296,7 @@ function demandCard(d){
   } else {
     actions=d.status==='Aguardando aprovação'?`<button class="btn-green" onclick="approveDemand('${d.id}')">Aprovar</button><button class="btn-dark" onclick="requestAdjust('${d.id}')">Pedir ajuste</button>`:'';
   }
-  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}"><div class="icon-actions">${isAdmin?`<button class="icon" onclick="editDemand('${d.id}')">✏️</button>`:''}</div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?`<span class="badge b-yellow">${isAdmin||isTeamMember?'Aguardando cliente':'Aguardando você'}</span>`:''}${reviewInternal?'<span class="badge b-yellow">Revisão interna</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p>${d.imageUrl?`<img class="demand-image" src="${d.imageUrl}" alt="Imagem da demanda">`:''}<div class="meta"><span class="pill">${c?c.name:'Cliente'}</span><span class="pill">${responsibilityLabel(d)}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div><span class="responsibility">${responsibility}</span>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions">${actions}${d.imageUrl?`<button class="btn-blue" onclick="window.open('${d.imageUrl}','_blank')">Abrir imagem</button>`:''}${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Abrir link</button>`:''}</div></div>`;
+  return `<div class="task ${late?'late':''} ${approved?'approved':''} ${adjust?'adjust':''}">${isAdmin?`<label class="selectline"><input type="checkbox" ${selectedDemandIds.has(d.id)?'checked':''} onchange="toggleDemandSelection('${d.id}',this.checked)">Selecionar</label>`:''}<div class="icon-actions">${isAdmin?`<button class="icon" onclick="editDemand('${d.id}')">✏️</button>`:''}</div><h4>${d.title}</h4><span class="badge b-blue">${d.type}</span>${late?'<span class="badge b-red">Atrasada</span>':''}${d.priority==='Urgente'?'<span class="badge b-yellow">Urgente</span>':''}${waiting?`<span class="badge b-yellow">${isAdmin||isTeamMember?'Aguardando cliente':'Aguardando você'}</span>`:''}${reviewInternal?'<span class="badge b-yellow">Revisão interna</span>':''}${approved?'<span class="badge b-green">Aprovado</span>':''}${adjust?'<span class="badge b-yellow">Ajuste</span>':''}<p>${d.desc||''}</p>${d.imageUrl?`<img class="demand-image" src="${d.imageUrl}" alt="Imagem da demanda">`:''}<div class="meta"><span class="pill">${c?c.name:'Cliente'}</span><span class="pill">${responsibilityLabel(d)}</span>${d.date?`<span class="pill">Prazo: ${formatDate(d.date)}</span>`:''}</div><span class="responsibility">${responsibility}</span>${d.comment?`<p><b>Comentário:</b> ${d.comment}</p>`:''}<div class="actions">${actions}${d.imageUrl?`<button class="btn-blue" onclick="window.open('${d.imageUrl}','_blank')">Abrir imagem</button>`:''}${d.link?`<button class="btn-blue" onclick="window.open('${d.link}','_blank')">Ver material no Drive</button>`:''}</div></div>`;
 }
 function fillSelects(){
   if(!isAdmin) return;
@@ -1192,8 +1328,8 @@ window.commentCalendarItem=async function(id){const text=prompt('Observação so
 window.updateScriptFormatFields=function(){const f=document.getElementById('scriptFormat')?.value||'Vídeo / Reel';document.getElementById('scriptVideoFields')?.classList.toggle('hidden',f!=='Vídeo / Reel');document.getElementById('scriptCarouselFields')?.classList.toggle('hidden',f!=='Carrossel');document.getElementById('scriptStaticFields')?.classList.toggle('hidden',f!=='Estático');}
 window.updateScriptScheduleFields=function(){const defined=document.getElementById('scriptScheduleMode')?.value==='defined';document.getElementById('scriptPublishDateWrap')?.classList.toggle('hidden',!defined);document.getElementById('scriptPublishTimeWrap')?.classList.toggle('hidden',!defined);}
 window.onScriptPublishDateChange=function(){const date=document.getElementById('scriptPublishDate')?.value||'';if(date){document.getElementById('scriptScheduleMode').value='defined';updateScriptScheduleFields();}}
-window.openScriptModal=function(){editingScript=null;fillPlanningSelects();scriptModalTitle.textContent='Novo roteiro';deleteScriptBtn.style.display='none';['scriptTitle','scriptCaptureDate','scriptPublishDate','scriptPublishTime','scriptGoal','scriptHook','scriptScenes','scriptCards','scriptCardCount','scriptArtText','scriptArtDirection','scriptCTA','scriptApprovalLink','scriptReferenceLink','scriptClientNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});scriptResponsible.value='';scriptStatus.value='Escrevendo';scriptFormat.value='Vídeo / Reel';scriptScheduleMode.value='tbd';scriptClient.value=getScopedClientId();updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
-window.editScript=function(id){const s=scripts.find(x=>x.id===id);if(!s)return;editingScript=id;fillPlanningSelects();scriptModalTitle.textContent='Editar roteiro';deleteScriptBtn.style.display='inline-block';scriptClient.value=s.clientId||'';scriptTitle.value=s.title||'';scriptFormat.value=s.format||'Vídeo / Reel';scriptStatus.value=s.status||'Escrevendo';scriptResponsible.value=selectResponsibilityValue(s);scriptScheduleMode.value=s.scheduleMode||(s.publishDate?'defined':'tbd');scriptPublishDate.value=s.publishDate||'';scriptPublishTime.value=s.publishTime||'';scriptCaptureDate.value=s.captureDate||'';scriptGoal.value=s.goal||'';scriptHook.value=s.hook||'';scriptScenes.value=s.scenes||'';scriptCardCount.value=s.cardCount||'';scriptCards.value=s.cards||'';scriptArtText.value=s.artText||'';scriptArtDirection.value=s.artDirection||'';scriptCTA.value=s.cta||'';scriptApprovalLink.value=s.approvalLink||'';scriptReferenceLink.value=s.referenceLink||'';scriptClientNote.value=s.clientNote||'';updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
+window.openScriptModal=function(){editingScript=null;fillPlanningSelects();scriptModalTitle.textContent='Novo roteiro';deleteScriptBtn.style.display='none';['scriptTitle','scriptCaptureDate','scriptPublishDate','scriptPublishTime','scriptGoal','scriptHook','scriptScenes','scriptCards','scriptCardCount','scriptArtText','scriptArtDirection','scriptCTA','scriptApprovalLink','scriptReferenceLink','scriptClientNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});scriptResponsible.value='';scriptStatus.value='Escrevendo';scriptFormat.value='Vídeo / Reel';scriptScheduleMode.value='tbd';scriptClient.value=getScopedClientId();fillP('scriptParticipants',[]);const sr=defaultResp(scriptClient.value,(scriptFormat.value==='Carrossel'||scriptFormat.value==='Estático')?'defaultDesignerEmail':'defaultSocialEmail');if(sr)scriptResponsible.value=sr;updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
+window.editScript=function(id){const s=scripts.find(x=>x.id===id);if(!s)return;editingScript=id;fillPlanningSelects();scriptModalTitle.textContent='Editar roteiro';deleteScriptBtn.style.display='inline-block';scriptClient.value=s.clientId||'';scriptTitle.value=s.title||'';scriptFormat.value=s.format||'Vídeo / Reel';scriptStatus.value=s.status||'Escrevendo';scriptResponsible.value=selectResponsibilityValue(s);scriptScheduleMode.value=s.scheduleMode||(s.publishDate?'defined':'tbd');scriptPublishDate.value=s.publishDate||'';scriptPublishTime.value=s.publishTime||'';scriptCaptureDate.value=s.captureDate||'';scriptGoal.value=s.goal||'';scriptHook.value=s.hook||'';scriptScenes.value=s.scenes||'';scriptCardCount.value=s.cardCount||'';scriptCards.value=s.cards||'';scriptArtText.value=s.artText||'';scriptArtDirection.value=s.artDirection||'';scriptCTA.value=s.cta||'';scriptApprovalLink.value=s.approvalLink||'';scriptReferenceLink.value=s.referenceLink||'';scriptClientNote.value=s.clientNote||'';fillP('scriptParticipants',s.participantEmails||[]);updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
 async function syncScriptCalendar(scriptId,data){
   if(!scriptId) throw new Error('Roteiro sem ID para sincronização.');
   const linked=calendarItems.find(x=>x.sourceType==='script'&&x.sourceId===scriptId);
@@ -1215,7 +1351,8 @@ async function syncScriptCalendar(scriptId,data){
     visibility:'Visível para cliente',
     responsibleEmail:data.responsibleEmail||'',
     responsibleName:data.responsibleName||'',
-    responsibilityMode:data.responsibilityMode||'',
+    responsibilityScope:data.responsibilityScope||'pending',
+    participantEmails:data.participantEmails||[],participantNames:data.participantNames||[],
     teamNote:'Criado automaticamente a partir de Roteiros.',
     clientNote:data.clientNote||'',
     sourceType:'script',
@@ -1234,7 +1371,7 @@ window.saveScript=async function(){
   let mode=scriptScheduleMode.value;
   // Se uma data foi preenchida, ela sempre prevalece e o roteiro passa a ser programado.
   if((scriptPublishDate.value||'').trim()) mode='defined';
-  const data={...collectionDataWithClient(scriptClient.value),title:scriptTitle.value.trim(),format:scriptFormat.value,status:scriptStatus.value,...responsibility,scheduleMode:mode,publishDate:mode==='defined'?scriptPublishDate.value:'',publishTime:mode==='defined'?scriptPublishTime.value:'',captureDate:scriptCaptureDate.value,month:mode==='defined'?monthFromDate(scriptPublishDate.value):'',goal:scriptGoal.value.trim(),hook:scriptHook.value.trim(),scenes:scriptScenes.value.trim(),cardCount:scriptCardCount.value?Number(scriptCardCount.value):null,cards:scriptCards.value.trim(),artText:scriptArtText.value.trim(),artDirection:scriptArtDirection.value.trim(),cta:scriptCTA.value.trim(),approvalLink:scriptApprovalLink.value.trim(),referenceLink:scriptReferenceLink.value.trim(),clientNote:scriptClientNote.value.trim(),updatedAt:serverTimestamp()};
+  const pe=pEmails('scriptParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(scriptClient.value),title:scriptTitle.value.trim(),format:scriptFormat.value,status:scriptStatus.value,...responsibility,participantEmails:pe,participantNames:pNames(pe),scheduleMode:mode,publishDate:mode==='defined'?scriptPublishDate.value:'',publishTime:mode==='defined'?scriptPublishTime.value:'',captureDate:scriptCaptureDate.value,month:mode==='defined'?monthFromDate(scriptPublishDate.value):'',goal:scriptGoal.value.trim(),hook:scriptHook.value.trim(),scenes:scriptScenes.value.trim(),cardCount:scriptCardCount.value?Number(scriptCardCount.value):null,cards:scriptCards.value.trim(),artText:scriptArtText.value.trim(),artDirection:scriptArtDirection.value.trim(),cta:scriptCTA.value.trim(),approvalLink:scriptApprovalLink.value.trim(),referenceLink:scriptReferenceLink.value.trim(),clientNote:scriptClientNote.value.trim(),updatedAt:serverTimestamp()};
   if(!data.title){alert('Coloque o título ou tema do conteúdo.');return}
   if(mode==='defined'&&!data.publishDate){alert('Escolha a data de publicação ou marque Data a definir.');return}
   let id=editingScript;
@@ -1294,9 +1431,9 @@ window.deleteScript=async function(){
 }
 window.approveScript=async function(id){const s=scripts.find(x=>x.id===id);await setDoc(doc(db,'scripts',id),{status:'Aprovado',updatedAt:serverTimestamp()},{merge:true});if(s)await syncScriptCalendar(id,{...s,status:'Aprovado'});if(appSettings.notifyClientApproval!==false)await createNotification({title:'Cliente aprovou roteiro',message:`${clientById(s?.clientId)?.name||'Cliente'} aprovou: ${s?.title||'Roteiro'}`,recipientEmails:[...adminRecipients(),s?.responsibleEmail||''],type:'client-approval',entityId:id});alert('Roteiro aprovado.')}
 window.commentScript=async function(id){const text=prompt('Observação sobre o roteiro:');if(text!==null)await setDoc(doc(db,'scripts',id),{clientNote:text,status:'Aguardando aprovação',updatedAt:serverTimestamp()},{merge:true})}
-window.openCaptureModal=function(){editingCapture=null;fillPlanningSelects();captureModalTitle.textContent='Nova captação';deleteCaptureBtn.style.display='none';['captureTitle','captureDate','captureChecklist','captureNotes','captureClientNote'].forEach(id=>document.getElementById(id).value='');captureResponsible.value='';captureStatus.value='Planejada';captureClient.value=getScopedClientId();captureModal.classList.add('active')}
-window.editCapture=function(id){const ca=captures.find(x=>x.id===id);if(!ca)return;editingCapture=id;fillPlanningSelects();captureModalTitle.textContent='Editar captação';deleteCaptureBtn.style.display='inline-block';captureClient.value=ca.clientId||'';captureTitle.value=ca.title||'';captureDate.value=ca.date||'';captureResponsible.value=selectResponsibilityValue(ca);captureStatus.value=ca.status||'Planejada';captureChecklist.value=ca.checklist||'';captureNotes.value=ca.notes||'';captureClientNote.value=ca.clientNote||'';captureModal.classList.add('active')}
-window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return} if(editingCapture) await setDoc(doc(db,'captures',editingCapture),data,{merge:true}); else await addDoc(collection(db,'captures'),{...data,createdAt:serverTimestamp()});closeModals()}
+window.openCaptureModal=function(){editingCapture=null;fillPlanningSelects();captureModalTitle.textContent='Nova captação';deleteCaptureBtn.style.display='none';['captureTitle','captureDate','captureChecklist','captureNotes','captureClientNote','captureApprovalLink'].forEach(id=>document.getElementById(id).value='');captureResponsible.value='';captureStatus.value='Planejada';captureClient.value=getScopedClientId();fillP('captureParticipants',[]);const cr=defaultResp(captureClient.value,'defaultVideoEmail');if(cr)captureResponsible.value=cr;captureModal.classList.add('active')}
+window.editCapture=function(id){const ca=captures.find(x=>x.id===id);if(!ca)return;editingCapture=id;fillPlanningSelects();captureModalTitle.textContent='Editar captação';deleteCaptureBtn.style.display='inline-block';captureClient.value=ca.clientId||'';captureTitle.value=ca.title||'';captureDate.value=ca.date||'';captureResponsible.value=selectResponsibilityValue(ca);captureStatus.value=ca.status||'Planejada';captureChecklist.value=ca.checklist||'';captureNotes.value=ca.notes||'';captureClientNote.value=ca.clientNote||'';captureApprovalLink.value=ca.approvalLink||'';fillP('captureParticipants',ca.participantEmails||[]);captureModal.classList.add('active')}
+window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const pe=pEmails('captureParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,participantEmails:pe,participantNames:pNames(pe),approvalLink:captureApprovalLink.value.trim(),status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return} if(editingCapture) await setDoc(doc(db,'captures',editingCapture),data,{merge:true}); else await addDoc(collection(db,'captures'),{...data,createdAt:serverTimestamp()});closeModals()}
 window.deleteCapture=async function(){if(editingCapture&&confirm('Excluir captação?')){await deleteDoc(doc(db,'captures',editingCapture));closeModals()}}
 window.commentCapture=async function(id){const text=prompt('Observação sobre a captação:');if(text!==null) await setDoc(doc(db,'captures',id),{clientNote:text,updatedAt:serverTimestamp()},{merge:true})}
 
@@ -1374,8 +1511,8 @@ window.deleteTeamMember = async function(){
   }
 }
 
-window.openClientModal = function(){ editingClient = null; document.getElementById('clientModalTitle').textContent = 'Novo cliente'; document.getElementById('deleteClientBtn').style.display = 'none'; ['clientName','clientEmail','clientLogoLink','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientStatus').value = 'Ativo'; document.getElementById('clientModal').classList.add('active'); }
-window.editClient = function(id){ const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; if(document.getElementById('clientLogoLink')) document.getElementById('clientLogoLink').value = c.logo || ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || ''; document.getElementById('clientModal').classList.add('active'); }
+window.openClientModal = function(){ editingClient = null; document.getElementById('clientModalTitle').textContent = 'Novo cliente'; document.getElementById('deleteClientBtn').style.display = 'none'; ['clientName','clientEmail','clientLogoLink','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientStatus').value = 'Ativo';fillDefaults(null); document.getElementById('clientModal').classList.add('active'); }
+window.editClient = function(id){ const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; if(document.getElementById('clientLogoLink')) document.getElementById('clientLogoLink').value = c.logo || ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || '';fillDefaults(c); document.getElementById('clientModal').classList.add('active'); }
 window.saveClient = async function(){
   const existing = editingClient ? clientById(editingClient) : null;
   const manualLogo = document.getElementById('clientLogoLink')?.value.trim() || '';
@@ -1387,7 +1524,7 @@ window.saveClient = async function(){
     drive: clientDrive.value.trim(),
     instagram: clientInstagram.value.trim(),
     status: clientStatus.value,
-    obs: clientObs.value.trim(),
+    obs: clientObs.value.trim(),defaultSocialEmail:clientDefaultSocial.value||'',defaultDesignerEmail:clientDefaultDesigner.value||'',defaultVideoEmail:clientDefaultVideo.value||'',defaultTrafficEmail:clientDefaultTraffic.value||'',defaultLeaderEmail:clientDefaultLeader.value||'',
     updatedAt: serverTimestamp()
   };
   if(!data.name){ alert('Coloque o nome do cliente.'); return; }
@@ -1398,12 +1535,12 @@ window.saveClient = async function(){
 }
 window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
 
-window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal'; document.getElementById('demandModal').classList.add('active'); }
-window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandAssigned').value = selectResponsibilityValue(d,'assignedEmail'); document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandModal').classList.add('active'); }
+window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal';document.getElementById('demandAssigned').value='';fillP('demandParticipants',[]); document.getElementById('demandModal').classList.add('active'); }
+window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandAssigned').value = selectResponsibilityValue(d,'assignedEmail'); document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = '';fillP('demandParticipants',d.participantEmails||[]); document.getElementById('demandModal').classList.add('active'); }
 window.saveDemand = async function(){
   const c = clientById(demandClient.value);
   const responsibility = responsibilityData(demandAssigned.value);
-  const imageLink = document.getElementById('demandImageLink')?.value.trim() || '';
+  const imageLink = document.getElementById('demandImageLink')?.value.trim() || '';const pe=pEmails('demandParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));
   const data = {
     clientId: demandClient.value,
     clientEmail: c?.email || '',
@@ -1414,7 +1551,7 @@ window.saveDemand = async function(){
     priority: demandPriority.value,
     assignedEmail: responsibility.responsibleEmail,
     assignedName: responsibility.responsibleName,
-    responsibilityScope: responsibility.responsibilityScope,
+    responsibilityScope: responsibility.responsibilityScope,participantEmails:pe,participantNames:pNames(pe),
     link: demandLink.value.trim(),
     imageUrl: imageLink,
     desc: demandDesc.value.trim(),
@@ -1459,7 +1596,9 @@ window.quickComment = async function(id){
 }
 window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); }
+function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); 
+  renderTrash();
+}
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
 
 
@@ -1481,6 +1620,7 @@ function renderMobileMenuItems(){
       {label:'👨‍💻 Equipe', action:"mobileGo('team')"},
       {label:'👥 Clientes', action:"mobileGo('clients')"},
       {label:'🗂️ Demandas clientes', action:"mobileGo('demands')"},
+      {label:'🗑️ Lixeira', action:"closeMobileMenu(); openTrash()"},
       {label:'🖥️ Tela do cliente', action:"mobileGo('clientPanel')"},
       {divider:true},
       {label:'⚙️ Configurações', action:"openSettingsModal(); closeMobileMenu()"},
