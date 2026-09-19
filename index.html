@@ -537,6 +537,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 
   .member-panel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.member-panel-list{display:grid;gap:10px;margin-top:12px}.member-work-item{background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:14px}.member-work-item h4{margin:0 0 8px}.responsibility{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:#242018;color:#e9c979;font-size:12px;font-weight:700}.team-work-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}.team-work-section{margin-top:22px}.team-work-section h3{margin-bottom:10px}@media(max-width:800px){.member-panel-grid,.team-work-summary{grid-template-columns:repeat(2,1fr)}}
+
+.notification-btn{position:relative}.notification-count{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#d84a4a;color:#fff;font-size:11px;font-weight:900;display:none;align-items:center;justify-content:center}.notification-list{display:grid;gap:10px;margin-top:16px}.notification-item{background:#171717;border:1px solid #303030;border-radius:14px;padding:14px}.notification-item.unread{border-color:#5B56FF;background:rgba(91,86,255,.08)}.notification-item h4{margin:0 0 6px}.notification-item p{margin:0;color:#b8b8b8;font-size:13px}.permission-box{background:#171717;border:1px solid #303030;border-radius:14px;padding:14px}.permission-box label{display:flex;align-items:center;gap:9px;margin:8px 0;color:#ddd;font-size:13px}.permission-box input{width:auto}.settings-subtitle{margin:20px 0 8px;color:#e9c979}.notification-meta{margin-top:8px;font-size:11px;color:#777}
 </style>
 </head>
 <body>
@@ -561,6 +563,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
     <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
     <button id="btnInternal" onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
+    <button onclick="openNotificationsModal()" class="btn-dark notification-btn">🔔 Notificações <span id="notificationCount" class="notification-count">0</span></button>
     <button onclick="openSettingsModal()" class="btn-dark">Configurações</button>
     <button onclick="logout()" class="btn-dark">Sair</button>
   </div>
@@ -656,6 +659,12 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="form">
       <input id="agencyLogoFile" type="file" style="display:none">
       <input id="agencyLogoLink" class="full" placeholder="Cole aqui o link direto da logo da Agência Humaniza">
+      <div class="full"><h3 class="settings-subtitle">Notificações da equipe</h3><div class="permission-box">
+        <label><input id="notifyAssignment" type="checkbox" checked> Avisar responsável quando receber nova tarefa ou demanda</label>
+        <label><input id="notifyReviewAdmin" type="checkbox" checked> Avisar Admin quando funcionário enviar para revisão</label>
+        <label><input id="notifyAdjustment" type="checkbox" checked> Avisar responsável quando Admin solicitar ajuste</label>
+        <label><input id="notifyCompletionTeam" type="checkbox"> Avisar toda a equipe quando uma atividade for concluída</label>
+      </div></div>
     </div>
     <div class="actions">
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
@@ -680,6 +689,12 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       </select>
       <select id="teamStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="teamObs" class="full" rows="4" placeholder="Observações internas"></textarea>
+      <div class="full permission-box"><strong>Liberdades deste funcionário</strong>
+        <label><input id="permViewTeam" type="checkbox"> Visualizar trabalho de toda a equipe</label>
+        <label><input id="permCreateDemand" type="checkbox"> Criar demandas de clientes</label>
+        <label><input id="permReassign" type="checkbox"> Reatribuir tarefas e demandas</label>
+        <label><input id="permEditOthers" type="checkbox"> Editar atividades de outros funcionários</label>
+      </div>
     </div>
     <div class="actions">
       <button class="btn-danger" id="deleteTeamBtn" onclick="deleteTeamMember()" style="display:none">Excluir</button>
@@ -688,6 +703,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     </div>
   </div>
 </div>
+
+<div class="modal" id="notificationsModal"><div class="modal-card" style="max-width:780px"><div class="top"><div><h2>Notificações</h2><p style="color:#A6A6A6;margin:4px 0 0">Atualizações das tarefas e demandas que precisam da sua atenção.</p></div><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div class="actions" style="justify-content:flex-start;margin-top:14px"><button class="btn-dark" onclick="markAllNotificationsRead()">Marcar todas como lidas</button></div><div id="notificationsList" class="notification-list"></div></div></div>
 
 <div class="modal" id="memberPanelModal"><div class="modal-card" style="max-width:1050px"><div class="top"><div><h2 id="memberPanelTitle">Painel do funcionário</h2><p id="memberPanelSubtitle" style="color:#A6A6A6;margin:4px 0 0"></p></div><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="memberPanelContent"></div></div></div>
 
@@ -798,6 +815,8 @@ let scripts = [];
 let captures = [];
 let editingMacro = null, editingCalendar = null, editingScript = null, editingCapture = null;
 let appSettings = {};
+let notifications = [];
+let unsubNotifications = null;
 let unsubSettings = null;
 let unsubMacro = null, unsubCalendar = null, unsubScripts = null, unsubCaptures = null;
 
@@ -831,7 +850,7 @@ onAuthStateChanged(auth, (user) => {
     currentUser = null;
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('appPage').classList.add('hidden');
-    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures].forEach(fn => { if(fn) fn(); });
+    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications].forEach(fn => { if(fn) fn(); });
   }
 });
 
@@ -873,7 +892,7 @@ function adjustViewByRole(){
   }
 
   document.querySelector('header .actions').querySelectorAll('button').forEach(btn => {
-    if(btn.textContent !== 'Sair') btn.style.display = 'none';
+    if(btn.textContent !== 'Sair' && !btn.classList.contains('notification-btn')) btn.style.display = 'none';
   });
 
   if(isTeamMember){
@@ -888,11 +907,19 @@ function adjustViewByRole(){
 }
 
 function startListeners(){
-  [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures].forEach(fn => { if(fn) fn(); });
+  [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications].forEach(fn => { if(fn) fn(); });
 
   unsubSettings = onSnapshot(doc(db, 'settings', 'app'), snap => {
     appSettings = snap.exists() ? snap.data() : {};
     renderBrandLogo();
+  });
+
+  unsubNotifications = onSnapshot(query(collection(db,'notifications'), where('recipientEmails','array-contains',(currentUser.email||'').trim().toLowerCase())), snap => {
+    notifications = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b)=>{
+      const at=a.createdAt?.seconds||0, bt=b.createdAt?.seconds||0; return bt-at;
+    });
+    renderNotificationBadge();
+    if(document.getElementById('notificationsModal')?.classList.contains('active')) renderNotifications();
   });
 
   const scopedPlanning = (name, setter) => {
@@ -1181,6 +1208,10 @@ window.openSettingsModal = function(){
   const link = document.getElementById('agencyLogoLink');
   if(link) link.value = appSettings.logoUrl || '';
   renderBrandLogo();
+  document.getElementById('notifyAssignment').checked = appSettings.notifyAssignment !== false;
+  document.getElementById('notifyReviewAdmin').checked = appSettings.notifyReviewAdmin !== false;
+  document.getElementById('notifyAdjustment').checked = appSettings.notifyAdjustment !== false;
+  document.getElementById('notifyCompletionTeam').checked = appSettings.notifyCompletionTeam === true;
   document.getElementById('settingsModal').classList.add('active');
 }
 
@@ -1190,6 +1221,10 @@ window.saveSettings = async function(){
   await setDoc(doc(db, 'settings', 'app'), {
     logoUrl,
     name: 'Agência Humaniza',
+    notifyAssignment: document.getElementById('notifyAssignment').checked,
+    notifyReviewAdmin: document.getElementById('notifyReviewAdmin').checked,
+    notifyAdjustment: document.getElementById('notifyAdjustment').checked,
+    notifyCompletionTeam: document.getElementById('notifyCompletionTeam').checked,
     updatedAt: serverTimestamp()
   }, {merge:true});
   closeModals();
@@ -1203,6 +1238,7 @@ window.openTeamModal = function(){
   ['teamName','teamEmail','teamRole','teamObs','teamPhotoLink'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('teamPhotoFile')) document.getElementById('teamPhotoFile').value = '';
   document.getElementById('teamPermission').value = 'Operacional';
   document.getElementById('teamStatus').value = 'Ativo';
+  ['permViewTeam','permCreateDemand','permReassign','permEditOthers'].forEach(id=>document.getElementById(id).checked=false);
   document.getElementById('teamModal').classList.add('active');
 }
 window.editTeamMember = function(id){
@@ -1217,6 +1253,10 @@ window.editTeamMember = function(id){
   document.getElementById('teamPhotoLink').value = m.photoUrl || '';
   if(document.getElementById('teamPhotoFile')) document.getElementById('teamPhotoFile').value = '';
   document.getElementById('teamPermission').value = m.permission || 'Operacional';
+  document.getElementById('permViewTeam').checked = !!m.permissions?.viewTeam;
+  document.getElementById('permCreateDemand').checked = !!m.permissions?.createDemand;
+  document.getElementById('permReassign').checked = !!m.permissions?.reassign;
+  document.getElementById('permEditOthers').checked = !!m.permissions?.editOthers;
   document.getElementById('teamStatus').value = m.status || 'Ativo';
   document.getElementById('teamObs').value = m.obs || '';
   document.getElementById('teamModal').classList.add('active');
@@ -1230,6 +1270,7 @@ window.saveTeamMember = async function(){
     photoUrl: manualPhoto || existing?.photoUrl || '',
     role: teamRole.value.trim(),
     permission: teamPermission.value,
+    permissions: { viewTeam:permViewTeam.checked, createDemand:permCreateDemand.checked, reassign:permReassign.checked, editOthers:permEditOthers.checked },
     status: teamStatus.value,
     obs: teamObs.value.trim(),
     updatedAt: serverTimestamp()
@@ -1296,8 +1337,10 @@ window.saveDemand = async function(){
   };
   if(!data.clientId){ alert('Cadastre um cliente primeiro.'); return; }
   if(!data.title){ alert('Coloque o nome da demanda.'); return; }
+  const isNewDemand=!editingDemand;
   if(editingDemand) await setDoc(doc(db,'demands',editingDemand), data, {merge:true});
   else await addDoc(collection(db,'demands'), {...data, createdAt: serverTimestamp()});
+  if(isNewDemand && data.assignedEmail && appSettings.notifyAssignment!==false) await createNotification({title:'Nova demanda atribuída',message:`${data.title}${c?.name?' • '+c.name:''}`,recipientEmails:[data.assignedEmail],type:'assignment'});
   selectedClientId = data.clientId;
   closeModals();
 }
@@ -1312,15 +1355,15 @@ window.openInternalModal = function(){ editingInternal = null; fillInternalStatu
 window.editInternal = function(id){ const t = internalTasks.find(x => x.id === id); if(!t) return; editingInternal = id; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Editar tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'inline-block'; document.getElementById('internalTitle').value = t.title || ''; document.getElementById('internalClient').value = t.client || ''; document.getElementById('internalValue').value = t.value || ''; document.getElementById('internalType').value = t.type || 'Edição de Vídeo'; document.getElementById('internalPriority').value = t.priority || 'Normal'; document.getElementById('internalStatus').value = t.status || 'A Resolver'; document.getElementById('internalDate').value = t.date || ''; document.getElementById('internalDesc').value = t.desc || '';
   document.getElementById('internalComment').value = t.internalComment || ''; document.getElementById('internalModal').classList.add('active'); }
 window.saveInternal = async function(){ const assigned = teamMembers.find(m => m.email === internalAssigned.value);
-  const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: internalAssigned.value || '', assignedName: assigned?.name || '', status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } if(editingInternal) await setDoc(doc(db,'internalTasks',editingInternal), data, {merge:true}); else await addDoc(collection(db,'internalTasks'), {...data, createdAt: serverTimestamp()}); closeModals(); }
+  const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: internalAssigned.value || '', assignedName: assigned?.name || '', status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } const isNew=!editingInternal; if(editingInternal) await setDoc(doc(db,'internalTasks',editingInternal), data, {merge:true}); else await addDoc(collection(db,'internalTasks'), {...data, createdAt: serverTimestamp()}); if(isNew && data.assignedEmail && appSettings.notifyAssignment!==false) await createNotification({title:'Nova tarefa atribuída',message:`${data.title}${data.client?' • '+data.client:''}`,recipientEmails:[data.assignedEmail],type:'assignment'}); closeModals(); }
 window.deleteInternal = async function(){ if(!editingInternal) return; if(confirm('Excluir essa tarefa?')){ await deleteDoc(doc(db,'internalTasks',editingInternal)); closeModals(); } }
 window.moveInternal = async function(id, dir){ const t = internalTasks.find(x => x.id === id); if(!t) return; const i = internalStatuses.indexOf(t.status); const status = internalStatuses[Math.max(0, Math.min(internalStatuses.length-1, i+dir))]; await setDoc(doc(db,'internalTasks',id), {status, updatedAt:serverTimestamp()}, {merge:true}); }
-window.finishInternal = async function(id){ const status=(isTeamMember&&!isAdmin)?'Pronto para Revisão':'Entregue'; await setDoc(doc(db,'internalTasks',id), {status, lastActionBy:currentUser?.email||'', lastActionName:currentTeamMember?.name||(isAdmin?'Admin':''), updatedAt:serverTimestamp()}, {merge:true}); }
+window.finishInternal = async function(id){ const t=internalTasks.find(x=>x.id===id); const status=(isTeamMember&&!isAdmin)?'Pronto para Revisão':'Entregue'; await setDoc(doc(db,'internalTasks',id), {status, lastActionBy:currentUser?.email||'', lastActionName:currentTeamMember?.name||(isAdmin?'Admin':''), updatedAt:serverTimestamp()}, {merge:true}); if(status==='Pronto para Revisão' && appSettings.notifyReviewAdmin!==false) await createNotification({title:'Tarefa enviada para revisão',message:`${currentTeamMember?.name||'Equipe'} finalizou: ${t?.title||'Tarefa'}`,recipientEmails:adminRecipients(),type:'review',entityId:id}); if(status==='Entregue' && appSettings.notifyCompletionTeam===true) await createNotification({title:'Tarefa concluída',message:t?.title||'Tarefa concluída',recipientEmails:allTeamRecipients(),type:'completed',entityId:id}); }
 
 
-window.sendDemandReview=async function(id){ await setDoc(doc(db,'demands',id),{status:'Revisão interna',lastActionBy:currentUser?.email||'',lastActionName:currentTeamMember?.name||'',updatedAt:serverTimestamp()},{merge:true}); }
+window.sendDemandReview=async function(id){ const d=demands.find(x=>x.id===id); await setDoc(doc(db,'demands',id),{status:'Revisão interna',lastActionBy:currentUser?.email||'',lastActionName:currentTeamMember?.name||'',updatedAt:serverTimestamp()},{merge:true}); if(appSettings.notifyReviewAdmin!==false) await createNotification({title:'Demanda enviada para revisão',message:`${currentTeamMember?.name||'Equipe'} enviou: ${d?.title||'Demanda'}`,recipientEmails:adminRecipients(),type:'review',entityId:id}); }
 window.approveInternalDemand=async function(id){ await setDoc(doc(db,'demands',id),{status:'Aguardando aprovação',lastActionBy:currentUser?.email||'',lastActionName:'Admin',updatedAt:serverTimestamp()},{merge:true}); }
-window.requestTeamAdjust=async function(id){ const text=prompt('Qual ajuste a equipe precisa fazer?'); if(text===null)return; await setDoc(doc(db,'demands',id),{status:'Ajustes solicitados',comment:text||'',lastActionBy:currentUser?.email||'',lastActionName:'Admin',updatedAt:serverTimestamp()},{merge:true}); }
+window.requestTeamAdjust=async function(id){ const d=demands.find(x=>x.id===id); const text=prompt('Qual ajuste a equipe precisa fazer?'); if(text===null)return; await setDoc(doc(db,'demands',id),{status:'Ajustes solicitados',comment:text||'',lastActionBy:currentUser?.email||'',lastActionName:'Admin',updatedAt:serverTimestamp()},{merge:true}); if(d?.assignedEmail && appSettings.notifyAdjustment!==false) await createNotification({title:'Ajuste solicitado',message:`${d.title||'Demanda'} • ${text||'Verifique os ajustes solicitados.'}`,recipientEmails:[d.assignedEmail],type:'adjustment',entityId:id}); }
 window.teamDemandComment=async function(id){ const d=demands.find(x=>x.id===id); const text=prompt('Comentário sobre a demanda:',d?.comment||''); if(text!==null) await setDoc(doc(db,'demands',id),{comment:text,lastActionBy:currentUser?.email||'',lastActionName:currentTeamMember?.name||'',updatedAt:serverTimestamp()},{merge:true}); }
 window.openMemberPanel=function(id){ const m=teamMembers.find(x=>x.id===id); if(!m)return; const email=(m.email||'').trim().toLowerCase(); const tasks=internalTasks.filter(t=>(t.assignedEmail||'').trim().toLowerCase()===email); const ds=demands.filter(d=>(d.assignedEmail||'').trim().toLowerCase()===email); const all=[...tasks,...ds]; const open=all.filter(x=>!['Entregue','Aprovado','Publicado'].includes(x.status)).length; const late=all.filter(isLate).length; const review=all.filter(x=>['Pronto para Revisão','Revisão interna'].includes(x.status)).length; const done=all.filter(x=>['Entregue','Aprovado','Publicado'].includes(x.status)).length; document.getElementById('memberPanelTitle').textContent=m.name; document.getElementById('memberPanelSubtitle').textContent=`${m.role||'Equipe'} • ${m.permission||'Operacional'} • ${m.email||''}`; const item=(x,kind)=>`<div class="member-work-item"><h4>${x.title||'Sem título'}</h4><div class="meta"><span class="pill">${kind}</span><span class="pill">${x.status||''}</span>${x.date?`<span class="pill">Prazo: ${formatDate(x.date)}</span>`:''}${x.priority?`<span class="pill">${x.priority}</span>`:''}</div><p>${x.desc||x.internalComment||''}</p>${kind==='Demanda de cliente'?`<button class="btn-dark" onclick="closeModals(); showView('demands',document.querySelectorAll('.tab')[9])">Abrir demandas</button>`:''}</div>`; document.getElementById('memberPanelContent').innerHTML=`<div class="member-panel-grid"><div class="stat"><p>Em aberto</p><strong>${open}</strong></div><div class="stat"><p>Atrasadas</p><strong>${late}</strong></div><div class="stat"><p>Em revisão</p><strong>${review}</strong></div><div class="stat"><p>Concluídas</p><strong>${done}</strong></div></div><h3>Demandas de clientes</h3><div class="member-panel-list">${ds.length?ds.map(x=>item(x,'Demanda de cliente')).join(''):'<div class="empty">Nenhuma demanda atribuída.</div>'}</div><h3 style="margin-top:22px">Tarefas internas</h3><div class="member-panel-list">${tasks.length?tasks.map(x=>item(x,'Tarefa interna')).join(''):'<div class="empty">Nenhuma tarefa interna atribuída.</div>'}</div>`; document.getElementById('memberPanelModal').classList.add('active'); }
 window.quickComment = async function(id){
@@ -1330,6 +1373,19 @@ window.quickComment = async function(id){
     await setDoc(doc(db,'internalTasks',id), {internalComment:text, updatedAt:serverTimestamp()}, {merge:true});
   }
 }
+async function createNotification({title,message='',recipientEmails=[],type='info',entityId=''}){
+  const recipients=[...new Set((recipientEmails||[]).map(x=>(x||'').trim().toLowerCase()).filter(Boolean))];
+  if(!recipients.length) return;
+  await addDoc(collection(db,'notifications'),{title,message,recipientEmails:recipients,type,entityId,readBy:[],createdBy:(currentUser?.email||'').trim().toLowerCase(),createdAt:serverTimestamp()});
+}
+function adminRecipients(){ return [ADMIN_EMAIL.toLowerCase()]; }
+function allTeamRecipients(){ return teamMembers.filter(m=>m.status!=='Finalizado').map(m=>(m.email||'').trim().toLowerCase()).filter(Boolean); }
+function renderNotificationBadge(){ const el=document.getElementById('notificationCount'); if(!el)return; const email=(currentUser?.email||'').trim().toLowerCase(); const unread=notifications.filter(n=>!(n.readBy||[]).map(x=>(x||'').toLowerCase()).includes(email)).length; el.textContent=unread; el.style.display=unread?'inline-flex':'none'; }
+window.openNotificationsModal=function(){ renderNotifications(); document.getElementById('notificationsModal').classList.add('active'); }
+window.renderNotifications=function(){ const box=document.getElementById('notificationsList'); if(!box)return; const email=(currentUser?.email||'').trim().toLowerCase(); box.innerHTML=notifications.length?notifications.map(n=>{const unread=!(n.readBy||[]).map(x=>(x||'').toLowerCase()).includes(email); const dt=n.createdAt?.toDate?n.createdAt.toDate().toLocaleString('pt-BR'):''; return `<div class="notification-item ${unread?'unread':''}"><h4>${n.title||'Atualização'}</h4><p>${n.message||''}</p><div class="notification-meta">${dt}</div>${unread?`<div class="actions"><button class="btn-dark" onclick="markNotificationRead('${n.id}')">Marcar como lida</button></div>`:''}</div>`}).join(''):'<div class="empty">Nenhuma notificação por aqui.</div>'; }
+window.markNotificationRead=async function(id){ const n=notifications.find(x=>x.id===id); if(!n)return; const email=(currentUser?.email||'').trim().toLowerCase(); const read=[...new Set([...(n.readBy||[]),email])]; await setDoc(doc(db,'notifications',id),{readBy:read},{merge:true}); }
+window.markAllNotificationsRead=async function(){ const email=(currentUser?.email||'').trim().toLowerCase(); await Promise.all(notifications.filter(n=>!(n.readBy||[]).includes(email)).map(n=>setDoc(doc(db,'notifications',n.id),{readBy:[...new Set([...(n.readBy||[]),email])]},{merge:true}))); }
+
 window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
 function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); }
@@ -1356,6 +1412,7 @@ function renderMobileMenuItems(){
       {label:'🗂️ Demandas clientes', action:"mobileGo('demands')"},
       {label:'🖥️ Tela do cliente', action:"mobileGo('clientPanel')"},
       {divider:true},
+      {label:'🔔 Notificações', action:"openNotificationsModal(); closeMobileMenu()"},
       {label:'⚙️ Configurações', action:"openSettingsModal(); closeMobileMenu()"},
       {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
     ];
@@ -1367,6 +1424,7 @@ function renderMobileMenuItems(){
       {label:'📚 Biblioteca', action:"mobileGo('library')"},
       {label:'📋 Minhas tarefas', action:"mobileGo('internal')"},
       {label:'🗂️ Minhas demandas', action:"mobileGo('demands')"},
+      {label:'🔔 Notificações', action:"openNotificationsModal(); closeMobileMenu()"},
       {divider:true},
       {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
     ];
