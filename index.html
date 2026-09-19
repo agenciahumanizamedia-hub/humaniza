@@ -557,6 +557,11 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 .field-label{display:block;font-size:13px;font-weight:700;color:#d7d7d7;margin:10px 0 6px}
 .field-help{font-size:12px;font-weight:400;color:#9f9f9f;margin:4px 0 10px}
+
+.trash-group{margin-top:18px}.trash-group>h3{margin:0 0 8px}
+
+.access-identity{display:flex;flex-direction:column;justify-content:center;padding:7px 10px;border:1px solid #333;border-radius:10px;min-width:110px}
+.access-identity b{font-size:11px;text-transform:uppercase}.access-identity span{font-size:11px;color:#aaa;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -583,7 +588,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
     <button id="btnInternal" onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
     <button onclick="openSettingsModal()" class="btn-dark">Configurações</button>
-    <button onclick="logout()" class="btn-dark">Sair</button>
+    <div id="accessIdentity" class="access-identity"></div>
+      <button onclick="logout()" class="btn-dark">Sair</button>
   </div>
 </header>
 
@@ -658,7 +664,11 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   </section>
 
   <section id="trashView" class="hidden">
-    <div class="top"><div><h2>Lixeira</h2><p style="color:#A6A6A6">Itens removidos podem ser restaurados. A exclusão definitiva exige confirmação extra.</p></div></div>
+    <div class="top"><div><h2>Lixeira</h2><p style="color:#A6A6A6">Demandas excluídas organizadas por cliente. Você pode restaurar ou excluir definitivamente.</p></div>
+      <button class="btn-danger" onclick="emptyTrash()">Esvaziar lixeira</button>
+    </div>
+    <label class="field-label">Cliente</label>
+    <select id="trashClientFilter" onchange="renderTrash()"><option value="">Todos os clientes</option></select>
     <div id="trashList"></div>
   </section>
 
@@ -695,8 +705,8 @@ Card 3: ..."></textarea></div>
 <input id="scriptReferenceLink" class="full" placeholder="Referência / link interno (opcional)">
 <textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
 <div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
-</div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
-<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
+</div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" id="historyScriptBtn" onclick="openScriptHistory(editingScript)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
+<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" id="historyCaptureBtn" onclick="openCaptureHistory(editingCapture)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
 <div class="modal" id="settingsModal">
   <div class="modal-card">
     <h2>Configurações da Agência</h2>
@@ -758,7 +768,7 @@ Card 3: ..."></textarea></div>
       <input id="clientInstagram" placeholder="Instagram do cliente">
       <select id="clientStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="clientObs" class="full" rows="4" placeholder="Observações"></textarea>
-<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Defina quem normalmente cuida de cada área. Isso só será usado como sugestão ao criar novos conteúdos.</p>
+<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Defina quem normalmente cuida de cada área. Isso só será usado como sugestão ao criar novos conteúdos. <b>Para adicionar uma nova pessoa ao sistema, use + Funcionário.</b> Aqui você apenas escolhe, entre as pessoas já cadastradas na Equipe, quem atende este cliente.</p>
 <label class="default-team-label">Social Media</label>
           <select id="clientDefaultSocial"></select><label class="default-team-label">Designer</label>
           <select id="clientDefaultDesigner"></select><label class="default-team-label">Videomaker</label>
@@ -788,7 +798,9 @@ Card 3: ..."></textarea></div>
       <input id="demandDate" type="date">
       <label class="field-label">Prioridade</label>
           <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
-      <select id="demandAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="demandParticipants" class="participant-options"></div></div>
+      <label class="field-label">Responsável principal</label>
+      <select id="demandAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+      <div class="participant-box full"><strong>Participantes da equipe</strong><div class="field-help">Opcional. O responsável principal continua sendo o dono da entrega. Marque uma ou mais pessoas que também precisam acompanhar ou atuar nesta demanda.</div><div id="demandParticipants" class="participant-options"></div></div>
       <label class="field-label">Material / link do Drive para aprovação</label>
           <input id="demandLink" class="full" placeholder="Link do Drive / material para aprovação">
       <input id="demandImageFile" type="file" style="display:none">
@@ -798,9 +810,18 @@ Card 3: ..."></textarea></div>
     </div>
     <div class="actions">
       <button class="btn-danger" id="deleteDemandBtn" onclick="deleteDemand()" style="display:none">Excluir</button>
+      <button class="btn-dark" id="historyDemandBtn" onclick="openDemandHistory(editingDemand)" style="display:none">Ver histórico</button>
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
       <button onclick="saveDemand()">Salvar demanda</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="historyModal">
+  <div class="modal-card">
+    <h2 id="historyModalTitle">Histórico</h2>
+    <div id="historyList"></div>
+    <div class="actions"><button class="btn-dark" onclick="document.getElementById('historyModal').classList.remove('active')">Fechar</button></div>
   </div>
 </div>
 
@@ -820,7 +841,7 @@ Card 3: ..."></textarea></div>
       <textarea id="internalComment" class="full" rows="3" placeholder="Comentário interno. Ex: ajustar música, revisar legenda, enviar para aprovação"></textarea>
     </div>
     <div class="actions">
-      <button class="btn-danger" id="deleteInternalBtn" onclick="deleteInternal()" style="display:none">Excluir</button>
+      <button class="btn-danger" id="deleteInternalBtn" onclick="deleteInternal()" style="display:none">Excluir</button><button class="btn-dark" id="historyInternalBtn" onclick="openInternalHistory(editingInternal)" style="display:none">Ver histórico</button>
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
       <button onclick="saveInternal()">Salvar tarefa</button>
     </div>
@@ -880,6 +901,28 @@ function responsibilityLabel(x){ if(x?.responsibilityScope==='outside') return '
 function selectResponsibilityValue(x,emailField='responsibleEmail'){ return x?.responsibilityScope==='outside' ? OUT_OF_SCOPE : (x?.[emailField]||''); }
 
 function ne(v){return String(v||'').trim().toLowerCase()}
+
+function resolveCurrentAccess(){
+  const email=ne(currentUser?.email);
+  if(!email) return {role:'none',email:'',name:'',clientId:'',teamId:''};
+  if(email===ne(ADMIN_EMAIL)) return {role:'admin',email,name:'Administrador',clientId:'',teamId:''};
+  const tm=teamMembers.find(x=>ne(x.email)===email);
+  if(tm) return {role:'team',email,name:tm.name||email,clientId:'',teamId:tm.id||''};
+  const cl=clients.find(x=>ne(x.email)===email);
+  if(cl) return {role:'client',email,name:cl.name||email,clientId:cl.id||'',teamId:''};
+  return {role:'unknown',email,name:email,clientId:'',teamId:''};
+}
+function accessRoleLabel(role){
+  return ({admin:'Administrador',team:'Equipe',client:'Cliente',unknown:'Acesso não vinculado',none:'Sem sessão'})[role]||role;
+}
+function renderAccessBadge(){
+  const el=document.getElementById('accessIdentity');
+  if(!el)return;
+  const a=resolveCurrentAccess();
+  el.innerHTML=`<b>${accessRoleLabel(a.role)}</b><span>${a.name||a.email||''}</span>`;
+  el.dataset.role=a.role;
+}
+
 function splitDemandTrash(rows){trashedDemands=rows.filter(x=>x.archived===true);demands=rows.filter(x=>x.archived!==true)}
 
 function pEmails(id){return [...document.querySelectorAll(`#${id} input[type=checkbox]:checked`)].map(x=>x.value)}
@@ -949,17 +992,36 @@ window.bulkDeleteDemands=async()=>{
 function renderTrash(){
   const box=document.getElementById('trashList');if(!box)return;
   if(!isAdmin){box.innerHTML='<div class="empty">Acesso restrito ao administrador.</div>';return}
-  const rows=[...trashedDemands].sort((a,b)=>(b.archivedAt?.seconds||0)-(a.archivedAt?.seconds||0));
-  box.innerHTML=rows.length?rows.map(d=>{
-    const c=clientById(d.clientId);
-    return `<div class="trash-card"><h4>${d.title||'Demanda sem título'}</h4><div class="meta"><span class="pill">${c?.name||d.clientName||'Cliente'}</span><span class="pill">${d.status||''}</span></div><p>Removido por: ${d.archivedBy||'—'}</p><div class="actions"><button class="btn-green" onclick="restoreDemand('${d.id}')">Restaurar</button><button class="btn-danger" onclick="deleteDemandForever('${d.id}')">Excluir definitivamente</button></div></div>`
-  }).join(''):'<div class="empty">A lixeira está vazia.</div>';
+  const filter=document.getElementById('trashClientFilter');
+  if(filter){
+    const keep=filter.value;
+    const ids=[...new Set(trashedDemands.map(d=>d.clientId).filter(Boolean))];
+    filter.innerHTML='<option value="">Todos os clientes</option>'+ids.map(id=>`<option value="${id}">${clientById(id)?.name||'Cliente'}</option>`).join('');
+    if([...filter.options].some(o=>o.value===keep))filter.value=keep;
+  }
+  const cid=filter?.value||'';
+  const rows=[...trashedDemands].filter(d=>!cid||d.clientId===cid).sort((a,b)=>(b.archivedAt?.seconds||0)-(a.archivedAt?.seconds||0));
+  if(!rows.length){box.innerHTML='<div class="empty">A lixeira está vazia para este cliente.</div>';return}
+  const groups={};rows.forEach(d=>{const k=d.clientId||'sem-cliente';(groups[k]||(groups[k]=[])).push(d)});
+  box.innerHTML=Object.entries(groups).map(([clientId,items])=>`<div class="trash-group"><h3>${clientById(clientId)?.name||items[0]?.clientName||'Cliente'}</h3>${items.map(d=>`<div class="trash-card"><h4>${d.title||'Demanda sem título'}</h4><div class="meta"><span class="pill">${d.status||''}</span></div><p>Removido por: ${d.archivedBy||'—'}</p><div class="actions"><button class="btn-dark" onclick="openDemandHistory('${d.id}')">Ver histórico</button><button class="btn-green" onclick="restoreDemand('${d.id}')">Restaurar</button><button class="btn-danger" onclick="deleteDemandForever('${d.id}')">Excluir definitivamente</button></div></div>`).join('')}</div>`).join('');
+}
+window.emptyTrash=async function(){
+  if(!isAdmin)return;
+  const cid=document.getElementById('trashClientFilter')?.value||'';
+  const rows=trashedDemands.filter(d=>!cid||d.clientId===cid);
+  if(!rows.length)return alert('Não há itens para excluir.');
+  const client=cid?clientById(cid):null;
+  const scope=client?`do cliente ${client.name}`:'de TODOS os clientes';
+  if(!confirm(`ATENÇÃO: excluir definitivamente ${rows.length} item(ns) da lixeira ${scope}?\n\nEsta ação não pode ser desfeita.`))return;
+  const typed=prompt('Digite ESVAZIAR para confirmar:');
+  if((typed||'').trim().toUpperCase()!=='ESVAZIAR')return alert('Ação cancelada.');
+  await Promise.all(rows.map(d=>deleteDoc(doc(db,'demands',d.id))));
 }
 window.restoreDemand=async function(id){
   if(!isAdmin)return;
   const d=trashedDemands.find(x=>x.id===id);if(!d)return;
   if(!confirm(`Restaurar "${d.title||'esta demanda'}"?`))return;
-  await setDoc(doc(db,'demands',id),{archived:false,restoredAt:serverTimestamp(),restoredBy:ne(currentUser?.email),updatedAt:serverTimestamp()},{merge:true});
+  await setDoc(doc(db,'demands',id),{archived:false,restoredAt:serverTimestamp(),restoredBy:ne(currentUser?.email),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:demandHistoryWith(d,historyEvent('Demanda restaurada da Lixeira')),updatedAt:serverTimestamp()},{merge:true});
 }
 window.deleteDemandForever=async function(id){
   if(!isAdmin)return;
@@ -1316,7 +1378,12 @@ function demandCard(d){
 function fillSelects(){
   if(!isAdmin) return;
   document.getElementById('demandClient').innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('agencyClientFilter').innerHTML = '<option>Todos</option>' + clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  {
+    const agencyFilter=document.getElementById('agencyClientFilter');
+    const currentAgencyClient=agencyFilter?.value||'Todos';
+    agencyFilter.innerHTML='<option value="Todos">Todos</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    if([...agencyFilter.options].some(o=>o.value===currentAgencyClient)) agencyFilter.value=currentAgencyClient;
+  }
   fillTeamSelects();
 }
 function fillTeamSelects(){
@@ -1343,8 +1410,8 @@ window.commentCalendarItem=async function(id){const text=prompt('Observação so
 window.updateScriptFormatFields=function(){const f=document.getElementById('scriptFormat')?.value||'Vídeo / Reel';document.getElementById('scriptVideoFields')?.classList.toggle('hidden',f!=='Vídeo / Reel');document.getElementById('scriptCarouselFields')?.classList.toggle('hidden',f!=='Carrossel');document.getElementById('scriptStaticFields')?.classList.toggle('hidden',f!=='Estático');}
 window.updateScriptScheduleFields=function(){const defined=document.getElementById('scriptScheduleMode')?.value==='defined';document.getElementById('scriptPublishDateWrap')?.classList.toggle('hidden',!defined);document.getElementById('scriptPublishTimeWrap')?.classList.toggle('hidden',!defined);}
 window.onScriptPublishDateChange=function(){const date=document.getElementById('scriptPublishDate')?.value||'';if(date){document.getElementById('scriptScheduleMode').value='defined';updateScriptScheduleFields();}}
-window.openScriptModal=function(){editingScript=null;fillPlanningSelects();scriptModalTitle.textContent='Novo roteiro';deleteScriptBtn.style.display='none';['scriptTitle','scriptCaptureDate','scriptPublishDate','scriptPublishTime','scriptGoal','scriptHook','scriptScenes','scriptCards','scriptCardCount','scriptArtText','scriptArtDirection','scriptCTA','scriptApprovalLink','scriptReferenceLink','scriptClientNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});scriptResponsible.value='';scriptStatus.value='Escrevendo';scriptFormat.value='Vídeo / Reel';scriptScheduleMode.value='tbd';scriptClient.value=getScopedClientId();fillP('scriptParticipants',[]);const sr=defaultResp(scriptClient.value,(scriptFormat.value==='Carrossel'||scriptFormat.value==='Estático')?'defaultDesignerEmail':'defaultSocialEmail');if(sr)scriptResponsible.value=sr;updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
-window.editScript=function(id){const s=scripts.find(x=>x.id===id);if(!s)return;editingScript=id;fillPlanningSelects();scriptModalTitle.textContent='Editar roteiro';deleteScriptBtn.style.display='inline-block';scriptClient.value=s.clientId||'';scriptTitle.value=s.title||'';scriptFormat.value=s.format||'Vídeo / Reel';scriptStatus.value=s.status||'Escrevendo';scriptResponsible.value=selectResponsibilityValue(s);scriptScheduleMode.value=s.scheduleMode||(s.publishDate?'defined':'tbd');scriptPublishDate.value=s.publishDate||'';scriptPublishTime.value=s.publishTime||'';scriptCaptureDate.value=s.captureDate||'';scriptGoal.value=s.goal||'';scriptHook.value=s.hook||'';scriptScenes.value=s.scenes||'';scriptCardCount.value=s.cardCount||'';scriptCards.value=s.cards||'';scriptArtText.value=s.artText||'';scriptArtDirection.value=s.artDirection||'';scriptCTA.value=s.cta||'';scriptApprovalLink.value=s.approvalLink||'';scriptReferenceLink.value=s.referenceLink||'';scriptClientNote.value=s.clientNote||'';fillP('scriptParticipants',s.participantEmails||[]);updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
+window.openScriptModal=function(){editingScript=null;fillPlanningSelects();scriptModalTitle.textContent='Novo roteiro';deleteScriptBtn.style.display='none';historyScriptBtn.style.display='none';['scriptTitle','scriptCaptureDate','scriptPublishDate','scriptPublishTime','scriptGoal','scriptHook','scriptScenes','scriptCards','scriptCardCount','scriptArtText','scriptArtDirection','scriptCTA','scriptApprovalLink','scriptReferenceLink','scriptClientNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});scriptResponsible.value='';scriptStatus.value='Escrevendo';scriptFormat.value='Vídeo / Reel';scriptScheduleMode.value='tbd';scriptClient.value=getScopedClientId();fillP('scriptParticipants',[]);const sr=defaultResp(scriptClient.value,(scriptFormat.value==='Carrossel'||scriptFormat.value==='Estático')?'defaultDesignerEmail':'defaultSocialEmail');if(sr)scriptResponsible.value=sr;updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
+window.editScript=function(id){const s=scripts.find(x=>x.id===id);if(!s)return;editingScript=id;fillPlanningSelects();scriptModalTitle.textContent='Editar roteiro';deleteScriptBtn.style.display='inline-block';historyScriptBtn.style.display='inline-block';scriptClient.value=s.clientId||'';scriptTitle.value=s.title||'';scriptFormat.value=s.format||'Vídeo / Reel';scriptStatus.value=s.status||'Escrevendo';scriptResponsible.value=selectResponsibilityValue(s);scriptScheduleMode.value=s.scheduleMode||(s.publishDate?'defined':'tbd');scriptPublishDate.value=s.publishDate||'';scriptPublishTime.value=s.publishTime||'';scriptCaptureDate.value=s.captureDate||'';scriptGoal.value=s.goal||'';scriptHook.value=s.hook||'';scriptScenes.value=s.scenes||'';scriptCardCount.value=s.cardCount||'';scriptCards.value=s.cards||'';scriptArtText.value=s.artText||'';scriptArtDirection.value=s.artDirection||'';scriptCTA.value=s.cta||'';scriptApprovalLink.value=s.approvalLink||'';scriptReferenceLink.value=s.referenceLink||'';scriptClientNote.value=s.clientNote||'';fillP('scriptParticipants',s.participantEmails||[]);updateScriptFormatFields();updateScriptScheduleFields();scriptModal.classList.add('active')}
 async function syncScriptCalendar(scriptId,data){
   if(!scriptId) throw new Error('Roteiro sem ID para sincronização.');
   const linked=calendarItems.find(x=>x.sourceType==='script'&&x.sourceId===scriptId);
@@ -1391,8 +1458,15 @@ window.saveScript=async function(){
   if(mode==='defined'&&!data.publishDate){alert('Escolha a data de publicação ou marque Data a definir.');return}
   let id=editingScript;
   try{
-    if(editingScript) await setDoc(doc(db,'scripts',editingScript),data,{merge:true});
-    else{const ref=await addDoc(collection(db,'scripts'),{...data,createdAt:serverTimestamp()});id=ref.id;}
+    if(editingScript){
+      const old=scripts.find(x=>x.id===editingScript);
+      data.updatedBy=ne(currentUser?.email);data.updatedByName=actorName();
+      data.history=demandHistoryWith(old,historyEvent('Roteiro alterado',`Status: ${old?.status||'—'} → ${data.status} • Responsável: ${old?.responsibleName||'A definir'} → ${data.responsibleName||'A definir'}`));
+      await setDoc(doc(db,'scripts',editingScript),data,{merge:true});
+    } else{
+      const ev=historyEvent('Roteiro criado',`${data.format} • ${data.status}`);
+      const ref=await addDoc(collection(db,'scripts'),{...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});id=ref.id;
+    }
     // Fecha o modal assim que o roteiro principal foi salvo. Integrações secundárias não podem prender a tela.
     closeModals();
     try{await syncScriptCalendar(id,data); if(data.scheduleMode==='defined'&&data.publishDate){ const monthEl=document.getElementById('calendarMonthFilter'); if(monthEl) monthEl.value=monthFromDate(data.publishDate); const clientFilter=document.getElementById('calendarClientFilter'); if(clientFilter && data.clientId) clientFilter.value=data.clientId; renderCalendar(); }}catch(calendarError){console.error('Roteiro salvo, mas houve erro ao sincronizar calendário:',calendarError);alert('Roteiro salvo. Porém, não foi possível sincronizar automaticamente com o calendário.');}
@@ -1446,9 +1520,9 @@ window.deleteScript=async function(){
 }
 window.approveScript=async function(id){const s=scripts.find(x=>x.id===id);await setDoc(doc(db,'scripts',id),{status:'Aprovado',updatedAt:serverTimestamp()},{merge:true});if(s)await syncScriptCalendar(id,{...s,status:'Aprovado'});if(appSettings.notifyClientApproval!==false)await createNotification({title:'Cliente aprovou roteiro',message:`${clientById(s?.clientId)?.name||'Cliente'} aprovou: ${s?.title||'Roteiro'}`,recipientEmails:[...adminRecipients(),s?.responsibleEmail||''],type:'client-approval',entityId:id});alert('Roteiro aprovado.')}
 window.commentScript=async function(id){const text=prompt('Observação sobre o roteiro:');if(text!==null)await setDoc(doc(db,'scripts',id),{clientNote:text,status:'Aguardando aprovação',updatedAt:serverTimestamp()},{merge:true})}
-window.openCaptureModal=function(){editingCapture=null;fillPlanningSelects();captureModalTitle.textContent='Nova captação';deleteCaptureBtn.style.display='none';['captureTitle','captureDate','captureChecklist','captureNotes','captureClientNote','captureApprovalLink'].forEach(id=>document.getElementById(id).value='');captureResponsible.value='';captureStatus.value='Planejada';captureClient.value=getScopedClientId();fillP('captureParticipants',[]);const cr=defaultResp(captureClient.value,'defaultVideoEmail');if(cr)captureResponsible.value=cr;captureModal.classList.add('active')}
-window.editCapture=function(id){const ca=captures.find(x=>x.id===id);if(!ca)return;editingCapture=id;fillPlanningSelects();captureModalTitle.textContent='Editar captação';deleteCaptureBtn.style.display='inline-block';captureClient.value=ca.clientId||'';captureTitle.value=ca.title||'';captureDate.value=ca.date||'';captureResponsible.value=selectResponsibilityValue(ca);captureStatus.value=ca.status||'Planejada';captureChecklist.value=ca.checklist||'';captureNotes.value=ca.notes||'';captureClientNote.value=ca.clientNote||'';captureApprovalLink.value=ca.approvalLink||'';fillP('captureParticipants',ca.participantEmails||[]);captureModal.classList.add('active')}
-window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const pe=pEmails('captureParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,participantEmails:pe,participantNames:pNames(pe),approvalLink:captureApprovalLink.value.trim(),status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return} if(editingCapture) await setDoc(doc(db,'captures',editingCapture),data,{merge:true}); else await addDoc(collection(db,'captures'),{...data,createdAt:serverTimestamp()});closeModals()}
+window.openCaptureModal=function(){editingCapture=null;fillPlanningSelects();captureModalTitle.textContent='Nova captação';deleteCaptureBtn.style.display='none';historyCaptureBtn.style.display='none';['captureTitle','captureDate','captureChecklist','captureNotes','captureClientNote','captureApprovalLink'].forEach(id=>document.getElementById(id).value='');captureResponsible.value='';captureStatus.value='Planejada';captureClient.value=getScopedClientId();fillP('captureParticipants',[]);const cr=defaultResp(captureClient.value,'defaultVideoEmail');if(cr)captureResponsible.value=cr;captureModal.classList.add('active')}
+window.editCapture=function(id){const ca=captures.find(x=>x.id===id);if(!ca)return;editingCapture=id;fillPlanningSelects();captureModalTitle.textContent='Editar captação';deleteCaptureBtn.style.display='inline-block';historyCaptureBtn.style.display='inline-block';captureClient.value=ca.clientId||'';captureTitle.value=ca.title||'';captureDate.value=ca.date||'';captureResponsible.value=selectResponsibilityValue(ca);captureStatus.value=ca.status||'Planejada';captureChecklist.value=ca.checklist||'';captureNotes.value=ca.notes||'';captureClientNote.value=ca.clientNote||'';captureApprovalLink.value=ca.approvalLink||'';fillP('captureParticipants',ca.participantEmails||[]);captureModal.classList.add('active')}
+window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const pe=pEmails('captureParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,participantEmails:pe,participantNames:pNames(pe),approvalLink:captureApprovalLink.value.trim(),status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return} if(editingCapture){const old=captures.find(x=>x.id===editingCapture);data.updatedBy=ne(currentUser?.email);data.updatedByName=actorName();data.history=demandHistoryWith(old,historyEvent('Captação alterada',`Status: ${old?.status||'—'} → ${data.status} • Responsável: ${old?.responsibleName||'A definir'} → ${data.responsibleName||'A definir'}`));await setDoc(doc(db,'captures',editingCapture),data,{merge:true});} else {const ev=historyEvent('Captação criada',data.status);await addDoc(collection(db,'captures'),{...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});}closeModals()}
 window.deleteCapture=async function(){if(editingCapture&&confirm('Excluir captação?')){await deleteDoc(doc(db,'captures',editingCapture));closeModals()}}
 window.commentCapture=async function(id){const text=prompt('Observação sobre a captação:');if(text!==null) await setDoc(doc(db,'captures',id),{clientNote:text,updatedAt:serverTimestamp()},{merge:true})}
 
@@ -1550,8 +1624,55 @@ window.saveClient = async function(){
 }
 window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
 
-window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal';document.getElementById('demandAssigned').value='';fillP('demandParticipants',[]); document.getElementById('demandModal').classList.add('active'); }
-window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandAssigned').value = selectResponsibilityValue(d,'assignedEmail'); document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = '';fillP('demandParticipants',d.participantEmails||[]); document.getElementById('demandModal').classList.add('active'); }
+
+function actorName(){
+  if(isAdmin) return 'Administrador';
+  if(currentTeamMember?.name) return currentTeamMember.name;
+  const c=clients.find(x=>ne(x.email)===ne(currentUser?.email));
+  return c?.name || currentUser?.email || 'Usuário';
+}
+function historyEvent(action,detail=''){
+  return {action,detail,byEmail:ne(currentUser?.email),byName:actorName(),at:new Date().toISOString()};
+}
+function demandHistoryWith(d,event){return [...(Array.isArray(d?.history)?d.history:[]),event]}
+function demandChangeDetail(oldD,newD){
+  const changes=[];
+  if((oldD?.status||'')!==newD.status) changes.push(`Status: ${oldD?.status||'—'} → ${newD.status}`);
+  if((oldD?.priority||'')!==newD.priority) changes.push(`Prioridade: ${oldD?.priority||'—'} → ${newD.priority}`);
+  if(ne(oldD?.assignedEmail)!==ne(newD.assignedEmail)) changes.push(`Responsável: ${oldD?.assignedName||'A definir'} → ${newD.assignedName||'A definir'}`);
+  if((oldD?.date||'')!==newD.date) changes.push(`Data: ${oldD?.date||'—'} → ${newD.date||'—'}`);
+  if((oldD?.type||'')!==newD.type) changes.push(`Categoria: ${oldD?.type||'—'} → ${newD.type||'—'}`);
+  return changes.length?changes.join(' • '):'Informações da demanda atualizadas';
+}
+
+function renderEntityHistory(title,item){
+  const list=document.getElementById('historyList');
+  document.getElementById('historyModalTitle').textContent=title;
+  const h=[...(Array.isArray(item?.history)?item.history:[])].reverse();
+  list.innerHTML=h.length?h.map(x=>{
+    const dt=x.at?new Date(x.at):null;
+    const when=dt&&!isNaN(dt)?dt.toLocaleString('pt-BR'):'';
+    return `<div class="trash-card"><b>${x.action||'Alteração'}</b><p>${x.detail||''}</p><small>${x.byName||x.byEmail||'Usuário'}${when?' • '+when:''}</small></div>`;
+  }).join(''):'<div class="empty">Ainda não há histórico registrado para este item. O histórico começa a partir da V26.</div>';
+  document.getElementById('historyModal').classList.add('active');
+}
+window.openScriptHistory=id=>{const x=scripts.find(v=>v.id===id);if(x)renderEntityHistory('Histórico do roteiro',x)}
+window.openCaptureHistory=id=>{const x=captures.find(v=>v.id===id);if(x)renderEntityHistory('Histórico da captação',x)}
+window.openInternalHistory=id=>{const x=internalTasks.find(v=>v.id===id);if(x)renderEntityHistory('Histórico da tarefa interna',x)}
+window.openDemandHistory=function(id){
+  const d=demands.find(x=>x.id===id)||trashedDemands.find(x=>x.id===id); if(!d)return;
+  const list=document.getElementById('historyList');
+  const h=[...(Array.isArray(d.history)?d.history:[])].reverse();
+  list.innerHTML=h.length?h.map(x=>{
+    const dt=x.at?new Date(x.at):null;
+    const when=dt&&!isNaN(dt)?dt.toLocaleString('pt-BR'):'';
+    return `<div class="trash-card"><b>${x.action||'Alteração'}</b><p>${x.detail||''}</p><small>${x.byName||x.byEmail||'Usuário'}${when?' • '+when:''}</small></div>`;
+  }).join(''):'<div class="empty">Ainda não há histórico registrado para esta demanda. O histórico começa a partir da V24.</div>';
+  document.getElementById('historyModal').classList.add('active');
+}
+
+window.openDemandModal = function(clientId){ editingDemand = null; document.getElementById('demandModalTitle').textContent = 'Nova demanda'; document.getElementById('deleteDemandBtn').style.display = 'none'; document.getElementById('historyDemandBtn').style.display='none'; fillSelects(); document.getElementById('demandClient').value = clientId || selectedClientId || clients[0]?.id || ''; ['demandTitle','demandDate','demandLink','demandImageLink','demandDesc','demandComment'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = ''; document.getElementById('demandType').value = 'Estratégia'; document.getElementById('demandStatus').value = 'Estratégia'; document.getElementById('demandPriority').value = 'Normal';document.getElementById('demandAssigned').value='';fillP('demandParticipants',[]); document.getElementById('demandModal').classList.add('active'); }
+window.editDemand = function(id){ const d = demands.find(x => x.id === id); if(!d) return; editingDemand = id; fillSelects(); document.getElementById('demandModalTitle').textContent = 'Editar demanda'; document.getElementById('deleteDemandBtn').style.display = 'inline-block'; document.getElementById('historyDemandBtn').style.display='inline-block'; document.getElementById('demandClient').value = d.clientId; document.getElementById('demandTitle').value = d.title || ''; document.getElementById('demandType').value = d.type || 'Estratégia'; document.getElementById('demandStatus').value = d.status || 'Estratégia'; document.getElementById('demandDate').value = d.date || ''; document.getElementById('demandPriority').value = d.priority || 'Normal'; document.getElementById('demandAssigned').value = selectResponsibilityValue(d,'assignedEmail'); document.getElementById('demandLink').value = d.link || ''; document.getElementById('demandDesc').value = d.desc || ''; document.getElementById('demandComment').value = d.comment || ''; if(document.getElementById('demandImageLink')) document.getElementById('demandImageLink').value = d.imageUrl || ''; if(document.getElementById('demandImageFile')) document.getElementById('demandImageFile').value = '';fillP('demandParticipants',d.participantEmails||[]); document.getElementById('demandModal').classList.add('active'); }
 window.saveDemand = async function(){
   const c = clientById(demandClient.value);
   const responsibility = responsibilityData(demandAssigned.value);
@@ -1575,8 +1696,15 @@ window.saveDemand = async function(){
   };
   if(!data.clientId){ alert('Cadastre um cliente primeiro.'); return; }
   if(!data.title){ alert('Coloque o nome da demanda.'); return; }
-  if(editingDemand) await setDoc(doc(db,'demands',editingDemand), data, {merge:true});
-  else await addDoc(collection(db,'demands'), {...data, createdAt: serverTimestamp()});
+  if(editingDemand){
+    const oldD=demands.find(x=>x.id===editingDemand);
+    data.updatedBy=ne(currentUser?.email); data.updatedByName=actorName();
+    data.history=demandHistoryWith(oldD,historyEvent('Demanda alterada',demandChangeDetail(oldD,data)));
+    await setDoc(doc(db,'demands',editingDemand), data, {merge:true});
+  } else {
+    const ev=historyEvent('Demanda criada',`Criada com status ${data.status}`);
+    await addDoc(collection(db,'demands'), {...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});
+  }
   selectedClientId = data.clientId;
   closeModals();
 }
@@ -1588,21 +1716,24 @@ window.deleteDemand = async function(){
     archived:true,
     archivedAt:serverTimestamp(),
     archivedBy:ne(currentUser?.email),
+    updatedBy:ne(currentUser?.email),
+    updatedByName:actorName(),
+    history:demandHistoryWith(d,historyEvent('Movida para a Lixeira')),
     updatedAt:serverTimestamp()
   },{merge:true});
   closeModals();
 }
-window.approveDemand = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aprovado', updatedAt:serverTimestamp()}, {merge:true}); }
-window.waitingClient = async function(id){ await setDoc(doc(db,'demands',id), {status:'Aguardando você', updatedAt:serverTimestamp()}, {merge:true}); }
-window.requestAdjust = async function(id){ const text = prompt('Qual ajuste deseja solicitar?'); await setDoc(doc(db,'demands',id), {status:'Ajustes solicitados', comment:text||'', updatedAt:serverTimestamp()}, {merge:true}); }
+window.approveDemand = async function(id){ const d=demands.find(x=>x.id===id); await setDoc(doc(db,'demands',id), {status:'Aprovado',updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:demandHistoryWith(d,historyEvent('Demanda aprovada')),updatedAt:serverTimestamp()}, {merge:true}); }
+window.waitingClient = async function(id){ const d=demands.find(x=>x.id===id); await setDoc(doc(db,'demands',id), {status:'Aguardando você',updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:demandHistoryWith(d,historyEvent('Enviada para o cliente')),updatedAt:serverTimestamp()}, {merge:true}); }
+window.requestAdjust = async function(id){ const text=prompt('Qual ajuste deseja solicitar?'); if(text===null)return; const d=demands.find(x=>x.id===id); await setDoc(doc(db,'demands',id), {status:'Ajustes solicitados',comment:text||'',updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:demandHistoryWith(d,historyEvent('Ajuste solicitado',text||'')),updatedAt:serverTimestamp()}, {merge:true}); }
 
-window.openInternalModal = function(){ editingInternal = null; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Nova tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc','internalComment'].forEach(id => document.getElementById(id).value = '');
+window.openInternalModal = function(){ editingInternal = null; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Nova tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'none'; document.getElementById('historyInternalBtn').style.display='none'; ['internalTitle','internalClient','internalValue','internalDate','internalDesc','internalComment'].forEach(id => document.getElementById(id).value = '');
   fillTeamSelects();
   document.getElementById('internalAssigned').value = ''; document.getElementById('internalType').value = 'Edição de Vídeo'; document.getElementById('internalPriority').value = 'Normal'; document.getElementById('internalStatus').value = 'A Resolver'; document.getElementById('internalModal').classList.add('active'); }
-window.editInternal = function(id){ const t = internalTasks.find(x => x.id === id); if(!t) return; editingInternal = id; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Editar tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'inline-block'; document.getElementById('internalTitle').value = t.title || ''; document.getElementById('internalClient').value = t.client || ''; document.getElementById('internalValue').value = t.value || ''; document.getElementById('internalType').value = t.type || 'Edição de Vídeo'; document.getElementById('internalPriority').value = t.priority || 'Normal'; document.getElementById('internalAssigned').value = selectResponsibilityValue(t,'assignedEmail'); document.getElementById('internalStatus').value = t.status || 'A Resolver'; document.getElementById('internalDate').value = t.date || ''; document.getElementById('internalDesc').value = t.desc || '';
+window.editInternal = function(id){ const t = internalTasks.find(x => x.id === id); if(!t) return; editingInternal = id; fillInternalStatus(); document.getElementById('internalModalTitle').textContent = 'Editar tarefa interna'; document.getElementById('deleteInternalBtn').style.display = 'inline-block'; document.getElementById('historyInternalBtn').style.display='inline-block'; document.getElementById('internalTitle').value = t.title || ''; document.getElementById('internalClient').value = t.client || ''; document.getElementById('internalValue').value = t.value || ''; document.getElementById('internalType').value = t.type || 'Edição de Vídeo'; document.getElementById('internalPriority').value = t.priority || 'Normal'; document.getElementById('internalAssigned').value = selectResponsibilityValue(t,'assignedEmail'); document.getElementById('internalStatus').value = t.status || 'A Resolver'; document.getElementById('internalDate').value = t.date || ''; document.getElementById('internalDesc').value = t.desc || '';
   document.getElementById('internalComment').value = t.internalComment || ''; document.getElementById('internalModal').classList.add('active'); }
 window.saveInternal = async function(){ const responsibility = responsibilityData(internalAssigned.value);
-  const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: responsibility.responsibleEmail, assignedName: responsibility.responsibleName, responsibilityScope: responsibility.responsibilityScope, status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } if(editingInternal) await setDoc(doc(db,'internalTasks',editingInternal), data, {merge:true}); else await addDoc(collection(db,'internalTasks'), {...data, createdAt: serverTimestamp()}); closeModals(); }
+  const data = { title: internalTitle.value.trim(), client: internalClient.value.trim(), value: internalValue.value.trim(), type: internalType.value, priority: internalPriority.value, assignedEmail: responsibility.responsibleEmail, assignedName: responsibility.responsibleName, responsibilityScope: responsibility.responsibilityScope, status: internalStatus.value, date: internalDate.value, desc: internalDesc.value.trim(), internalComment: internalComment.value.trim(), updatedAt: serverTimestamp() }; if(!data.title){ alert('Coloque o nome da tarefa.'); return; } if(editingInternal){const old=internalTasks.find(x=>x.id===editingInternal);data.updatedBy=ne(currentUser?.email);data.updatedByName=actorName();data.history=demandHistoryWith(old,historyEvent('Tarefa interna alterada',`Status: ${old?.status||'—'} → ${data.status} • Responsável: ${old?.assignedName||'A definir'} → ${data.assignedName||'A definir'}`));await setDoc(doc(db,'internalTasks',editingInternal),data,{merge:true});} else {const ev=historyEvent('Tarefa interna criada',data.status);await addDoc(collection(db,'internalTasks'),{...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});} closeModals(); }
 window.deleteInternal = async function(){ if(!editingInternal) return; if(confirm('Excluir essa tarefa?')){ await deleteDoc(doc(db,'internalTasks',editingInternal)); closeModals(); } }
 window.moveInternal = async function(id, dir){ const t = internalTasks.find(x => x.id === id); if(!t) return; const i = internalStatuses.indexOf(t.status); const status = internalStatuses[Math.max(0, Math.min(internalStatuses.length-1, i+dir))]; await setDoc(doc(db,'internalTasks',id), {status, updatedAt:serverTimestamp()}, {merge:true}); }
 window.finishInternal = async function(id){ const status=(isTeamMember&&!isAdmin)?'Pronto para Revisão':'Entregue'; await setDoc(doc(db,'internalTasks',id), {status, lastActionBy:currentUser?.email||'', lastActionName:currentTeamMember?.name||(isAdmin?'Admin':''), updatedAt:serverTimestamp()}, {merge:true}); }
@@ -1622,7 +1753,8 @@ window.quickComment = async function(id){
 }
 window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-function refreshAll(){ if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); 
+function refreshAll(){
+  renderAccessBadge(); if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); 
   renderTrash();
 }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
