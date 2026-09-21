@@ -562,6 +562,12 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 .access-identity{display:flex;flex-direction:column;justify-content:center;padding:7px 10px;border:1px solid #333;border-radius:10px;min-width:110px}
 .access-identity b{font-size:11px;text-transform:uppercase}.access-identity span{font-size:11px;color:#aaa;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.monthly-filter{display:flex;gap:10px;margin:10px 0 16px;align-items:end}
+.monthly-filter>div{min-width:160px}.monthly-filter select{width:100%}
+@media(max-width:700px){.monthly-filter{display:grid;grid-template-columns:1fr 1fr}.monthly-filter>div{min-width:0}}
+
+.access-create-box{margin-top:16px;padding:14px;border:1px solid #333;border-radius:12px;background:#151515}.access-create-box h4{margin:0 0 4px}.access-create-box p{margin:0 0 10px;color:#aaa;font-size:12px}
 </style>
 </head>
 <body>
@@ -632,8 +638,12 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="top"><h2>Calendário Editorial</h2><div class="calendar-toolbar"><select id="calendarClientFilter" onchange="renderCalendar()"></select><input id="calendarMonthFilter" type="month" onchange="renderCalendar()"><button id="btnCalendarNew" onclick="openCalendarModal()">+ Item</button></div></div>
     <div class="calendar-scroll"><div class="calendar-real" id="calendarGrid"></div></div>
   </section>
-  <section id="scriptsView" class="hidden"><div class="top"><h2>Roteiros</h2><button id="btnScriptNew" onclick="openScriptModal()">+ Roteiro</button></div><div class="planning-grid" id="scriptsGrid"></div></section>
-  <section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div><div class="planning-grid" id="capturesGrid"></div></section>
+  <section id="scriptsView" class="hidden"><div class="top"><h2>Roteiros</h2><button id="btnScriptNew" onclick="openScriptModal()">+ Roteiro</button></div>
+<div class="monthly-filter"><div><label class="field-label">Mês</label><select id="scriptsMonthFilter" onchange="renderScripts()"></select></div><div><label class="field-label">Ano</label><select id="scriptsYearFilter" onchange="renderScripts()"></select></div></div>
+<div class="planning-grid" id="scriptsGrid"></div></section>
+  <section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div>
+<div class="monthly-filter"><div><label class="field-label">Mês</label><select id="capturesMonthFilter" onchange="renderCaptures()"></select></div><div><label class="field-label">Ano</label><select id="capturesYearFilter" onchange="renderCaptures()"></select></div></div>
+<div class="planning-grid" id="capturesGrid"></div></section>
   <section id="libraryView" class="hidden"><div class="top"><h2>Biblioteca da Marca</h2><button id="btnLibraryEdit" onclick="openClientModal()">Editar cliente</button></div><div id="libraryContent"></div></section>
   <section id="internalView" class="hidden">
     <div class="top"><h2 id="internalViewTitle">Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa..." oninput="renderInternal()"></div>
@@ -745,6 +755,7 @@ Card 3: ..."></textarea></div>
       <select id="teamStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
       <textarea id="teamObs" class="full" rows="4" placeholder="Observações internas"></textarea>
     </div>
+    <div class="access-create-box" id="teamAccessBox"><h4>Acesso ao sistema</h4><p>Opcional para novo funcionário. Login pelo e-mail acima. A senha não é salva no banco.</p><label><input type="checkbox" id="teamCreateAccess"> Criar acesso no Firebase ao salvar</label><div class="form"><input id="teamTempPassword" type="text" placeholder="Senha temporária"><input id="teamTempPassword2" type="text" placeholder="Confirmar senha"></div><button type="button" class="btn-dark" onclick="fillGeneratedPassword('teamTempPassword','teamTempPassword2')">Gerar senha</button></div>
     <div class="actions">
       <button class="btn-danger" id="deleteTeamBtn" onclick="deleteTeamMember()" style="display:none">Excluir</button>
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
@@ -776,6 +787,7 @@ Card 3: ..."></textarea></div>
           <select id="clientDefaultTraffic"></select><label class="default-team-label">Líder / Gestor da conta</label>
           <select id="clientDefaultLeader"></select></div>
     </div>
+    <div class="access-create-box" id="clientAccessBox"><h4>Acesso ao sistema</h4><p>Opcional para novo cliente. Login pelo e-mail acima. A senha não é salva no banco.</p><label><input type="checkbox" id="clientCreateAccess"> Criar acesso no Firebase ao salvar</label><div class="form"><input id="clientTempPassword" type="text" placeholder="Senha temporária"><input id="clientTempPassword2" type="text" placeholder="Confirmar senha"></div><button type="button" class="btn-dark" onclick="fillGeneratedPassword('clientTempPassword','clientTempPassword2')">Gerar senha</button></div>
     <div class="actions">
       <button class="btn-danger" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir</button>
       <button class="btn-dark" onclick="closeModals()">Cancelar</button>
@@ -851,6 +863,7 @@ Card 3: ..."></textarea></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-functions.js";
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -867,6 +880,8 @@ const ADMIN_EMAIL = "agenciahumanizamedia@gmail.com";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app, 'us-central1');
+const createAgencyUserFn = httpsCallable(functions, 'createAgencyUser');
 
 let currentUser = null;
 let isAdmin = false;
@@ -901,6 +916,10 @@ function responsibilityLabel(x){ if(x?.responsibilityScope==='outside') return '
 function selectResponsibilityValue(x,emailField='responsibleEmail'){ return x?.responsibilityScope==='outside' ? OUT_OF_SCOPE : (x?.[emailField]||''); }
 
 function ne(v){return String(v||'').trim().toLowerCase()}
+function generateTemporaryPassword(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';const bytes=new Uint32Array(14);crypto.getRandomValues(bytes);return Array.from(bytes,n=>chars[n%chars.length]).join('')}
+window.fillGeneratedPassword=function(id,confirmId){const p=generateTemporaryPassword();document.getElementById(id).value=p;document.getElementById(confirmId).value=p}
+async function createFirebaseAccess({email,password,displayName,role,recordId}){if(!isAdmin)throw new Error('Somente o administrador pode criar acessos.');return (await createAgencyUserFn({email:ne(email),password,displayName,role,recordId})).data}
+
 
 function resolveCurrentAccess(){
   const email=ne(currentUser?.email);
@@ -1224,13 +1243,39 @@ function renderDashboard(){
 function getScopedClientId(){ return selectedClientId || clients[0]?.id || ''; }
 function currentVisibleClient(){ return selectedClientId ? clientById(selectedClientId) : (clients[0] || null); }
 function monthFromDate(date){ return (date || '').slice(0,7); }
+
+const MONTH_NAMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function currentCompetence(){const d=new Date();return {month:d.getMonth()+1,year:d.getFullYear()}}
+function competenceFromItem(x){
+  if(x?.competenceMonth&&x?.competenceYear)return {month:Number(x.competenceMonth),year:Number(x.competenceYear)};
+  const ym=x?.month||monthFromDate(x?.publishDate||x?.date||x?.captureDate||'');
+  const m=String(ym||'').match(/^(\d{4})-(\d{2})$/);
+  if(m)return {month:Number(m[2]),year:Number(m[1])};
+  const dt=x?.createdAt?.toDate?.();if(dt)return {month:dt.getMonth()+1,year:dt.getFullYear()};
+  return currentCompetence();
+}
+function setupMonthlyFilter(monthId,yearId,items){
+  const ms=document.getElementById(monthId),ys=document.getElementById(yearId);if(!ms||!ys)return currentCompetence();
+  const now=currentCompetence(),keepM=ms.value||String(now.month),keepY=ys.value||String(now.year);
+  ms.innerHTML=MONTH_NAMES.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
+  const years=[...new Set([now.year,...items.map(x=>competenceFromItem(x).year).filter(Boolean)])].sort((a,b)=>b-a);
+  ys.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  ms.value=[...ms.options].some(o=>o.value===keepM)?keepM:String(now.month);
+  ys.value=[...ys.options].some(o=>o.value===keepY)?keepY:String(now.year);
+  return {month:Number(ms.value),year:Number(ys.value)};
+}
+function filterByCompetence(items,monthId,yearId){
+  const selected=setupMonthlyFilter(monthId,yearId,items);
+  return items.filter(x=>{const c=competenceFromItem(x);return c.month===selected.month&&c.year===selected.year});
+}
+
 function scopeByClient(list){ if(isAdmin) return list; let base=list.filter(x=>x.clientEmail===currentUser?.email || involved(x,currentUser?.email)); if(!isTeamMember) base=base.filter(x=>x.visibility!=='Apenas equipe' && x.visibility!=='Apenas admin'); return base; }
 function collectionDataWithClient(clientId){ const c=clientById(clientId); return {clientId, clientEmail:c?.email||''}; }
 function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); ['macroClient','calendarClient','scriptClient','captureClient'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=clientOptions; if(current && [...el.options].some(o=>o.value===current)) el.value=current;}}); const filter=document.getElementById('calendarClientFilter'); if(filter){const currentFilter=filter.value||'Todos'; filter.innerHTML='<option value="Todos">Todos os clientes</option>'+clientOptions; if([...filter.options].some(o=>o.value===currentFilter)) filter.value=currentFilter;} const people='<option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option>'+teamMembers.map(m=>`<option value="${m.email}">${m.name} • ${m.role||'Equipe'}</option>`).join(''); ['calendarResponsible','scriptResponsible','captureResponsible'].forEach(id=>{const el=document.getElementById(id); if(el){const current=el.value; el.innerHTML=people; if([...el.options].some(o=>o.value===current)) el.value=current;}}); fillP('scriptParticipants',pEmails('scriptParticipants'));fillP('captureParticipants',pEmails('captureParticipants')); const month=document.getElementById('calendarMonthFilter'); if(month&&!month.value){const d=new Date(); month.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;} }
 window.renderMacro=function(){ fillPlanningSelects(); if(btnMacroNew) btnMacroNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(macroPlans); macroGrid.innerHTML=data.length?data.map(m=>{const c=clientById(m.clientId); return `<div class="planning-card"><h3>${m.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${m.month||''}</span><span class="pill">${m.status||''}</span></div><p><b>Objetivo:</b> ${m.goal||''}</p><div class="script-block"><b>Datas</b><p>${m.dates||''}</p></div><div class="script-block"><b>Estratégia</b><p>${m.strategy||''}</p></div>${m.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${m.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editMacro('${m.id}')">Editar</button>`:`<button onclick="approveMacro('${m.id}')">Aprovar macro</button><button class="btn-dark" onclick="commentMacro('${m.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum planejamento macro cadastrado.</div>'; }
 window.renderCalendar=function(){ fillPlanningSelects(); if(btnCalendarNew) btnCalendarNew.style.display=isAdmin?'inline-block':'none'; const filter=calendarClientFilter?.value||'Todos'; const month=calendarMonthFilter?.value||new Date().toISOString().slice(0,7); let data=scopeByClient(calendarItems); if(filter!=='Todos') data=data.filter(x=>x.clientId===filter); data=data.filter(x=>(x.date||'').startsWith(month)); const [year,mon]=month.split('-').map(Number); const first=new Date(year,mon-1,1); const days=new Date(year,mon,0).getDate(); const start=(first.getDay()+6)%7; const total=Math.ceil((start+days)/7)*7; const weekdays=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(w=>`<div class="calendar-weekday">${w}</div>`).join(''); const cells=Array.from({length:total},(_,i)=>{const day=i-start+1; if(day<1||day>days) return `<div class="calendar-day muted"></div>`; const dateStr=`${month}-${String(day).padStart(2,'0')}`; const items=data.filter(x=>x.date===dateStr); return `<div class="calendar-day"><strong>${day}</strong>${items.length?items.map(item=>`<div class="calendar-item" onclick="${isAdmin?`editCalendarItem('${item.id}')`:`commentCalendarItem('${item.id}')`}"><b>${item.format}</b>${item.theme}<small>${item.status} • ${responsibilityLabel(item).replace('Responsável: ','')}</small></div>`).join(''):`<div class="calendar-empty-line"></div><div class="calendar-empty-line"></div>`}</div>`}).join(''); calendarGrid.innerHTML=weekdays+cells; }
-window.renderScripts=function(){ if(btnScriptNew) btnScriptNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(scripts); scriptsGrid.innerHTML=data.length?data.map(s=>{const c=clientById(s.clientId); const schedule=s.scheduleMode==='tbd'?'Data a definir':(s.scheduleMode==='not-published'?'Não será publicado':(s.publishDate?`Publicação: ${formatDate(s.publishDate)}`:'Data a definir')); const body=s.format==='Carrossel'?`<div class="script-block"><b>Cards${s.cardCount?' • '+s.cardCount:''}</b><p>${s.cards||''}</p></div>`:(s.format==='Estático'?`<div class="script-block"><b>Texto da arte</b><p>${s.artText||''}</p></div><div class="script-block"><b>Direção visual</b><p>${s.artDirection||''}</p></div>`:`<div class="script-block"><b>Cenas / falas</b><p>${s.scenes||''}</p></div>`); return `<div class="planning-card"><h3>${s.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${s.format||'Vídeo / Reel'}</span><span class="pill">${s.status||''}</span><span class="pill">${responsibilityLabel(s)}</span><span class="pill">${schedule}</span></div><p><b>Objetivo:</b> ${s.goal||''}</p><div class="script-block"><b>Gancho</b><p>${s.hook||''}</p></div>${body}<div class="script-block"><b>CTA</b><p>${s.cta||''}</p></div>${s.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${s.clientNote}</div>`:''}<div class="actions">${s.approvalLink?`<button class="btn-blue" onclick="window.open('${s.approvalLink}','_blank')">Ver material no Drive</button>`:''}${s.referenceLink&&isAdmin?`<button class="btn-dark" onclick="window.open('${s.referenceLink}','_blank')">Abrir referência</button>`:''}${isAdmin?`<button class="btn-dark" onclick="editScript('${s.id}')">Editar</button>`:`<button onclick="approveScript('${s.id}')">Aprovar roteiro</button><button class="btn-dark" onclick="commentScript('${s.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum roteiro cadastrado.</div>'; }
-window.renderCaptures=function(){ if(btnCaptureNew) btnCaptureNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(captures); capturesGrid.innerHTML=data.length?data.map(ca=>{const c=clientById(ca.clientId); return `<div class="planning-card"><h3>${ca.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${ca.status||''}</span><span class="pill">${responsibilityLabel(ca)}</span>${ca.date?`<span class="pill">${formatDate(ca.date)}</span>`:''}</div><div class="script-block"><b>Checklist</b><p>${ca.checklist||''}</p></div>${isAdmin?`<div class="script-block"><b>Observações internas</b><p>${ca.notes||''}</p></div>`:''}${ca.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${ca.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editCapture('${ca.id}')">Editar</button>`:`<button class="btn-dark" onclick="commentCapture('${ca.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhuma captação cadastrada.</div>'; }
+window.renderScripts=function(){ if(btnScriptNew) btnScriptNew.style.display=isAdmin?'inline-block':'none'; const data=filterByCompetence(scopeByClient(scripts),'scriptsMonthFilter','scriptsYearFilter'); scriptsGrid.innerHTML=data.length?data.map(s=>{const c=clientById(s.clientId); const schedule=s.scheduleMode==='tbd'?'Data a definir':(s.scheduleMode==='not-published'?'Não será publicado':(s.publishDate?`Publicação: ${formatDate(s.publishDate)}`:'Data a definir')); const body=s.format==='Carrossel'?`<div class="script-block"><b>Cards${s.cardCount?' • '+s.cardCount:''}</b><p>${s.cards||''}</p></div>`:(s.format==='Estático'?`<div class="script-block"><b>Texto da arte</b><p>${s.artText||''}</p></div><div class="script-block"><b>Direção visual</b><p>${s.artDirection||''}</p></div>`:`<div class="script-block"><b>Cenas / falas</b><p>${s.scenes||''}</p></div>`); return `<div class="planning-card"><h3>${s.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${s.format||'Vídeo / Reel'}</span><span class="pill">${s.status||''}</span><span class="pill">${responsibilityLabel(s)}</span><span class="pill">${schedule}</span></div><p><b>Objetivo:</b> ${s.goal||''}</p><div class="script-block"><b>Gancho</b><p>${s.hook||''}</p></div>${body}<div class="script-block"><b>CTA</b><p>${s.cta||''}</p></div>${s.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${s.clientNote}</div>`:''}<div class="actions">${s.approvalLink?`<button class="btn-blue" onclick="window.open('${s.approvalLink}','_blank')">Ver material no Drive</button>`:''}${s.referenceLink&&isAdmin?`<button class="btn-dark" onclick="window.open('${s.referenceLink}','_blank')">Abrir referência</button>`:''}${isAdmin?`<button class="btn-dark" onclick="editScript('${s.id}')">Editar</button>`:`<button onclick="approveScript('${s.id}')">Aprovar roteiro</button><button class="btn-dark" onclick="commentScript('${s.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum roteiro cadastrado.</div>'; }
+window.renderCaptures=function(){ if(btnCaptureNew) btnCaptureNew.style.display=isAdmin?'inline-block':'none'; const data=filterByCompetence(scopeByClient(captures),'capturesMonthFilter','capturesYearFilter'); capturesGrid.innerHTML=data.length?data.map(ca=>{const c=clientById(ca.clientId); return `<div class="planning-card"><h3>${ca.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${ca.status||''}</span><span class="pill">${responsibilityLabel(ca)}</span>${ca.date?`<span class="pill">${formatDate(ca.date)}</span>`:''}</div><div class="script-block"><b>Checklist</b><p>${ca.checklist||''}</p></div>${isAdmin?`<div class="script-block"><b>Observações internas</b><p>${ca.notes||''}</p></div>`:''}${ca.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${ca.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editCapture('${ca.id}')">Editar</button>`:`<button class="btn-dark" onclick="commentCapture('${ca.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhuma captação cadastrada.</div>'; }
 window.renderLibrary=function(){ const c=isAdmin?currentVisibleClient():clients[0]; if(!libraryContent) return; if(!c){libraryContent.innerHTML='<div class="empty">Nenhum cliente selecionado.</div>'; return;} libraryContent.innerHTML=`<div class="client-header"><div class="client-title-row">${c.logo?`<div class="brand-logo-box"><img src="${c.logo}" alt="Logo ${c.name}"></div>`:''}<div><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">Biblioteca da marca do cliente.</p></div></div></div><div class="brand-library-grid"><div class="library-item"><h3>🎨 Identidade</h3><p><b>Logo:</b> ${c.logo?'Cadastrada':'Não informada'}</p><p><b>Observações:</b> ${c.obs||'Nenhuma observação.'}</p></div><div class="library-item"><h3>🔗 Links</h3><p><b>Drive:</b> ${c.drive?`<a href="${c.drive}" target="_blank" style="color:#F2F2F0">Abrir Drive</a>`:'Não informado'}</p><p><b>Instagram:</b> ${c.instagram||'Não informado'}</p></div></div>`; }
 
 window.renderInternal = function(){
@@ -1456,6 +1501,11 @@ window.saveScript=async function(){
   const pe=pEmails('scriptParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(scriptClient.value),title:scriptTitle.value.trim(),format:scriptFormat.value,status:scriptStatus.value,...responsibility,participantEmails:pe,participantNames:pNames(pe),scheduleMode:mode,publishDate:mode==='defined'?scriptPublishDate.value:'',publishTime:mode==='defined'?scriptPublishTime.value:'',captureDate:scriptCaptureDate.value,month:mode==='defined'?monthFromDate(scriptPublishDate.value):'',goal:scriptGoal.value.trim(),hook:scriptHook.value.trim(),scenes:scriptScenes.value.trim(),cardCount:scriptCardCount.value?Number(scriptCardCount.value):null,cards:scriptCards.value.trim(),artText:scriptArtText.value.trim(),artDirection:scriptArtDirection.value.trim(),cta:scriptCTA.value.trim(),approvalLink:scriptApprovalLink.value.trim(),referenceLink:scriptReferenceLink.value.trim(),clientNote:scriptClientNote.value.trim(),updatedAt:serverTimestamp()};
   if(!data.title){alert('Coloque o título ou tema do conteúdo.');return}
   if(mode==='defined'&&!data.publishDate){alert('Escolha a data de publicação ou marque Data a definir.');return}
+  const selectedScriptCompetence=data.publishDate?competenceFromItem({publishDate:data.publishDate}):{
+    month:Number(document.getElementById('scriptsMonthFilter')?.value||currentCompetence().month),
+    year:Number(document.getElementById('scriptsYearFilter')?.value||currentCompetence().year)
+  };
+  data.competenceMonth=selectedScriptCompetence.month;data.competenceYear=selectedScriptCompetence.year;
   let id=editingScript;
   try{
     if(editingScript){
@@ -1522,7 +1572,13 @@ window.approveScript=async function(id){const s=scripts.find(x=>x.id===id);await
 window.commentScript=async function(id){const text=prompt('Observação sobre o roteiro:');if(text!==null)await setDoc(doc(db,'scripts',id),{clientNote:text,status:'Aguardando aprovação',updatedAt:serverTimestamp()},{merge:true})}
 window.openCaptureModal=function(){editingCapture=null;fillPlanningSelects();captureModalTitle.textContent='Nova captação';deleteCaptureBtn.style.display='none';historyCaptureBtn.style.display='none';['captureTitle','captureDate','captureChecklist','captureNotes','captureClientNote','captureApprovalLink'].forEach(id=>document.getElementById(id).value='');captureResponsible.value='';captureStatus.value='Planejada';captureClient.value=getScopedClientId();fillP('captureParticipants',[]);const cr=defaultResp(captureClient.value,'defaultVideoEmail');if(cr)captureResponsible.value=cr;captureModal.classList.add('active')}
 window.editCapture=function(id){const ca=captures.find(x=>x.id===id);if(!ca)return;editingCapture=id;fillPlanningSelects();captureModalTitle.textContent='Editar captação';deleteCaptureBtn.style.display='inline-block';historyCaptureBtn.style.display='inline-block';captureClient.value=ca.clientId||'';captureTitle.value=ca.title||'';captureDate.value=ca.date||'';captureResponsible.value=selectResponsibilityValue(ca);captureStatus.value=ca.status||'Planejada';captureChecklist.value=ca.checklist||'';captureNotes.value=ca.notes||'';captureClientNote.value=ca.clientNote||'';captureApprovalLink.value=ca.approvalLink||'';fillP('captureParticipants',ca.participantEmails||[]);captureModal.classList.add('active')}
-window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const pe=pEmails('captureParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,participantEmails:pe,participantNames:pNames(pe),approvalLink:captureApprovalLink.value.trim(),status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return} if(editingCapture){const old=captures.find(x=>x.id===editingCapture);data.updatedBy=ne(currentUser?.email);data.updatedByName=actorName();data.history=demandHistoryWith(old,historyEvent('Captação alterada',`Status: ${old?.status||'—'} → ${data.status} • Responsável: ${old?.responsibleName||'A definir'} → ${data.responsibleName||'A definir'}`));await setDoc(doc(db,'captures',editingCapture),data,{merge:true});} else {const ev=historyEvent('Captação criada',data.status);await addDoc(collection(db,'captures'),{...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});}closeModals()}
+window.saveCapture=async function(){const responsibility=responsibilityData(captureResponsible.value);const pe=pEmails('captureParticipants').filter(e=>ne(e)!==ne(responsibility.responsibleEmail));const data={...collectionDataWithClient(captureClient.value),title:captureTitle.value.trim(),date:captureDate.value,month:monthFromDate(captureDate.value),...responsibility,participantEmails:pe,participantNames:pNames(pe),approvalLink:captureApprovalLink.value.trim(),status:captureStatus.value,checklist:captureChecklist.value.trim(),notes:captureNotes.value.trim(),clientNote:captureClientNote.value.trim(),updatedAt:serverTimestamp()};if(!data.title){alert('Coloque o nome da captação.');return}
+const selectedCaptureCompetence=data.date?competenceFromItem({date:data.date}):{
+  month:Number(document.getElementById('capturesMonthFilter')?.value||currentCompetence().month),
+  year:Number(document.getElementById('capturesYearFilter')?.value||currentCompetence().year)
+};
+data.competenceMonth=selectedCaptureCompetence.month;data.competenceYear=selectedCaptureCompetence.year;
+if(editingCapture){const old=captures.find(x=>x.id===editingCapture);data.updatedBy=ne(currentUser?.email);data.updatedByName=actorName();data.history=demandHistoryWith(old,historyEvent('Captação alterada',`Status: ${old?.status||'—'} → ${data.status} • Responsável: ${old?.responsibleName||'A definir'} → ${data.responsibleName||'A definir'}`));await setDoc(doc(db,'captures',editingCapture),data,{merge:true});} else {const ev=historyEvent('Captação criada',data.status);await addDoc(collection(db,'captures'),{...data,createdBy:ne(currentUser?.email),createdByName:actorName(),updatedBy:ne(currentUser?.email),updatedByName:actorName(),history:[ev],createdAt:serverTimestamp()});}closeModals()}
 window.deleteCapture=async function(){if(editingCapture&&confirm('Excluir captação?')){await deleteDoc(doc(db,'captures',editingCapture));closeModals()}}
 window.commentCapture=async function(id){const text=prompt('Observação sobre a captação:');if(text!==null) await setDoc(doc(db,'captures',id),{clientNote:text,updatedAt:serverTimestamp()},{merge:true})}
 
@@ -1548,7 +1604,7 @@ window.saveSettings = async function(){
 }
 
 
-window.openTeamModal = function(){
+window.openTeamModal = function(){ setTimeout(()=>{teamAccessBox.style.display='block';teamCreateAccess.checked=false;teamTempPassword.value='';teamTempPassword2.value=''},0);
   editingTeam = null;
   document.getElementById('teamModalTitle').textContent = 'Novo funcionário';
   document.getElementById('deleteTeamBtn').style.display = 'none';
@@ -1557,7 +1613,7 @@ window.openTeamModal = function(){
   document.getElementById('teamStatus').value = 'Ativo';
   document.getElementById('teamModal').classList.add('active');
 }
-window.editTeamMember = function(id){
+window.editTeamMember = function(id){ setTimeout(()=>{teamAccessBox.style.display='none'},0);
   const m = teamMembers.find(x => x.id === id);
   if(!m) return;
   editingTeam = id;
@@ -1589,7 +1645,14 @@ window.saveTeamMember = async function(){
   if(!data.name){ alert('Coloque o nome do funcionário.'); return; }
   if(!data.email){ alert('Coloque o e-mail de login do funcionário.'); return; }
   if(editingTeam) await setDoc(doc(db,'team',editingTeam), data, {merge:true});
-  else await addDoc(collection(db,'team'), {...data, createdAt: serverTimestamp()});
+  else {
+    const ref=await addDoc(collection(db,'team'), {...data, createdAt: serverTimestamp()});
+    if(document.getElementById('teamCreateAccess')?.checked){
+      const p=teamTempPassword.value,p2=teamTempPassword2.value;
+      if(p.length<8||p!==p2){alert('Funcionário salvo. Para criar o acesso, use senha com no mínimo 8 caracteres e confirmação igual.');return}
+      try{await createFirebaseAccess({email:data.email,password:p,displayName:data.name,role:'team',recordId:ref.id})}catch(e){alert('Funcionário salvo, mas o acesso não foi criado: '+(e.message||e));return}
+    }
+  }
   closeModals();
 }
 window.deleteTeamMember = async function(){
@@ -1600,8 +1663,8 @@ window.deleteTeamMember = async function(){
   }
 }
 
-window.openClientModal = function(){ editingClient = null; document.getElementById('clientModalTitle').textContent = 'Novo cliente'; document.getElementById('deleteClientBtn').style.display = 'none'; ['clientName','clientEmail','clientLogoLink','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientStatus').value = 'Ativo';fillDefaults(null); document.getElementById('clientModal').classList.add('active'); }
-window.editClient = function(id){ const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; if(document.getElementById('clientLogoLink')) document.getElementById('clientLogoLink').value = c.logo || ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || '';fillDefaults(c); document.getElementById('clientModal').classList.add('active'); }
+window.openClientModal = function(){ setTimeout(()=>{clientAccessBox.style.display='block';clientCreateAccess.checked=false;clientTempPassword.value='';clientTempPassword2.value=''},0); editingClient = null; document.getElementById('clientModalTitle').textContent = 'Novo cliente'; document.getElementById('deleteClientBtn').style.display = 'none'; ['clientName','clientEmail','clientLogoLink','clientWhatsapp','clientDrive','clientInstagram','clientObs'].forEach(id => document.getElementById(id).value = ''); if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientStatus').value = 'Ativo';fillDefaults(null); document.getElementById('clientModal').classList.add('active'); }
+window.editClient = function(id){ setTimeout(()=>{clientAccessBox.style.display='none'},0); const c = clientById(id); if(!c) return; editingClient = id; document.getElementById('clientModalTitle').textContent = 'Editar cliente'; document.getElementById('deleteClientBtn').style.display = 'inline-block'; document.getElementById('clientName').value = c.name || ''; document.getElementById('clientEmail').value = c.email || ''; if(document.getElementById('clientLogoLink')) document.getElementById('clientLogoLink').value = c.logo || ''; if(document.getElementById('clientLogoFile')) document.getElementById('clientLogoFile').value = ''; document.getElementById('clientWhatsapp').value = c.whatsapp || ''; document.getElementById('clientDrive').value = c.drive || ''; document.getElementById('clientInstagram').value = c.instagram || ''; document.getElementById('clientStatus').value = c.status || 'Ativo'; document.getElementById('clientObs').value = c.obs || '';fillDefaults(c); document.getElementById('clientModal').classList.add('active'); }
 window.saveClient = async function(){
   const existing = editingClient ? clientById(editingClient) : null;
   const manualLogo = document.getElementById('clientLogoLink')?.value.trim() || '';
@@ -1619,7 +1682,14 @@ window.saveClient = async function(){
   if(!data.name){ alert('Coloque o nome do cliente.'); return; }
   if(!data.email){ alert('Coloque o e-mail de login do cliente.'); return; }
   if(editingClient) await setDoc(doc(db,'clients',editingClient), data, {merge:true});
-  else await addDoc(collection(db,'clients'), {...data, createdAt: serverTimestamp()});
+  else {
+    const ref=await addDoc(collection(db,'clients'), {...data, createdAt: serverTimestamp()});
+    if(document.getElementById('clientCreateAccess')?.checked){
+      const p=clientTempPassword.value,p2=clientTempPassword2.value;
+      if(p.length<8||p!==p2){alert('Cliente salvo. Para criar o acesso, use senha com no mínimo 8 caracteres e confirmação igual.');return}
+      try{await createFirebaseAccess({email:data.email,password:p,displayName:data.name,role:'client',recordId:ref.id})}catch(e){alert('Cliente salvo, mas o acesso não foi criado: '+(e.message||e));return}
+    }
+  }
   closeModals();
 }
 window.deleteClient = async function(){ if(!editingClient) return; if(confirm('Excluir cliente? As demandas dele não serão excluídas automaticamente.')){ await deleteDoc(doc(db,'clients',editingClient)); closeModals(); } }
