@@ -1,17 +1,8 @@
-V31.3 - SPARK GRATUITO
-Não usa Firebase Functions e não exige Blaze.
-
-1) 01_SITE_FRONTEND/index.html
-Substitua o index.html atual.
-
-2) 02_FIRESTORE_REGRAS/firestore.rules.txt
-Depois de confirmar login e menu, copie estas regras para Firestore Rules e publique.
-
-Orçamentos:
-- Vídeo, Foto, Vídeo + Foto
-- Valores em R$
-- Percentuais em %
-- Cálculo automático
-- Desconto manual opcional
-- Valor final manual opcional
-- Link público e aprovação/recusa
+V31.5 — CARGA HORÁRIA
+Vídeo: base R$ 600 por 2h.
+Ensaio fotográfico: base R$ 350 por 2h.
+A carga horária é editável e o valor é recalculado proporcionalmente.
+Ex.: 3h = vídeo R$ 900 e ensaio R$ 525.
+Valores-base e horas-base podem ser alterados na Tabela Comercial.
+Não precisa alterar novamente as regras do Firestore.
+Substitua somente o index.html.
