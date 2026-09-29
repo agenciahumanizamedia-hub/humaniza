@@ -578,8 +578,9 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .quote-price-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
 .quote-price-box{background:#181818;border:1px solid #333;border-radius:12px;padding:12px}.quote-price-box strong{display:block;font-size:18px;margin-top:5px}
 .quote-extra-row,.quote-tier-row{display:grid;grid-template-columns:1fr 180px 45px;gap:8px;margin:8px 0}
-.public-quote{min-height:100vh;background:#f4f1eb;color:#181818;padding:40px 18px}.public-quote-inner{max-width:880px;margin:auto}
-.public-quote-card{background:#fff;border:1px solid #e5e0d8;border-radius:20px;padding:28px;margin-bottom:16px}.public-quote-card h1{font-size:38px;margin:8px 0}
+.public-quote{min-height:100vh;background:#f4f1eb;color:#181818;padding:34px 18px 56px}.public-quote-inner{max-width:880px;margin:auto}
+.public-quote-card{background:#fff;border:1px solid #e5e0d8;border-radius:22px;padding:28px;margin-bottom:16px;box-shadow:0 8px 26px rgba(35,29,20,.035)}.public-quote-card h1{font-size:38px;line-height:1.08;margin:8px 0 4px}.public-quote-card h2{font-size:27px;line-height:1.15;margin:0 0 16px}.public-quote-card p{font-size:17px;line-height:1.55;margin:8px 0}.public-quote-kicker{font-size:11px;font-weight:800;letter-spacing:.11em;color:#777;text-transform:uppercase}.public-quote-production{font-size:17px;font-weight:700;line-height:1.45;margin:0 0 16px}.public-deliverables{display:grid;gap:9px;margin:16px 0 4px}.public-deliverable{display:flex;gap:10px;align-items:flex-start;font-size:16px;line-height:1.4}.public-deliverable:before{content:'✓';font-weight:900}.public-price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}.public-price-box{background:#f7f5f0;border:1px solid #e6e0d7;border-radius:16px;padding:15px}.public-price-box span{display:block;font-size:12px;color:#6d685f;margin-bottom:5px}.public-price-box strong{display:block;font-size:21px;line-height:1.1}.public-price-box.highlight{background:#181818;color:#fff;border-color:#181818}.public-price-box.highlight span{color:#c9c9c9}.public-validity{font-size:22px!important;font-weight:700}.public-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.public-actions button{min-height:52px;font-size:15px}.public-response{margin-top:12px}.public-quote-footer{text-align:center;color:#777;font-size:12px;padding:8px 0 0}
+@media(max-width:600px){.public-quote{padding:24px 14px 42px}.public-quote-card{padding:22px 20px;border-radius:20px}.public-quote-card h1{font-size:31px}.public-quote-card h2{font-size:25px}.public-quote-card p{font-size:16px}.public-price-grid{grid-template-columns:1fr}.public-price-box{padding:14px 16px}.public-price-box strong{font-size:22px}.public-actions{grid-template-columns:1fr}.public-actions button{width:100%}}
 @media(max-width:800px){.quote-summary,.quote-price-grid{grid-template-columns:1fr 1fr}.quote-type-switch{grid-template-columns:1fr}.quote-extra-row,.quote-tier-row{grid-template-columns:1fr}}
 
 .quote-guide{grid-column:1/-1;margin:8px 0 2px;padding:14px 16px;border:1px solid #3a3a3a;border-radius:14px;background:#1d1d1d}
@@ -611,7 +612,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 <section id="appPage" class="hidden">
 <header>
-  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.12</small></div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.14</small></div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
@@ -2076,22 +2077,25 @@ async function loadPublicQuote(){
     const service=quoteEsc(q.service||'Produção de conteúdo');
     const macro=q.macro?quoteEsc(q.macro).replace(/\n/g,'<br>'):'';
     const objective=q.objective?quoteEsc(q.objective).replace(/\n/g,'<br>'):'';
-    const deliverables=q.deliverables?quoteEsc(q.deliverables).replace(/\n/g,'<br>'):'';
+    const deliverableItems=String(q.deliverables||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+    const deliverables=deliverableItems.length?`<div class="public-deliverables">${deliverableItems.map(x=>`<div class="public-deliverable">${quoteEsc(x)}</div>`).join('')}</div>`:'';
     const payment=q.payment?quoteEsc(q.payment).replace(/\n/g,'<br>'):'';
     const notes=q.notes?quoteEsc(q.notes).replace(/\n/g,'<br>'):'';
-    const videoText=Number(q.videoQuantity||0)>0?`${Number(q.videoQuantity)} vídeo(s)${q.videoHours?` • ${Number(q.videoHours)}h de captação`:''}`:'';
-    const photoText=Number(q.photoQuantity||0)>0?`${Number(q.photoQuantity)} ensaio(s) fotográfico(s)${q.photoHours?` • ${Number(q.photoHours)}h`:''}`:'';
+    const videoText=Number(q.videoQuantity||0)>0?`${Number(q.videoQuantity)} ${Number(q.videoQuantity)===1?'vídeo':'vídeos'}${q.videoHours?` • ${Number(q.videoHours)}h de captação`:''}`:'';
+    const photoText=Number(q.photoQuantity||0)>0?`${Number(q.photoQuantity)} ${Number(q.photoQuantity)===1?'ensaio fotográfico':'ensaios fotográficos'}${q.photoHours?` • ${Number(q.photoHours)}h`:''}`:'';
     const production=[videoText,photoText].filter(Boolean).join(' + ');
+    const validity=q.validity?(()=>{const m=String(q.validity).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:quoteEsc(q.validity)})():'';
+    const hasDiscount=Number(q.discountAmount||0)>0;
     content.innerHTML=`
-      <div class="public-quote-card"><small>PROPOSTA COMERCIAL • ${business}</small><h1>${prospect}</h1>${segment?`<p>${segment}</p>`:''}</div>
+      <div class="public-quote-card"><div class="public-quote-kicker">Proposta comercial • ${business}</div><h1>${prospect}</h1>${segment?`<p>${segment}</p>`:''}</div>
       ${objective?`<div class="public-quote-card"><h2>Objetivo do projeto</h2><p>${objective}</p></div>`:''}
       ${macro?`<div class="public-quote-card"><h2>Visão estratégica</h2><p>${macro}</p></div>`:''}
-      <div class="public-quote-card"><h2>${service}</h2>${production?`<p>${production}</p>`:''}${deliverables?`<p>${deliverables}</p>`:''}<div class="quote-price-grid"><div class="quote-price-box">Valor<strong>${quoteMoney(q.subtotal||0)}</strong></div><div class="quote-price-box">Economia<strong>${quoteMoney(q.discountAmount||0)}</strong></div><div class="quote-price-box">Investimento<strong>${quoteMoney(q.total||0)}</strong></div></div></div>
+      <div class="public-quote-card"><div class="public-quote-kicker">Produção proposta</div><h2>${service}</h2>${production?`<div class="public-quote-production">${production}</div>`:''}${deliverables}<div class="public-price-grid"><div class="public-price-box"><span>Valor da produção</span><strong>${quoteMoney(q.subtotal||0)}</strong></div>${hasDiscount?`<div class="public-price-box"><span>Condição especial</span><strong>− ${quoteMoney(q.discountAmount||0)}</strong></div>`:''}<div class="public-price-box highlight"><span>Investimento</span><strong>${quoteMoney(q.total||0)}</strong></div></div></div>
       ${q.discountExplanation?`<div class="public-quote-card"><h2>Condição comercial</h2><p>${quoteEsc(q.discountExplanation).replace(/\n/g,'<br>')}</p></div>`:''}
       ${payment?`<div class="public-quote-card"><h2>Forma de pagamento</h2><p>${payment}</p></div>`:''}
-      ${q.validity?`<div class="public-quote-card"><h2>Validade da proposta</h2><p>${quoteEsc(q.validity)}</p></div>`:''}
+      ${validity?`<div class="public-quote-card"><h2>Validade da proposta</h2><p class="public-validity">${validity}</p></div>`:''}
       ${notes?`<div class="public-quote-card"><h2>Observações</h2><p>${notes}</p></div>`:''}
-      <div class="public-quote-card"><button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button> <button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button><div id="publicResponseMsg"></div></div>`;
+      <div class="public-quote-card"><h2>Como deseja seguir?</h2><div class="public-actions"><button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button><button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button></div><div id="publicResponseMsg" class="public-response"></div></div><div class="public-quote-footer">Agência Humaniza • Proposta comercial</div>`;
   }catch(e){
     console.error('Erro ao abrir proposta pública:',e);
     const code=quoteEsc(e?.code||e?.message||'erro-de-leitura');
