@@ -595,6 +595,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .team-calendar{background:#171717;border:1px solid #333;border-radius:16px;overflow:hidden}.team-calendar-head{display:grid;grid-template-columns:repeat(7,1fr);background:#222}.team-calendar-head div{padding:10px;text-align:center;font-size:12px;font-weight:800;color:#bcbcbc}.team-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr)}.team-day{min-height:118px;border-top:1px solid #303030;border-right:1px solid #303030;padding:8px;min-width:0}.team-day:nth-child(7n){border-right:0}.team-day.muted{opacity:.35}.team-day.today{box-shadow:inset 0 0 0 2px #5b55ff}.team-day-num{font-weight:800;font-size:13px;margin-bottom:7px}.team-event{display:block;width:100%;text-align:left;border:0;border-radius:8px;padding:6px 7px;margin:4px 0;background:#2c2c36;color:#fff;font-size:11px;line-height:1.25;cursor:pointer;overflow:hidden;text-overflow:ellipsis}.team-event strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.team-event small{opacity:.72}.team-calendar-mobile-list{display:none}@media(max-width:800px){.team-calendar{display:none}.team-calendar-mobile-list{display:block}.agenda-filters button{display:none}}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
 </head>
 <body>
 
@@ -1318,7 +1319,7 @@ function startListeners(){
 }
 
 window.showView = function(view, el){
-  if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel'].includes(view)) return;
+  if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel','agencyAgenda'].includes(view)) return;
   if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands','agencyAgenda'].includes(view)) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
@@ -2011,6 +2012,12 @@ window.saveQuote=async function(){
     console.error('Link público:',e);
   }
   await loadQuotes();
+  // Se o orçamento já estiver aprovado e a data de captação for definida/alterada depois,
+  // mantém automaticamente o Calendário da Equipe sincronizado.
+  const savedQuoteForAgenda=quotes.find(x=>x.id===savedId)||localCopy;
+  if(savedQuoteForAgenda?.status==='approved' && savedQuoteForAgenda?.captureDate){
+    await ensureApprovedQuoteInTeamCalendar(savedQuoteForAgenda);
+  }
   if(publicOk){
     navigator.clipboard?.writeText(makeQuoteLink(token)).catch(()=>{});
     alert('Orçamento salvo com sucesso. Link público gerado.');
@@ -2269,7 +2276,7 @@ function renderMobileMenuItems(){
       {label:'🗂️ Demandas clientes', action:"mobileGo('demands')"},
       {label:'🗑️ Lixeira', action:"closeMobileMenu(); openTrash()"},
       {label:'🖥️ Tela do cliente', action:"mobileGo('clientPanel')"},
-      {label:'📅 Agenda Humaniza', action:"mobileGo('agencyAgenda')"},
+      {label:'📅 Calendário da Equipe', action:"mobileGo('agencyAgenda')"},
       {divider:true},
       {label:'⚙️ Configurações', action:"openSettingsModal(); closeMobileMenu()"},
       {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
@@ -2282,7 +2289,7 @@ function renderMobileMenuItems(){
       {label:'📚 Biblioteca', action:"mobileGo('library')"},
       {label:'📋 Minhas tarefas', action:"mobileGo('internal')"},
       {label:'🗂️ Minhas demandas', action:"mobileGo('demands')"},
-      {label:'📅 Agenda Humaniza', action:"mobileGo('agencyAgenda')"},
+      {label:'📅 Calendário da Equipe', action:"mobileGo('agencyAgenda')"},
       {divider:true},
       {label:'🚪 Sair', action:"logout()", extra:'mobile-logout'}
     ];
@@ -2321,8 +2328,8 @@ window.closeMobileMenu = function(){
 }
 
 window.mobileGo = function(view){
-  if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel'].includes(view)) return;
-  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands'].includes(view)) return;
+  if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel','agencyAgenda'].includes(view)) return;
+  if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands','agencyAgenda'].includes(view)) return;
   closeMobileMenu();
 
   const tabMap = {
