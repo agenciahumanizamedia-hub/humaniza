@@ -1,12 +1,5 @@
-V31.12 — PROPOSTA PÚBLICA CORRIGIDA
+V31.13 - LINK PÚBLICO ROBUSTO
 
-Correção pontual da abertura do link público:
-- lê diretamente publicQuotes/q_<token>;
-- normaliza o token recebido pelo WhatsApp/navegador;
-- não migra, duplica ou altera propostas existentes;
-- preserva a proposta da Rejane já salva;
-- mostra um código de erro real caso a leitura falhe;
-- mantém aprovação/recusa da proposta.
-
-Substitua somente o index.html.
-Não altere as regras do Firestore.
+Substitua apenas o index.html do site.
+Não altera, migra, apaga ou recria dados no Firebase.
+A proposta pública agora entra em modo independente do painel/login e possui fallback de leitura REST do Firestore.

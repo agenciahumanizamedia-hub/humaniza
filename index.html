@@ -2013,70 +2013,89 @@ async function loadQuotes(){
 }
 window.openQuoteSettings=function(){if(!isAdmin)return;quoteBusinessName.value=quoteSettings.businessName||'Agência Humaniza';quoteDefaultVideoPrice.value=quoteSettings.defaultVideoPrice||600;quoteDefaultPhotoPrice.value=quoteSettings.defaultPhotoPrice||350;document.getElementById('quoteDefaultVideoHours').value=quoteSettings.defaultVideoHours||2;document.getElementById('quoteDefaultPhotoHours').value=quoteSettings.defaultPhotoHours||2;quoteComboDiscount.value=quoteSettings.comboDiscount||'';quoteDefaultExplanation.value=quoteSettings.discountExplanation||'';quoteTiers.innerHTML='';(quoteSettings.tiers||[]).forEach(t=>addQuoteTier(t.qty,t.pct));if(!(quoteSettings.tiers||[]).length)[4,5,6].forEach(q=>addQuoteTier(q,0));quoteSettingsModal.classList.add('active')}
 window.saveQuoteSettings=async function(){if(!isAdmin)return;const tiers=[...document.querySelectorAll('#quoteTiers .quote-tier-row')].map(r=>({qty:Number(r.querySelector('.quote-tier-qty').value||0),pct:Math.min(100,Math.max(0,Number(r.querySelector('.quote-tier-pct').value||0)))})).filter(t=>t.qty>0),s={businessName:quoteBusinessName.value.trim()||'Agência Humaniza',defaultVideoPrice:Number(quoteDefaultVideoPrice.value||600),defaultVideoHours:Number(document.getElementById('quoteDefaultVideoHours').value||2),defaultPhotoPrice:Number(quoteDefaultPhotoPrice.value||350),defaultPhotoHours:Number(document.getElementById('quoteDefaultPhotoHours').value||2),comboDiscount:Math.min(100,Math.max(0,Number(quoteComboDiscount.value||0))),discountExplanation:quoteDefaultExplanation.value.trim(),tiers,updatedAt:serverTimestamp()};try{await setDoc(doc(db,'quoteSettings','main'),s,{merge:true});quoteSettings={...quoteSettings,...s};closeModals();alert('Tabela comercial salva.')}catch(e){alert(e?.message||'Não foi possível salvar a tabela.')}}
+function decodeFirestoreValue(v){
+  if(!v || typeof v!=='object') return null;
+  if('stringValue' in v) return v.stringValue;
+  if('integerValue' in v) return Number(v.integerValue);
+  if('doubleValue' in v) return Number(v.doubleValue);
+  if('booleanValue' in v) return !!v.booleanValue;
+  if('timestampValue' in v) return v.timestampValue;
+  if('nullValue' in v) return null;
+  if('arrayValue' in v) return (v.arrayValue.values||[]).map(decodeFirestoreValue);
+  if('mapValue' in v){const o={};for(const [k,val] of Object.entries(v.mapValue.fields||{}))o[k]=decodeFirestoreValue(val);return o;}
+  return null;
+}
+function decodeFirestoreDocument(json){
+  const o={};
+  for(const [k,v] of Object.entries(json?.fields||{}))o[k]=decodeFirestoreValue(v);
+  return o;
+}
+async function getPublicQuoteData(documentId){
+  // 1) leitura normal pelo SDK
+  try{
+    const snap=await getDoc(doc(db,'publicQuotes',documentId));
+    if(snap.exists()) return snap.data()||{};
+  }catch(e){
+    console.warn('Leitura pública via SDK falhou; tentando REST.',e);
+  }
+  // 2) fallback independente de sessão/login do painel
+  const endpoint=`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents/publicQuotes/${encodeURIComponent(documentId)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
+  const response=await fetch(endpoint,{method:'GET',cache:'no-store'});
+  if(response.status===404) return null;
+  if(!response.ok){
+    let detail='';
+    try{const j=await response.json();detail=j?.error?.message||''}catch(_){ }
+    const err=new Error(detail||`HTTP ${response.status}`);
+    err.code=`http-${response.status}`;
+    throw err;
+  }
+  return decodeFirestoreDocument(await response.json());
+}
 async function loadPublicQuote(){
-  loginPage.classList.add('hidden');
-  appPage.classList.add('hidden');
-  publicQuotePage.classList.remove('hidden');
+  // MODO PÚBLICO: não depende de login, equipe, clientes ou painel administrativo.
+  document.getElementById('loginPage')?.classList.add('hidden');
+  document.getElementById('appPage')?.classList.add('hidden');
+  document.getElementById('publicQuotePage')?.classList.remove('hidden');
+  const content=document.getElementById('publicQuoteContent');
 
   if(!publicQuoteToken){
-    publicQuoteContent.innerHTML='<div class="public-quote-card"><h2>Link inválido</h2><p>O código da proposta não foi encontrado neste link.</p></div>';
+    if(content)content.innerHTML='<div class="public-quote-card"><h2>Link inválido</h2><p>O código da proposta não foi encontrado neste link.</p></div>';
     return;
   }
 
-  const documentId=publicQuoteId(publicQuoteToken);
-
+  const documentId=publicQuoteId(publicQuoteToken.trim());
   try{
-    const ref=doc(db,'publicQuotes',documentId);
-    const snap=await getDoc(ref);
-
-    if(!snap.exists()){
-      publicQuoteContent.innerHTML='<div class="public-quote-card"><h2>Proposta não encontrada</h2><p>Este link não corresponde a uma proposta disponível.</p></div>';
+    const q=await getPublicQuoteData(documentId);
+    if(!q){
+      content.innerHTML='<div class="public-quote-card"><h2>Proposta não encontrada</h2><p>Este link não corresponde a uma proposta disponível.</p></div>';
       return;
     }
-
-    const q=snap.data()||{};
     const prospect=quoteEsc(q.prospectName||'Proposta comercial');
     const business=quoteEsc(q.businessName||'Agência Humaniza');
     const segment=quoteEsc(q.segment||'');
     const service=quoteEsc(q.service||'Produção de conteúdo');
     const macro=q.macro?quoteEsc(q.macro).replace(/\n/g,'<br>'):'';
+    const objective=q.objective?quoteEsc(q.objective).replace(/\n/g,'<br>'):'';
     const deliverables=q.deliverables?quoteEsc(q.deliverables).replace(/\n/g,'<br>'):'';
     const payment=q.payment?quoteEsc(q.payment).replace(/\n/g,'<br>'):'';
     const notes=q.notes?quoteEsc(q.notes).replace(/\n/g,'<br>'):'';
     const videoText=Number(q.videoQuantity||0)>0?`${Number(q.videoQuantity)} vídeo(s)${q.videoHours?` • ${Number(q.videoHours)}h de captação`:''}`:'';
     const photoText=Number(q.photoQuantity||0)>0?`${Number(q.photoQuantity)} ensaio(s) fotográfico(s)${q.photoHours?` • ${Number(q.photoHours)}h`:''}`:'';
     const production=[videoText,photoText].filter(Boolean).join(' + ');
-
-    publicQuoteContent.innerHTML=`
-      <div class="public-quote-card">
-        <small>PROPOSTA COMERCIAL • ${business}</small>
-        <h1>${prospect}</h1>
-        ${segment?`<p>${segment}</p>`:''}
-      </div>
+    content.innerHTML=`
+      <div class="public-quote-card"><small>PROPOSTA COMERCIAL • ${business}</small><h1>${prospect}</h1>${segment?`<p>${segment}</p>`:''}</div>
+      ${objective?`<div class="public-quote-card"><h2>Objetivo do projeto</h2><p>${objective}</p></div>`:''}
       ${macro?`<div class="public-quote-card"><h2>Visão estratégica</h2><p>${macro}</p></div>`:''}
-      <div class="public-quote-card">
-        <h2>${service}</h2>
-        ${production?`<p>${production}</p>`:''}
-        ${deliverables?`<p>${deliverables}</p>`:''}
-        <div class="quote-price-grid">
-          <div class="quote-price-box">Valor<strong>${quoteMoney(q.subtotal||0)}</strong></div>
-          <div class="quote-price-box">Economia<strong>${quoteMoney(q.discountAmount||0)}</strong></div>
-          <div class="quote-price-box">Investimento<strong>${quoteMoney(q.total||0)}</strong></div>
-        </div>
-      </div>
+      <div class="public-quote-card"><h2>${service}</h2>${production?`<p>${production}</p>`:''}${deliverables?`<p>${deliverables}</p>`:''}<div class="quote-price-grid"><div class="quote-price-box">Valor<strong>${quoteMoney(q.subtotal||0)}</strong></div><div class="quote-price-box">Economia<strong>${quoteMoney(q.discountAmount||0)}</strong></div><div class="quote-price-box">Investimento<strong>${quoteMoney(q.total||0)}</strong></div></div></div>
       ${q.discountExplanation?`<div class="public-quote-card"><h2>Condição comercial</h2><p>${quoteEsc(q.discountExplanation).replace(/\n/g,'<br>')}</p></div>`:''}
       ${payment?`<div class="public-quote-card"><h2>Forma de pagamento</h2><p>${payment}</p></div>`:''}
       ${q.validity?`<div class="public-quote-card"><h2>Validade da proposta</h2><p>${quoteEsc(q.validity)}</p></div>`:''}
       ${notes?`<div class="public-quote-card"><h2>Observações</h2><p>${notes}</p></div>`:''}
-      <div class="public-quote-card">
-        <button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button>
-        <button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button>
-        <div id="publicResponseMsg"></div>
-      </div>`;
+      <div class="public-quote-card"><button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button> <button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button><div id="publicResponseMsg"></div></div>`;
   }catch(e){
     console.error('Erro ao abrir proposta pública:',e);
-    const code=quoteEsc(e?.code||'erro-de-leitura');
-    publicQuoteContent.innerHTML=`<div class="public-quote-card"><h2>Não foi possível abrir esta proposta.</h2><p>Tente atualizar a página. Se continuar, informe este código à Humaniza: <strong>${code}</strong>.</p></div>`;
+    const code=quoteEsc(e?.code||e?.message||'erro-de-leitura');
+    content.innerHTML=`<div class="public-quote-card"><h2>Não foi possível abrir esta proposta.</h2><p>A proposta existe, mas a leitura pública foi bloqueada. Código: <strong>${code}</strong>.</p></div>`;
   }
 }
 window.publicQuoteResponse=async function(action){if(!confirm(action==='approved'?'Aprovar esta proposta?':'Registrar que não deseja seguir agora?'))return;try{await setDoc(doc(db,'publicQuotes',publicQuoteId(publicQuoteToken)),{status:action,respondedAt:serverTimestamp()},{merge:true});publicResponseMsg.innerHTML='<div class="notice">Resposta registrada com sucesso.</div>'}catch(e){alert('Não foi possível registrar a resposta.')}}
