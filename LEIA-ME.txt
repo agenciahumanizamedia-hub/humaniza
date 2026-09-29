@@ -1,12 +1,12 @@
-V31.11 — LINK PERSONALIZADO PARA WHATSAPP
+V31.12 — PROPOSTA PÚBLICA CORRIGIDA
 
-Ao clicar em Copiar link, o sistema copia:
+Correção pontual da abertura do link público:
+- lê diretamente publicQuotes/q_<token>;
+- normaliza o token recebido pelo WhatsApp/navegador;
+- não migra, duplica ou altera propostas existentes;
+- preserva a proposta da Rejane já salva;
+- mostra um código de erro real caso a leitura falhe;
+- mantém aprovação/recusa da proposta.
 
-Orçamento Nome do Cliente
-
-Acesse sua proposta comercial pelo link abaixo:
-[link público]
-
-O endereço e o token do orçamento não foram alterados.
-Nenhum dado do Firebase é migrado ou regravado por esta alteração.
 Substitua somente o index.html.
+Não altere as regras do Firestore.
