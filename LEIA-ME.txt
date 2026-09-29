@@ -1,3 +1,10 @@
-V31.9 — correção do salvamento dos orçamentos.
-Substitua somente o index.html.
-Não é necessário alterar novamente as regras do Firebase.
+V31.10 — LISTAGEM DE ORÇAMENTOS CORRIGIDA
+
+Correção somente de leitura/listagem:
+- O painel passa a acompanhar a coleção quotes em tempo real.
+- Orçamentos já existentes, como o da Rejane, são lidos diretamente do Firestore.
+- Nenhum documento existente é migrado, duplicado, renomeado, apagado ou regravado por esta correção.
+- Ao abrir Orçamentos, a leitura é garantida mesmo se o carregamento inicial não tiver ocorrido.
+- Em caso de bloqueio do Firestore, o erro aparece no próprio painel.
+
+Substitua somente o index.html. Não altere as regras do Firebase.

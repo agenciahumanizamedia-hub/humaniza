@@ -611,7 +611,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 <section id="appPage" class="hidden">
 <header>
-  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.9</small></div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.10</small></div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
@@ -971,6 +971,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 let quotes = [];
+let unsubQuotes = null;
 let quoteSettings = {businessName:'Agência Humaniza',defaultVideoPrice:0,defaultPhotoPrice:0,comboDiscount:0,tiers:[],discountExplanation:''};
 let editingQuote = null;
 const publicQuoteToken = new URLSearchParams(location.search).get('orcamento');
@@ -1163,7 +1164,7 @@ onAuthStateChanged(auth, (user) => {
     currentUser = null;
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('appPage').classList.add('hidden');
-    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications].forEach(fn => { if(fn) fn(); });
+    [unsubClients, unsubDemands, unsubInternal, unsubTeam, unsubSettings, unsubMacro, unsubCalendar, unsubScripts, unsubCaptures, unsubNotifications, unsubQuotes].forEach(fn => { if(fn) fn(); }); unsubQuotes=null;
   }
 });
 
@@ -1291,7 +1292,7 @@ window.showView = function(view, el){
   if(view==='clients') renderClients();
   if(view==='demands') renderDemands();
   if(view==='clientPanel') renderClientPanel(selectedClientId);
-  if(view==='quotes') renderQuotes();
+  if(view==='quotes'){ renderQuotes(); if(isAdmin && !unsubQuotes) loadQuotes(); }
   renderTrash();
 }
 
@@ -1975,15 +1976,23 @@ window.copyQuoteLink=async function(token){const link=makeQuoteLink(token);try{a
 function quoteStatusLabel(s){return({sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Enviado'}
 window.renderQuotes=function(){if(!quotesList||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length,open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length,value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);quoteSummary.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;quotesList.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}
 async function loadQuotes(){
-  if(!isAdmin)return;
+  if(!isAdmin || !currentUser)return;
   try{
-    const qs=await getDocs(collection(db,'quotes'));
-    quotes=qs.docs.map(x=>({id:x.id,...x.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    renderQuotes();
+    if(unsubQuotes){ try{unsubQuotes()}catch(_){} unsubQuotes=null; }
+    unsubQuotes=onSnapshot(collection(db,'quotes'), snap=>{
+      quotes=snap.docs.map(x=>({id:x.id,...x.data()})).sort((a,b)=>{
+        const bt=b.createdAt?.seconds||b.updatedAt?.seconds||0;
+        const at=a.createdAt?.seconds||a.updatedAt?.seconds||0;
+        return bt-at;
+      });
+      renderQuotes();
+    }, e=>{
+      console.error('Erro ao acompanhar quotes:',e);
+      const box=document.getElementById('quotesList');
+      if(box)box.innerHTML=`<div class="notice">Os orçamentos existem no Firebase, mas o painel não conseguiu lê-los. Erro: ${quoteEsc(e?.code||e?.message||'desconhecido')}</div>`;
+    });
   }catch(e){
-    console.error('Erro ao carregar orçamentos:',e);
-    const box=document.getElementById('quotesList');
-    if(box)box.innerHTML=`<div class="notice">Não foi possível carregar os orçamentos. Erro: ${quoteEsc(e?.code||e?.message||'desconhecido')}</div>`;
+    console.error('Erro ao iniciar quotes:',e);
   }
   try{
     const ss=await getDoc(doc(db,'quoteSettings','main'));
