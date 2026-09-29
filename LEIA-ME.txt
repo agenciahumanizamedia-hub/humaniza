@@ -1,10 +1,16 @@
-V31.6
-Correção do botão Novo orçamento da V31.5.
-A V31.5 chamava os campos de carga horária antes de eles existirem no formulário, interrompendo a abertura do modal.
+V31.7 — ORÇAMENTO GUIADO
 
-Mantido:
-Vídeo: R$ 600 / 2h
-Ensaio fotográfico: R$ 350 / 2h
-Cálculo proporcional por carga horária
-Descontos e valor final manual
-Não é necessário alterar as regras do Firestore.
+Melhoria visual e de preenchimento do Novo Orçamento:
+1. Dados do cliente
+2. Objetivo do projeto
+3. Visão estratégica Humaniza
+4. Produção e valores
+5. O que o cliente receberá
+6. Adicionais
+7. Condição comercial
+8. Informações finais
+
+Incluído campo Forma de pagamento.
+Cada área explica o que preencher e indica informações apresentadas ao cliente.
+Mantidos cálculo, vídeo R$600/2h, ensaio R$350/2h, carga horária, descontos e ajuste manual.
+Não é necessário alterar regras do Firestore.
