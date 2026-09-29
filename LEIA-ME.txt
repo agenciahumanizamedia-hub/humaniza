@@ -1,7 +1,10 @@
-V31 - Backend Firebase Functions
+V31.6
+Correção do botão Novo orçamento da V31.5.
+A V31.5 chamava os campos de carga horária antes de eles existirem no formulário, interrompendo a abertura do modal.
 
-Funções: createAgencyUser, saveQuote, listQuotes, getPublicQuote, respondToQuote.
-
-Implante este backend antes de testar Orçamentos. A abertura do sistema não migra nem altera clientes, equipe, demandas, roteiros, calendário ou captações. Orçamentos só são gravados quando o admin salva. Respostas públicas só gravam quando o destinatário clica em aprovar/recusar.
-
-V31.1: orcamentos separados para Video, Foto e Video + Foto.
+Mantido:
+Vídeo: R$ 600 / 2h
+Ensaio fotográfico: R$ 350 / 2h
+Cálculo proporcional por carga horária
+Descontos e valor final manual
+Não é necessário alterar as regras do Firestore.

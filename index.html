@@ -606,7 +606,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 <section id="appPage" class="hidden">
 <header>
-  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.5</small></div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.6</small></div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
@@ -733,8 +733,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       <button type="button" id="quoteTypePhoto" onclick="setQuoteService('Foto')">📷 Foto</button>
       <button type="button" id="quoteTypeBoth" onclick="setQuoteService('Vídeo + Foto')">🎬 + 📷 Vídeo + Foto</button>
     </div><input id="quoteService" type="hidden" value="Vídeo"></div>
-    <div id="quoteVideoBlock" class="quote-service-block"><h3>🎬 Vídeo</h3><div class="form"><input id="quoteVideoQuantity" type="number" min="0" value="1" placeholder="Quantidade de vídeos" oninput="recalcQuote()"><input id="quoteVideoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por vídeo" oninput="recalcQuote()"></div></div>
-    <div id="quotePhotoBlock" class="quote-service-block hidden"><h3>📷 Foto</h3><div class="form"><input id="quotePhotoQuantity" type="number" min="0" value="0" placeholder="Quantidade de ensaios" oninput="recalcQuote()"><input id="quotePhotoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor do ensaio (R$)" oninput="recalcQuote()"></div></div>
+    <div id="quoteVideoBlock" class="quote-service-block"><h3>🎬 Vídeo</h3><div class="form"><input id="quoteVideoQuantity" type="number" min="0" value="1" placeholder="Quantidade de vídeos" oninput="recalcQuote()"><input id="quoteVideoHours" type="number" min="0.5" step="0.5" value="2" placeholder="Carga horária (h)" oninput="recalcQuote()"><input id="quoteVideoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por vídeo" oninput="recalcQuote()"></div></div>
+    <div id="quotePhotoBlock" class="quote-service-block hidden"><h3>📷 Ensaio fotográfico</h3><div class="form"><input id="quotePhotoQuantity" type="number" min="0" value="0" placeholder="Quantidade de ensaios" oninput="recalcQuote()"><input id="quotePhotoHours" type="number" min="0.5" step="0.5" value="2" placeholder="Carga horária (h)" oninput="recalcQuote()"><input id="quotePhotoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor do ensaio (R$)" oninput="recalcQuote()"></div></div>
     <div id="quoteComboBox" class="full quote-combo-note hidden">Produção integrada Humaniza: foto e vídeo são planejados na mesma operação, permitindo uma condição comercial específica para o combo.</div>
     <textarea id="quoteDeliverables" class="full" rows="4" placeholder="O que está incluso / entregáveis"></textarea>
     <div class="full"><strong>Adicionais</strong><div id="quoteExtras"></div><button type="button" class="btn-dark" onclick="addQuoteExtra()">+ Adicional</button></div>
