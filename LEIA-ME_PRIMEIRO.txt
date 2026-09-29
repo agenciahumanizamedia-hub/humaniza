@@ -1,14 +1,17 @@
-V31.2 - LOGIN CORRIGIDO
+V31.3 - SPARK GRATUITO
+Não usa Firebase Functions e não exige Blaze.
 
-01_SITE_FRONTEND/index.html
-- Baseado novamente na V30 que tinha o login funcionando.
-- Adiciona Orçamentos sem substituir a rotina original de login.
-- Mostra V31.2 ao lado de Agência Humaniza após entrar.
+1) 01_SITE_FRONTEND/index.html
+Substitua o index.html atual.
 
-02_FIREBASE_BACKEND
-- Backend do módulo de orçamentos.
+2) 02_FIRESTORE_REGRAS/firestore.rules.txt
+Depois de confirmar login e menu, copie estas regras para Firestore Rules e publique.
 
-ORDEM:
-1. Primeiro substitua somente o index.html do site.
-2. Confirme que o login funciona e que aparece V31.2 + Orçamentos.
-3. Só depois atualize o backend Firebase.
+Orçamentos:
+- Vídeo, Foto, Vídeo + Foto
+- Valores em R$
+- Percentuais em %
+- Cálculo automático
+- Desconto manual opcional
+- Valor final manual opcional
+- Link público e aprovação/recusa

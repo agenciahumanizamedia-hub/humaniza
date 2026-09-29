@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== HUB HUMANIZA - NÃO ALTERAR =====
+    match /hubClients/{document} { allow read, write: if true; }
+    match /hubProjects/{document} { allow read, write: if true; }
+    match /hubBriefingQuestions/{document} { allow read, write: if true; }
+    match /hubBriefingAnswers/{document} { allow read, write: if true; }
+
+    // ===== SISTEMA AGÊNCIA HUMANIZA =====
+    match /clients/{document} { allow read, write: if request.auth != null; }
+    match /demands/{document} { allow read, write: if request.auth != null; }
+    match /internalTasks/{document} { allow read, write: if request.auth != null; }
+    match /team/{document} { allow read, write: if request.auth != null; }
+    match /macroPlans/{document} { allow read, write: if request.auth != null; }
+    match /calendarItems/{document} { allow read, write: if request.auth != null; }
+    match /scripts/{document} { allow read, write: if request.auth != null; }
+    match /captures/{document} { allow read, write: if request.auth != null; }
+    match /settings/{document} { allow read, write: if request.auth != null; }
+    match /notifications/{document} { allow read, write: if request.auth != null; }
+
+    // ===== ORÇAMENTOS - SPARK GRATUITO =====
+    match /quotes/{document} { allow read, write: if request.auth != null; }
+    match /quoteSettings/{document} { allow read, write: if request.auth != null; }
+
+    match /publicQuotes/{document} {
+      allow get: if true;
+      allow list: if false;
+      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+          && request.resource.data.status in ['approved', 'declined']
+        );
+    }
+  }
+}
