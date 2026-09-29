@@ -1986,7 +1986,24 @@ window.copyQuoteLink=async function(token){
     prompt(`Copie a mensagem do orçamento de ${nome}:`,mensagem);
   }
 }
-function quoteStatusLabel(s){return({sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Enviado'}
+function quoteStatusLabel(s){return({sent:'Aguardando resposta',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Aguardando resposta'}
+window.changeQuoteStatus=async function(id,newStatus){
+  if(!isAdmin)return alert('Somente o administrador pode alterar o status do orçamento.');
+  const q=quotes.find(x=>x.id===id); if(!q)return;
+  const previous=q.status||'sent';
+  if(newStatus===previous)return;
+  q.status=newStatus; renderQuotes();
+  try{
+    await setDoc(doc(db,'quotes',id),{status:newStatus,statusChangedBy:'admin',statusChangedAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});
+    if(q.publicToken){
+      await setDoc(doc(db,'publicQuotes',publicQuoteId(q.publicToken)),{status:newStatus,statusChangedBy:'admin',statusChangedAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});
+    }
+  }catch(e){
+    q.status=previous; renderQuotes();
+    console.error('Erro ao alterar status do orçamento:',e);
+    alert('Não foi possível alterar o status. Erro: '+(e?.code||e?.message||'desconhecido'));
+  }
+}
 let publicQuoteStatusUnsubs=[];
 function stopPublicQuoteStatusListeners(){
   publicQuoteStatusUnsubs.forEach(fn=>{try{fn()}catch(_){}});
@@ -2027,7 +2044,7 @@ function watchPublicQuoteStatuses(){
 async function syncQuotePublicStatuses(){
   watchPublicQuoteStatuses();
 }
-window.renderQuotes=function(){if(!quotesList||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length,open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length,value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);quoteSummary.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;quotesList.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}
+window.renderQuotes=function(){if(!quotesList||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length,open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length,value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);quoteSummary.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;quotesList.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><div style="margin-top:14px"><label style="display:block;font-size:12px;opacity:.72;margin-bottom:6px">Status do orçamento</label><select onchange="changeQuoteStatus('${q.id}',this.value)" style="width:100%;max-width:260px"><option value="sent" ${(q.status||'sent')==='sent'?'selected':''}>Aguardando resposta</option><option value="approved" ${q.status==='approved'?'selected':''}>Aprovado</option><option value="declined" ${q.status==='declined'?'selected':''}>Recusado</option><option value="expired" ${q.status==='expired'?'selected':''}>Expirado</option></select></div><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}
 async function loadQuotes(){
   if(!isAdmin || !currentUser)return;
   try{

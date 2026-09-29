@@ -1,5 +1,4 @@
-V31.13 - LINK PÚBLICO ROBUSTO
+Humaniza V31.18 - Status de orçamento editável pelo administrador.
 
-Substitua apenas o index.html do site.
-Não altera, migra, apaga ou recria dados no Firebase.
-A proposta pública agora entra em modo independente do painel/login e possui fallback de leitura REST do Firestore.
+Substitua apenas 01_SITE_FRONTEND/index.html.
+Não há migração automática de dados.
