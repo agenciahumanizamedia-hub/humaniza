@@ -569,14 +569,21 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 .access-create-box{margin-top:16px;padding:14px;border:1px solid #333;border-radius:12px;background:#151515}.access-create-box h4{margin:0 0 4px}.access-create-box p{margin:0 0 10px;color:#aaa;font-size:12px}
 
-/* V31 Orçamentos */
-.quote-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}.quote-card{background:#242424;border:1px solid #333;border-radius:16px;padding:16px;margin:12px 0}.quote-card h3{margin:0 0 8px}.quote-money{font-size:24px;font-weight:900}.quote-public{max-width:980px;margin:0 auto;padding:32px 18px 70px}.quote-public-card{background:#242424;border:1px solid #333;border-radius:20px;padding:24px;margin:16px 0}.quote-public h1{font-size:34px;margin:8px 0}.quote-public h2{margin:0 0 12px}.quote-public p{line-height:1.6}.quote-price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.quote-price-box{background:#181818;border:1px solid #333;border-radius:14px;padding:16px}.quote-price-box strong{display:block;font-size:22px;margin-top:6px}.quote-tier-row,.quote-extra-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin:8px 0}.quote-settings-note{color:#aaa;font-size:12px}.quote-type-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quote-type-switch button{background:#181818;border:1px solid #3a3a3a}.quote-type-switch button.active{background:#5b4cff;border-color:#6c5cff}.quote-service-block{background:#181818;border:1px solid #333;border-radius:14px;padding:14px}.quote-service-block h3{margin:0 0 10px}.quote-combo-note{padding:12px;border-radius:12px;background:#211f35;border:1px solid #4c457d;color:#d7d2ff}.public-only{display:none}@media(max-width:720px){.quote-summary,.quote-price-grid{grid-template-columns:1fr 1fr}.quote-tier-row,.quote-extra-row{grid-template-columns:1fr}.quote-public h1{font-size:27px}}
+.quote-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.quote-card,.quote-box{background:#242424;border:1px solid #333;border-radius:16px;padding:16px}
+.quote-card h3{margin:0 0 8px}.quote-type-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 14px}
+.quote-type-switch button{background:#181818;border:1px solid #3a3a3a}.quote-type-switch button.active{background:#5B56FF;border-color:#7772ff}
+.quote-service-block{background:#181818;border:1px solid #333;border-radius:14px;padding:14px;margin:10px 0}
+.quote-combo-note{padding:12px;border-radius:12px;background:#211f35;border:1px solid #4c457d;color:#d7d2ff;margin:10px 0}
+.quote-price-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.quote-price-box{background:#181818;border:1px solid #333;border-radius:12px;padding:12px}.quote-price-box strong{display:block;font-size:18px;margin-top:5px}
+.quote-extra-row,.quote-tier-row{display:grid;grid-template-columns:1fr 180px 45px;gap:8px;margin:8px 0}
+.public-quote{min-height:100vh;background:#f4f1eb;color:#181818;padding:40px 18px}.public-quote-inner{max-width:880px;margin:auto}
+.public-quote-card{background:#fff;border:1px solid #e5e0d8;border-radius:20px;padding:28px;margin-bottom:16px}.public-quote-card h1{font-size:38px;margin:8px 0}
+@media(max-width:800px){.quote-summary,.quote-price-grid{grid-template-columns:1fr 1fr}.quote-type-switch{grid-template-columns:1fr}.quote-extra-row,.quote-tier-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
-
-<section id="publicQuotePage" class="hidden"><div class="quote-public"><div class="logo">Agência Humaniza</div><div id="publicQuoteContent"><div class="empty">Carregando proposta...</div></div></div></section>
 
 <section id="loginPage" class="login-page">
   <div class="login-card">
@@ -589,9 +596,17 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   </div>
 </section>
 
+
+<section id="publicQuotePage" class="public-quote hidden">
+  <div class="public-quote-inner">
+    <div class="logo" style="color:#181818;margin-bottom:20px">Agência Humaniza</div>
+    <div id="publicQuoteContent"></div>
+  </div>
+</section>
+
 <section id="appPage" class="hidden">
 <header>
-  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777;font-weight:500">V31.1</small></div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.2</small></div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
@@ -626,9 +641,9 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="tab" onclick="showView('team', this)">👨‍💻 Equipe</div>
     <div class="tab" onclick="showView('clients', this)">👥 Clientes</div>
     <div class="tab" onclick="showView('demands', this)">🗂️ Demandas clientes</div>
-    <div class="tab" id="quotesTabBtn" onclick="showView('quotes', this)">💼 Orçamentos</div>
     <div class="tab" id="trashTabBtn" onclick="openTrash(this)">🗑️ Lixeira</div>
     <div class="tab" onclick="showView('clientPanel', this)">🖥️ Tela do cliente</div>
+    <div class="tab" id="quotesTab" onclick="showView('quotes', this)">💼 Orçamentos</div>
   </div>
 
   <section id="dashboardView"></section>
@@ -680,12 +695,6 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="board-wrap"><div class="board" id="demandsBoard"></div></div>
   </section>
 
-
-  <section id="quotesView" class="hidden">
-    <div class="top"><div><h2>Orçamentos</h2><p style="color:#A6A6A6">Crie propostas comerciais com link público separado do sistema.</p></div><div class="actions"><button class="btn-dark" onclick="openQuoteSettings()">Tabela comercial</button><button onclick="openQuoteModal()">+ Orçamento</button></div></div>
-    <div id="quoteSummary" class="quote-summary"></div><div id="quotesList"></div>
-  </section>
-
   <section id="trashView" class="hidden">
     <div class="top"><div><h2>Lixeira</h2><p style="color:#A6A6A6">Demandas excluídas organizadas por cliente. Você pode restaurar ou excluir definitivamente.</p></div>
       <button class="btn-danger" onclick="emptyTrash()">Esvaziar lixeira</button>
@@ -698,23 +707,60 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
   <section id="clientPanelView" class="hidden">
     <div id="clientPanelContent"></div>
   </section>
+
+  <section id="quotesView" class="hidden">
+    <div class="top"><div><h2>Orçamentos Humaniza</h2><p style="color:#A6A6A6">Propostas de Vídeo, Foto ou Vídeo + Foto.</p></div><div class="actions"><button class="btn-dark" onclick="openQuoteSettings()">Tabela comercial</button><button onclick="openQuoteModal()">+ Novo orçamento</button></div></div>
+    <div id="quoteSummary" class="quote-summary"></div>
+    <div id="quotesList" class="grid"></div>
+  </section>
 </main>
 </section>
 
 
 
 
-<div class="modal" id="quoteModal"><div class="modal-card" style="max-width:980px"><div class="top"><h2 id="quoteModalTitle">Novo orçamento</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div class="form">
-<input id="quoteProspectName" class="full" placeholder="Nome do prospect / empresa"><input id="quoteEmail" type="email" placeholder="E-mail"><input id="quoteWhatsapp" placeholder="WhatsApp"><input id="quoteSegment" placeholder="Segmento / perfil"><textarea id="quoteObjective" class="full" rows="3" placeholder="Objetivo do projeto"></textarea><textarea id="quoteMacro" class="full" rows="5" placeholder="Visão macro / diagnóstico estratégico"></textarea>
-<div class="full"><label class="field-label">Tipo de produção</label><div class="quote-type-switch"><button type="button" id="quoteTypeVideo" onclick="setQuoteService('Vídeo')">🎬 Vídeo</button><button type="button" id="quoteTypePhoto" onclick="setQuoteService('Foto')">📷 Foto</button><button type="button" id="quoteTypeBoth" onclick="setQuoteService('Vídeo + Foto')">🎬 + 📷 Vídeo + Foto</button></div><input id="quoteService" type="hidden" value="Vídeo"></div>
-<div id="quoteVideoBlock" class="quote-service-block"><h3>🎬 Vídeo</h3><div class="form"><input id="quoteVideoQuantity" type="number" min="0" value="1" placeholder="Quantidade de vídeos" oninput="recalcQuote()"><input id="quoteVideoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por vídeo" oninput="recalcQuote()"></div></div>
-<div id="quotePhotoBlock" class="quote-service-block hidden"><h3>📷 Foto</h3><div class="form"><input id="quotePhotoQuantity" type="number" min="0" value="0" placeholder="Quantidade de fotos entregues" oninput="recalcQuote()"><input id="quotePhotoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por foto / unidade" oninput="recalcQuote()"></div></div>
-<div id="quoteComboBox" class="full quote-combo-note hidden">Produção integrada Humaniza: foto e vídeo são planejados na mesma operação, permitindo uma condição comercial específica para o combo.</div>
-<input id="quoteValidity" type="date"><textarea id="quoteDeliverables" class="full" rows="4" placeholder="Entregáveis / o que está incluso"></textarea>
-<div class="full"><strong>Adicionais</strong><div id="quoteExtras"></div><button type="button" class="btn-dark" onclick="addQuoteExtra()">+ Adicional</button></div>
-<div><label class="field-label">Desconto automático</label><input id="quoteAutoDiscount" readonly></div><div><label class="field-label">Desconto manual (%)</label><input id="quoteManualDiscount" type="number" min="0" max="100" step="0.1" placeholder="Deixe vazio para usar o automático" oninput="recalcQuote()"></div>
-<textarea id="quoteDiscountExplanation" class="full" rows="4" placeholder="Explicação da condição em pacote"></textarea><textarea id="quoteNotes" class="full" rows="3" placeholder="Observações comerciais"></textarea><div id="quoteCalc" class="full quote-public-card"></div></div><div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuote()">Salvar e gerar link</button></div></div></div>
-<div class="modal" id="quoteSettingsModal"><div class="modal-card" style="max-width:850px"><div class="top"><h2>Tabela comercial</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><p class="quote-settings-note">Nada é gravado ao abrir. As configurações só são salvas quando você clicar em Salvar tabela.</p><div class="form"><input id="quoteBusinessName" class="full" placeholder="Nome exibido na proposta"><input id="quoteDefaultVideoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por vídeo"><input id="quoteDefaultPhotoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por foto / unidade"><input id="quoteComboDiscount" type="number" min="0" max="100" step="0.1" placeholder="Desconto adicional do combo Vídeo + Foto (%)"><textarea id="quoteDefaultExplanation" class="full" rows="4" placeholder="Explicação padrão do desconto"></textarea><div class="full"><strong>Desconto por quantidade</strong><div id="quoteTiers"></div><button type="button" class="btn-dark" onclick="addQuoteTier()">+ Faixa</button></div></div><div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuoteSettings()">Salvar tabela</button></div></div></div>
+<div class="modal" id="quoteModal"><div class="modal-card" style="max-width:920px">
+  <div class="top"><h2 id="quoteModalTitle">Novo orçamento</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div>
+  <div class="form">
+    <input id="quoteProspectName" class="full" placeholder="Empresa / prospect">
+    <input id="quoteEmail" type="email" placeholder="E-mail">
+    <input id="quoteWhatsapp" placeholder="WhatsApp">
+    <input id="quoteSegment" class="full" placeholder="Segmento">
+    <textarea id="quoteMacro" class="full" rows="4" placeholder="Visão macro / oportunidade identificada"></textarea>
+    <textarea id="quoteObjective" class="full" rows="3" placeholder="Objetivo da proposta"></textarea>
+    <div class="full"><label class="field-label">Tipo de produção</label><div class="quote-type-switch">
+      <button type="button" id="quoteTypeVideo" onclick="setQuoteService('Vídeo')">🎬 Vídeo</button>
+      <button type="button" id="quoteTypePhoto" onclick="setQuoteService('Foto')">📷 Foto</button>
+      <button type="button" id="quoteTypeBoth" onclick="setQuoteService('Vídeo + Foto')">🎬 + 📷 Vídeo + Foto</button>
+    </div><input id="quoteService" type="hidden" value="Vídeo"></div>
+    <div id="quoteVideoBlock" class="quote-service-block"><h3>🎬 Vídeo</h3><div class="form"><input id="quoteVideoQuantity" type="number" min="0" value="1" placeholder="Quantidade de vídeos" oninput="recalcQuote()"><input id="quoteVideoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por vídeo" oninput="recalcQuote()"></div></div>
+    <div id="quotePhotoBlock" class="quote-service-block hidden"><h3>📷 Foto</h3><div class="form"><input id="quotePhotoQuantity" type="number" min="0" value="0" placeholder="Quantidade de fotos" oninput="recalcQuote()"><input id="quotePhotoUnitPrice" type="number" min="0" step="0.01" placeholder="Valor por foto / unidade" oninput="recalcQuote()"></div></div>
+    <div id="quoteComboBox" class="full quote-combo-note hidden">Produção integrada Humaniza: foto e vídeo são planejados na mesma operação, permitindo uma condição comercial específica para o combo.</div>
+    <textarea id="quoteDeliverables" class="full" rows="4" placeholder="O que está incluso / entregáveis"></textarea>
+    <div class="full"><strong>Adicionais</strong><div id="quoteExtras"></div><button type="button" class="btn-dark" onclick="addQuoteExtra()">+ Adicional</button></div>
+    <input id="quoteManualDiscount" type="number" min="0" max="100" step="0.1" placeholder="Desconto manual % (opcional)" oninput="recalcQuote()">
+    <input id="quoteAutoDiscount" readonly placeholder="Desconto automático">
+    <textarea id="quoteDiscountExplanation" class="full" rows="3" placeholder="Explicação da condição comercial"></textarea>
+    <input id="quoteValidity" type="date">
+    <textarea id="quoteNotes" class="full" rows="3" placeholder="Observações"></textarea>
+    <div id="quoteCalc" class="full"></div>
+  </div>
+  <div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuote()">Salvar orçamento</button></div>
+</div></div>
+
+<div class="modal" id="quoteSettingsModal"><div class="modal-card" style="max-width:850px">
+  <div class="top"><h2>Tabela comercial</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div>
+  <p style="color:#A6A6A6">Nada é gravado ao abrir. Só salva quando você clicar em Salvar tabela.</p>
+  <div class="form">
+    <input id="quoteBusinessName" class="full" placeholder="Nome exibido na proposta">
+    <input id="quoteDefaultVideoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por vídeo">
+    <input id="quoteDefaultPhotoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por foto / unidade">
+    <input id="quoteComboDiscount" type="number" min="0" max="100" step="0.1" placeholder="Desconto adicional Vídeo + Foto (%)">
+    <textarea id="quoteDefaultExplanation" class="full" rows="4" placeholder="Explicação padrão do desconto"></textarea>
+    <div class="full"><strong>Desconto por quantidade</strong><div id="quoteTiers"></div><button type="button" class="btn-dark" onclick="addQuoteTier()">+ Faixa</button></div>
+  </div>
+  <div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuoteSettings()">Salvar tabela</button></div>
+</div></div>
 
 <div class="modal" id="macroModal"><div class="modal-card"><h2 id="macroModalTitle">Novo planejamento macro</h2><div class="form"><select id="macroClient" class="full"></select><input id="macroTitle" class="full" placeholder="Nome da campanha"><input id="macroMonth" type="month"><select id="macroStatus"><option>Em elaboração</option><option>Enviado para aprovação</option><option>Aprovado</option><option>Ajustes solicitados</option></select><textarea id="macroGoal" class="full" rows="3" placeholder="Objetivo da campanha"></textarea><textarea id="macroDates" class="full" rows="3" placeholder="Datas sazonais"></textarea><textarea id="macroStrategy" class="full" rows="5" placeholder="Estratégia macro"></textarea><textarea id="macroClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteMacroBtn" onclick="deleteMacro()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveMacro()">Salvar</button></div></div></div>
 <div class="modal" id="calendarModal"><div class="modal-card"><h2 id="calendarModalTitle">Novo item no calendário</h2><div class="form"><select id="calendarClient" class="full"></select><input id="calendarDate" type="date"><select id="calendarFormat"><option>Reels</option><option>Carrossel</option><option>Post Estático</option><option>Stories</option><option>Vídeo</option><option>Outro</option></select><input id="calendarTheme" class="full" placeholder="Tema do conteúdo"><select id="calendarStatus"><option>Ideia</option><option>Em roteiro</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Publicado</option></select><select id="calendarVisibility"><option>Visível para cliente</option><option>Apenas equipe</option><option>Apenas admin</option></select><select id="calendarResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><textarea id="calendarTeamNote" class="full" rows="3" placeholder="Observação da equipe"></textarea><textarea id="calendarClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCalendarBtn" onclick="deleteCalendarItem()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCalendarItem()">Salvar</button></div></div></div>
@@ -908,11 +954,15 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app, 'us-central1');
 const createAgencyUserFn = httpsCallable(functions, 'createAgencyUser');
-const saveQuoteFn=httpsCallable(functions,'saveQuote');
-const listQuotesFn=httpsCallable(functions,'listQuotes');
-const getPublicQuoteFn=httpsCallable(functions,'getPublicQuote');
-const respondToQuoteFn=httpsCallable(functions,'respondToQuote');
+const saveQuoteFn = httpsCallable(functions, 'saveQuote');
+const listQuotesFn = httpsCallable(functions, 'listQuotes');
+const getPublicQuoteFn = httpsCallable(functions, 'getPublicQuote');
+const respondToQuoteFn = httpsCallable(functions, 'respondToQuote');
 
+let quotes = [];
+let quoteSettings = {businessName:'Agência Humaniza',defaultVideoPrice:0,defaultPhotoPrice:0,comboDiscount:0,tiers:[],discountExplanation:''};
+let editingQuote = null;
+const publicQuoteToken = new URLSearchParams(location.search).get('orcamento');
 let currentUser = null;
 let isAdmin = false;
 let clients = [];
@@ -937,7 +987,6 @@ let trashedDemands=[];
 let unsubNotifications=null;
 let workFilter='Hoje';
 let unsubMacro = null, unsubCalendar = null, unsubScripts = null, unsubCaptures = null;
-let quotes=[]; let quoteSettings={businessName:'Agência Humaniza',defaultUnitPrice:0,tiers:[],discountExplanation:'O formato em pacote permite concentrar planejamento e produção em uma mesma estrutura, otimizando equipe, captação e tempo de execução. Essa otimização é convertida em uma condição melhor por conteúdo.'}; let editingQuote=null;
 
 const demandStatuses = ['Estratégia','Em produção','Revisão interna','Aguardando aprovação','Aguardando você','Ajustes solicitados','Aprovado','Publicado'];
 const internalStatuses = ['A Resolver','Em Produção','Pronto para Revisão','Ajustes Internos','Aprovado Internamente','Entregue ao Cliente','Entregue'];
@@ -1099,7 +1148,6 @@ window.login = async function(){
 }
 window.logout = function(){ signOut(auth); }
 
-\nconst publicQuoteToken=new URLSearchParams(location.search).get('orcamento');\nfunction brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}\nfunction esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}\nasync function loadPublicQuote(){\n  document.getElementById('loginPage').classList.add('hidden');document.getElementById('appPage').classList.add('hidden');document.getElementById('publicQuotePage').classList.remove('hidden');\n  try{const r=(await getPublicQuoteFn({token:publicQuoteToken})).data;const q=r.quote;document.title=`Proposta | ${q.businessName||'Agência Humaniza'}`;document.querySelector('#publicQuotePage .logo').textContent=q.businessName||'Agência Humaniza';\n  publicQuoteContent.innerHTML=`<div class="quote-public-card"><span class="pill">Proposta comercial</span><h1>${esc(q.prospectName)}</h1><p>${esc(q.segment||'')}</p></div>${q.macro?`<div class="quote-public-card"><h2>Visão estratégica</h2><p>${esc(q.macro).replace(/\\n/g,'<br>')}</p></div>`:''}<div class="quote-public-card"><h2>Proposta</h2><p><b>${esc(q.service)}</b> • ${q.quantity} unidade(s)</p>${q.deliverables?`<p>${esc(q.deliverables).replace(/\\n/g,'<br>')}</p>`:''}<div class="quote-price-grid"><div class="quote-price-box">Valor sem condição<strong>${brl(q.subtotal)}</strong></div><div class="quote-price-box">Economia<strong>${brl(q.discountAmount)}</strong></div><div class="quote-price-box">Investimento<strong>${brl(q.total)}</strong></div></div>${q.discountExplanation?`<p>${esc(q.discountExplanation)}</p>`:''}</div>${q.notes?`<div class="quote-public-card"><h2>Observações</h2><p>${esc(q.notes).replace(/\\n/g,'<br>')}</p></div>`:''}<div class="quote-public-card"><p>Validade: <b>${q.validity?new Date(q.validity+'T00:00:00').toLocaleDateString('pt-BR'):'a combinar'}</b></p><div class="actions"><button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button><button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button></div><div id="publicResponseMsg"></div></div>`;}catch(e){publicQuoteContent.innerHTML='<div class="notice">Não foi possível abrir esta proposta. Confira se o link está correto ou se a proposta ainda está disponível.</div>'}}\nwindow.publicQuoteResponse=async(action)=>{if(!publicQuoteToken)return;const label=action==='approved'?'aprovar':'recusar';if(!confirm(`Deseja ${label} esta proposta?`))return;try{await respondToQuoteFn({token:publicQuoteToken,action});publicResponseMsg.innerHTML=`<div class="notice">Resposta registrada com sucesso.</div>`}catch(e){alert('Não foi possível registrar a resposta.')}}\nif(publicQuoteToken) loadPublicQuote();\n
 onAuthStateChanged(auth, (user) => {
   if(publicQuoteToken) return;
   if(user){
@@ -1165,8 +1213,8 @@ function adjustViewByRole(){
     showView('internal', tabs[6]);
   } else {
     updateMobileMenuByRole();
-    tabs.forEach((tab, index) => { if(![1,2,3,4,5,12].includes(index)) tab.style.display = 'none'; });
-    showView('clientPanel', tabs[12]);
+    tabs.forEach((tab, index) => { if(![1,2,3,4,5,10].includes(index)) tab.style.display = 'none'; });
+    showView('clientPanel', tabs[10]);
   }
 }
 
@@ -1225,12 +1273,11 @@ function startListeners(){
 }
 
 window.showView = function(view, el){
-  if(view==='quotes'&&!isAdmin)return;
   if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel'].includes(view)) return;
   if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands'].includes(view)) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
-  ['dashboard','macro','calendar','scripts','captures','library','internal','team','clients','demands','quotes','trash','clientPanel'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
+  ['dashboard','macro','calendar','scripts','captures','library','internal','team','clients','demands','clientPanel','quotes'].forEach(v => document.getElementById(v+'View').classList.add('hidden'));
   document.getElementById(view+'View').classList.remove('hidden');
   if(view==='dashboard') renderDashboard();
   if(view==='macro') renderMacro();
@@ -1242,8 +1289,8 @@ window.showView = function(view, el){
   if(view==='team') renderTeam();
   if(view==='clients') renderClients();
   if(view==='demands') renderDemands();
-  if(view==='quotes') renderQuotes();
   if(view==='clientPanel') renderClientPanel(selectedClientId);
+  if(view==='quotes') renderQuotes();
   renderTrash();
 }
 
@@ -1858,18 +1905,114 @@ window.quickComment = async function(id){
   }
 }
 window.openWhats = function(phone,text){ const clean=String(phone||'').replace(/\D/g,''); const msg=encodeURIComponent(text||'Oi! Tudo bem?'); if(clean) window.open(`https://wa.me/55${clean}?text=${msg}`,'_blank'); else window.open(`https://wa.me/?text=${msg}`,'_blank'); }
-\nasync function loadQuotes(){if(!isAdmin)return;try{const r=(await listQuotesFn({})).data;quotes=r.quotes||[];quoteSettings=r.settings||quoteSettings;renderQuotes()}catch(e){console.error(e)}}\nfunction quoteStatusLabel(s){return ({draft:'Rascunho',sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Rascunho'}\nwindow.renderQuotes=function(){const box=document.getElementById('quotesList'),sum=document.getElementById('quoteSummary');if(!box||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length;const open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length;const value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);sum.innerHTML=`<div class="stat"><p>Total</p><strong>${quotes.length}</strong></div><div class="stat"><p>Em aberto</p><strong>${open}</strong></div><div class="stat"><p>Aprovados</p><strong>${approved}</strong></div><div class="stat"><p>Valor aprovado</p><strong>${brl(value)}</strong></div>`;box.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${esc(q.prospectName)}</h3><div class="meta"><span class="pill">${esc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><div class="quote-money">${brl(q.total)}</div></div><p>${esc(q.segment||'')}</p><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button class="btn-dark" onclick="window.open(makeQuoteLink('${q.publicToken}'),'_blank')">Visualizar</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}\nfunction makeQuoteLink(token){const u=new URL(location.href);u.search='';u.hash='';u.searchParams.set('orcamento',token);return u.toString()}\nwindow.copyQuoteLink=async token=>{await navigator.clipboard.writeText(makeQuoteLink(token));alert('Link do orçamento copiado.')}\nwindow.addQuoteExtra=function(name='',value=''){const d=document.createElement('div');d.className='quote-extra-row';d.innerHTML=`<input class="quote-extra-name" placeholder="Adicional" value="${esc(name)}"><input class="quote-extra-value" type="number" min="0" step="0.01" placeholder="Valor" value="${esc(value)}" oninput="recalcQuote()"><button class="btn-danger" type="button" onclick="this.parentElement.remove();recalcQuote()">×</button>`;quoteExtras.appendChild(d)}\nwindow.addQuoteTier=function(qty='',pct=''){const d=document.createElement('div');d.className='quote-tier-row';d.innerHTML=`<input class="quote-tier-qty" type="number" min="1" placeholder="A partir de quantos" value="${esc(qty)}"><input class="quote-tier-pct" type="number" min="0" max="100" step="0.1" placeholder="Desconto %" value="${esc(pct)}"><button class="btn-danger" type="button" onclick="this.parentElement.remove()">×</button>`;quoteTiers.appendChild(d)}\nfunction effectiveTier(qty){return [...(quoteSettings.tiers||[])].filter(t=>Number(t.qty)<=qty).sort((a,b)=>Number(b.qty)-Number(a.qty))[0]?.pct||0}
-function collectExtras(){return [...document.querySelectorAll('#quoteExtras .quote-extra-row')].map(r=>({name:r.querySelector('.quote-extra-name').value.trim(),value:Number(r.querySelector('.quote-extra-value').value||0)})).filter(x=>x.name||x.value)}
-window.setQuoteService=function(service){quoteService.value=service;const video=service==='Vídeo'||service==='Vídeo + Foto',photo=service==='Foto'||service==='Vídeo + Foto';quoteVideoBlock.classList.toggle('hidden',!video);quotePhotoBlock.classList.toggle('hidden',!photo);quoteComboBox.classList.toggle('hidden',service!=='Vídeo + Foto');quoteTypeVideo.classList.toggle('active',service==='Vídeo');quoteTypePhoto.classList.toggle('active',service==='Foto');quoteTypeBoth.classList.toggle('active',service==='Vídeo + Foto');recalcQuote()}
-window.recalcQuote=function(){const service=quoteService.value||'Vídeo',vq=(service==='Vídeo'||service==='Vídeo + Foto')?Number(quoteVideoQuantity.value||0):0,vu=Number(quoteVideoUnitPrice.value||0),pq=(service==='Foto'||service==='Vídeo + Foto')?Number(quotePhotoQuantity.value||0):0,pu=Number(quotePhotoUnitPrice.value||0),videoBase=vq*vu,photoBase=pq*pu,extras=collectExtras(),extrasTotal=extras.reduce((a,x)=>a+x.value,0),auto=Number(effectiveTier(vq+pq)||0),manual=quoteManualDiscount.value===''?null:Number(quoteManualDiscount.value||0),pct=manual===null?auto:manual,base=videoBase+photoBase,discount=base*pct/100,comboPct=service==='Vídeo + Foto'?Number(quoteSettings.comboDiscount||0):0,afterFirst=base-discount,comboDiscount=afterFirst*comboPct/100,total=afterFirst-comboDiscount+extrasTotal;quoteAutoDiscount.value=`${auto}%${comboPct?` + combo ${comboPct}%`:''}`;quoteCalc.innerHTML=`<div class="quote-price-grid"><div class="quote-price-box">Vídeo<strong>${brl(videoBase)}</strong></div><div class="quote-price-box">Foto<strong>${brl(photoBase)}</strong></div><div class="quote-price-box">Adicionais<strong>${brl(extrasTotal)}</strong></div><div class="quote-price-box">Desconto<strong>${brl(discount+comboDiscount)}</strong></div><div class="quote-price-box">Total<strong>${brl(total)}</strong></div></div>`;return{service,videoQuantity:vq,videoUnitPrice:vu,photoQuantity:pq,photoUnitPrice:pu,extras,subtotal:base+extrasTotal,discountPct:pct,discountAmount:discount,comboDiscountPct:comboPct,comboDiscountAmount:comboDiscount,total}}
-window.openQuoteModal=function(){if(!isAdmin)return;editingQuote=null;quoteModalTitle.textContent='Novo orçamento';['quoteProspectName','quoteEmail','quoteWhatsapp','quoteSegment','quoteObjective','quoteMacro','quoteDeliverables','quoteManualDiscount','quoteNotes'].forEach(id=>document.getElementById(id).value='');quoteVideoQuantity.value=1;quotePhotoQuantity.value=0;quoteVideoUnitPrice.value=quoteSettings.defaultVideoPrice||quoteSettings.defaultUnitPrice||'';quotePhotoUnitPrice.value=quoteSettings.defaultPhotoPrice||'';quoteValidity.value='';quoteDiscountExplanation.value=quoteSettings.discountExplanation||'';quoteExtras.innerHTML='';setQuoteService('Vídeo');quoteModal.classList.add('active')}
-window.editQuote=function(id){const q=quotes.find(x=>x.id===id);if(!q)return;editingQuote=id;quoteModalTitle.textContent='Editar orçamento';quoteProspectName.value=q.prospectName||'';quoteEmail.value=q.email||'';quoteWhatsapp.value=q.whatsapp||'';quoteSegment.value=q.segment||'';quoteObjective.value=q.objective||'';quoteMacro.value=q.macro||'';quoteVideoQuantity.value=q.videoQuantity??q.quantity??0;quoteVideoUnitPrice.value=q.videoUnitPrice??q.unitPrice??0;quotePhotoQuantity.value=q.photoQuantity||0;quotePhotoUnitPrice.value=q.photoUnitPrice||0;quoteValidity.value=q.validity||'';quoteDeliverables.value=q.deliverables||'';quoteManualDiscount.value=q.manualDiscount??'';quoteDiscountExplanation.value=q.discountExplanation||'';quoteNotes.value=q.notes||'';quoteExtras.innerHTML='';(q.extras||[]).forEach(x=>addQuoteExtra(x.name,x.value));setQuoteService(q.service||'Vídeo');recalcQuote();quoteModal.classList.add('active')}
-window.saveQuote=async function(){if(!isAdmin)return;const calc=recalcQuote();if(!quoteProspectName.value.trim())return alert('Informe o nome do prospect.');if(calc.service==='Vídeo'&&!calc.videoQuantity)return alert('Informe a quantidade de vídeos.');if(calc.service==='Foto'&&!calc.photoQuantity)return alert('Informe a quantidade de fotos.');if(calc.service==='Vídeo + Foto'&&(!calc.videoQuantity||!calc.photoQuantity))return alert('No combo, informe as quantidades de vídeo e foto.');try{const payload={id:editingQuote||null,prospectName:quoteProspectName.value.trim(),email:quoteEmail.value.trim(),whatsapp:quoteWhatsapp.value.trim(),segment:quoteSegment.value.trim(),objective:quoteObjective.value.trim(),macro:quoteMacro.value.trim(),service:calc.service,videoQuantity:calc.videoQuantity,videoUnitPrice:calc.videoUnitPrice,photoQuantity:calc.photoQuantity,photoUnitPrice:calc.photoUnitPrice,extras:calc.extras,manualDiscount:quoteManualDiscount.value===''?null:Number(quoteManualDiscount.value),discountExplanation:quoteDiscountExplanation.value.trim(),validity:quoteValidity.value,deliverables:quoteDeliverables.value.trim(),notes:quoteNotes.value.trim()};const r=(await saveQuoteFn(payload)).data;closeModals();await loadQuotes();if(r.publicToken){await navigator.clipboard.writeText(makeQuoteLink(r.publicToken)).catch(()=>{});alert('Orçamento salvo. O link público foi gerado e copiado quando permitido pelo navegador.')}}catch(e){alert(e?.message||'Não foi possível salvar o orçamento.')}}
-window.openQuoteSettings=function(){if(!isAdmin)return;quoteBusinessName.value=quoteSettings.businessName||'Agência Humaniza';quoteDefaultVideoPrice.value=quoteSettings.defaultVideoPrice||quoteSettings.defaultUnitPrice||'';quoteDefaultPhotoPrice.value=quoteSettings.defaultPhotoPrice||'';quoteComboDiscount.value=quoteSettings.comboDiscount||'';quoteDefaultExplanation.value=quoteSettings.discountExplanation||'';quoteTiers.innerHTML='';(quoteSettings.tiers||[]).forEach(t=>addQuoteTier(t.qty,t.pct));if(!(quoteSettings.tiers||[]).length){[4,5,6].forEach(q=>addQuoteTier(q,0))}quoteSettingsModal.classList.add('active')}
-window.saveQuoteSettings=async function(){if(!isAdmin)return;const tiers=[...document.querySelectorAll('#quoteTiers .quote-tier-row')].map(r=>({qty:Number(r.querySelector('.quote-tier-qty').value||0),pct:Number(r.querySelector('.quote-tier-pct').value||0)})).filter(t=>t.qty>0).sort((a,b)=>a.qty-b.qty);const settings={businessName:quoteBusinessName.value.trim()||'Agência Humaniza',defaultVideoPrice:Number(quoteDefaultVideoPrice.value||0),defaultPhotoPrice:Number(quoteDefaultPhotoPrice.value||0),comboDiscount:Number(quoteComboDiscount.value||0),discountExplanation:quoteDefaultExplanation.value.trim(),tiers};try{await saveQuoteFn({settingsOnly:true,settings});quoteSettings=settings;closeModals();alert('Tabela comercial salva.')}catch(e){alert(e?.message||'Não foi possível salvar a tabela.')}}\n
+
+function quoteMoney(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function quoteEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function effectiveQuoteTier(qty){return [...(quoteSettings.tiers||[])].filter(t=>Number(t.qty)<=qty).sort((a,b)=>Number(b.qty)-Number(a.qty))[0]?.pct||0}
+function collectQuoteExtras(){return [...document.querySelectorAll('#quoteExtras .quote-extra-row')].map(r=>({name:r.querySelector('.quote-extra-name').value.trim(),value:Number(r.querySelector('.quote-extra-value').value||0)})).filter(x=>x.name||x.value)}
+window.addQuoteExtra=function(name='',value=''){const d=document.createElement('div');d.className='quote-extra-row';d.innerHTML=`<input class="quote-extra-name" placeholder="Adicional" value="${quoteEsc(name)}"><input class="quote-extra-value" type="number" min="0" step="0.01" placeholder="Valor" value="${quoteEsc(value)}" oninput="recalcQuote()"><button class="btn-danger" type="button" onclick="this.parentElement.remove();recalcQuote()">×</button>`;document.getElementById('quoteExtras').appendChild(d)}
+window.addQuoteTier=function(qty='',pct=''){const d=document.createElement('div');d.className='quote-tier-row';d.innerHTML=`<input class="quote-tier-qty" type="number" min="1" placeholder="A partir de quantos" value="${quoteEsc(qty)}"><input class="quote-tier-pct" type="number" min="0" max="100" step="0.1" placeholder="Desconto %" value="${quoteEsc(pct)}"><button class="btn-danger" type="button" onclick="this.parentElement.remove()">×</button>`;document.getElementById('quoteTiers').appendChild(d)}
+window.setQuoteService=function(service){
+  document.getElementById('quoteService').value=service;
+  const video=service==='Vídeo'||service==='Vídeo + Foto', photo=service==='Foto'||service==='Vídeo + Foto';
+  document.getElementById('quoteVideoBlock').classList.toggle('hidden',!video);
+  document.getElementById('quotePhotoBlock').classList.toggle('hidden',!photo);
+  document.getElementById('quoteComboBox').classList.toggle('hidden',service!=='Vídeo + Foto');
+  document.getElementById('quoteTypeVideo').classList.toggle('active',service==='Vídeo');
+  document.getElementById('quoteTypePhoto').classList.toggle('active',service==='Foto');
+  document.getElementById('quoteTypeBoth').classList.toggle('active',service==='Vídeo + Foto');
+  recalcQuote();
+}
+window.recalcQuote=function(){
+  const service=document.getElementById('quoteService').value||'Vídeo';
+  const vq=(service==='Vídeo'||service==='Vídeo + Foto')?Number(document.getElementById('quoteVideoQuantity').value||0):0;
+  const vu=Number(document.getElementById('quoteVideoUnitPrice').value||0);
+  const pq=(service==='Foto'||service==='Vídeo + Foto')?Number(document.getElementById('quotePhotoQuantity').value||0):0;
+  const pu=Number(document.getElementById('quotePhotoUnitPrice').value||0);
+  const videoBase=vq*vu, photoBase=pq*pu, extras=collectQuoteExtras(), extrasTotal=extras.reduce((a,x)=>a+x.value,0);
+  const auto=Number(effectiveQuoteTier(vq+pq)||0);
+  const manualEl=document.getElementById('quoteManualDiscount');
+  const manual=manualEl.value===''?null:Number(manualEl.value||0), pct=manual===null?auto:manual;
+  const base=videoBase+photoBase, discount=base*pct/100;
+  const comboPct=service==='Vídeo + Foto'?Number(quoteSettings.comboDiscount||0):0;
+  const comboDiscount=(base-discount)*comboPct/100, total=base-discount-comboDiscount+extrasTotal;
+  document.getElementById('quoteAutoDiscount').value=`${auto}%${comboPct?` + combo ${comboPct}%`:''}`;
+  document.getElementById('quoteCalc').innerHTML=`<div class="quote-price-grid"><div class="quote-price-box">Vídeo<strong>${quoteMoney(videoBase)}</strong></div><div class="quote-price-box">Foto<strong>${quoteMoney(photoBase)}</strong></div><div class="quote-price-box">Adicionais<strong>${quoteMoney(extrasTotal)}</strong></div><div class="quote-price-box">Economia<strong>${quoteMoney(discount+comboDiscount)}</strong></div><div class="quote-price-box">Total<strong>${quoteMoney(total)}</strong></div></div>`;
+  return {service,videoQuantity:vq,videoUnitPrice:vu,photoQuantity:pq,photoUnitPrice:pu,extras};
+}
+window.openQuoteModal=function(){
+  if(!isAdmin)return; editingQuote=null;
+  document.getElementById('quoteModalTitle').textContent='Novo orçamento';
+  ['quoteProspectName','quoteEmail','quoteWhatsapp','quoteSegment','quoteObjective','quoteMacro','quoteDeliverables','quoteManualDiscount','quoteNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('quoteVideoQuantity').value=1; document.getElementById('quotePhotoQuantity').value=0;
+  document.getElementById('quoteVideoUnitPrice').value=quoteSettings.defaultVideoPrice||'';
+  document.getElementById('quotePhotoUnitPrice').value=quoteSettings.defaultPhotoPrice||'';
+  document.getElementById('quoteDiscountExplanation').value=quoteSettings.discountExplanation||'';
+  document.getElementById('quoteValidity').value=''; document.getElementById('quoteExtras').innerHTML='';
+  setQuoteService('Vídeo'); document.getElementById('quoteModal').classList.add('active');
+}
+window.editQuote=function(id){
+  const q=quotes.find(x=>x.id===id); if(!q)return; editingQuote=id;
+  document.getElementById('quoteModalTitle').textContent='Editar orçamento';
+  document.getElementById('quoteProspectName').value=q.prospectName||''; document.getElementById('quoteEmail').value=q.email||'';
+  document.getElementById('quoteWhatsapp').value=q.whatsapp||''; document.getElementById('quoteSegment').value=q.segment||'';
+  document.getElementById('quoteObjective').value=q.objective||''; document.getElementById('quoteMacro').value=q.macro||'';
+  document.getElementById('quoteVideoQuantity').value=q.videoQuantity||0; document.getElementById('quoteVideoUnitPrice').value=q.videoUnitPrice||0;
+  document.getElementById('quotePhotoQuantity').value=q.photoQuantity||0; document.getElementById('quotePhotoUnitPrice').value=q.photoUnitPrice||0;
+  document.getElementById('quoteDeliverables').value=q.deliverables||''; document.getElementById('quoteManualDiscount').value=q.manualDiscount??'';
+  document.getElementById('quoteDiscountExplanation').value=q.discountExplanation||''; document.getElementById('quoteValidity').value=q.validity||'';
+  document.getElementById('quoteNotes').value=q.notes||''; document.getElementById('quoteExtras').innerHTML='';
+  (q.extras||[]).forEach(x=>addQuoteExtra(x.name,x.value)); setQuoteService(q.service||'Vídeo'); document.getElementById('quoteModal').classList.add('active');
+}
+window.saveQuote=async function(){
+  if(!isAdmin)return; const calc=recalcQuote(); const prospect=document.getElementById('quoteProspectName').value.trim();
+  if(!prospect)return alert('Informe a empresa ou prospect.');
+  try{
+    const payload={id:editingQuote||null,prospectName:prospect,email:document.getElementById('quoteEmail').value.trim(),whatsapp:document.getElementById('quoteWhatsapp').value.trim(),segment:document.getElementById('quoteSegment').value.trim(),objective:document.getElementById('quoteObjective').value.trim(),macro:document.getElementById('quoteMacro').value.trim(),service:calc.service,videoQuantity:calc.videoQuantity,videoUnitPrice:calc.videoUnitPrice,photoQuantity:calc.photoQuantity,photoUnitPrice:calc.photoUnitPrice,extras:calc.extras,manualDiscount:document.getElementById('quoteManualDiscount').value===''?null:Number(document.getElementById('quoteManualDiscount').value),discountExplanation:document.getElementById('quoteDiscountExplanation').value.trim(),validity:document.getElementById('quoteValidity').value,deliverables:document.getElementById('quoteDeliverables').value.trim(),notes:document.getElementById('quoteNotes').value.trim()};
+    const r=(await saveQuoteFn(payload)).data; closeModals(); await loadQuotes();
+    if(r.publicToken){navigator.clipboard?.writeText(makeQuoteLink(r.publicToken)).catch(()=>{}); alert('Orçamento salvo. O link público foi gerado.');}
+  }catch(e){alert(e?.message||'Não foi possível salvar o orçamento.')}
+}
+function makeQuoteLink(token){const u=new URL(location.href);u.search='';u.hash='';u.searchParams.set('orcamento',token);return u.toString()}
+window.copyQuoteLink=async function(token){const link=makeQuoteLink(token);try{await navigator.clipboard.writeText(link);alert('Link copiado.')}catch{prompt('Copie o link:',link)}}
+function quoteStatusLabel(s){return ({draft:'Rascunho',sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Rascunho'}
+window.renderQuotes=function(){
+  const box=document.getElementById('quotesList'),sum=document.getElementById('quoteSummary'); if(!box||!isAdmin)return;
+  const approved=quotes.filter(q=>q.status==='approved').length, open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length, value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);
+  sum.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;
+  box.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><p>${quoteEsc(q.segment||'')}</p><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>';
+}
+async function loadQuotes(){if(!isAdmin)return;try{const r=(await listQuotesFn({})).data;quotes=r.quotes||[];quoteSettings=r.settings||quoteSettings;renderQuotes()}catch(e){console.error('Orçamentos:',e)}}
+window.openQuoteSettings=function(){
+  if(!isAdmin)return;
+  document.getElementById('quoteBusinessName').value=quoteSettings.businessName||'Agência Humaniza';
+  document.getElementById('quoteDefaultVideoPrice').value=quoteSettings.defaultVideoPrice||'';
+  document.getElementById('quoteDefaultPhotoPrice').value=quoteSettings.defaultPhotoPrice||'';
+  document.getElementById('quoteComboDiscount').value=quoteSettings.comboDiscount||'';
+  document.getElementById('quoteDefaultExplanation').value=quoteSettings.discountExplanation||'';
+  document.getElementById('quoteTiers').innerHTML=''; (quoteSettings.tiers||[]).forEach(t=>addQuoteTier(t.qty,t.pct));
+  if(!(quoteSettings.tiers||[]).length)[4,5,6].forEach(q=>addQuoteTier(q,0));
+  document.getElementById('quoteSettingsModal').classList.add('active');
+}
+window.saveQuoteSettings=async function(){
+  const tiers=[...document.querySelectorAll('#quoteTiers .quote-tier-row')].map(r=>({qty:Number(r.querySelector('.quote-tier-qty').value||0),pct:Number(r.querySelector('.quote-tier-pct').value||0)})).filter(t=>t.qty>0);
+  const settings={businessName:document.getElementById('quoteBusinessName').value.trim()||'Agência Humaniza',defaultVideoPrice:Number(document.getElementById('quoteDefaultVideoPrice').value||0),defaultPhotoPrice:Number(document.getElementById('quoteDefaultPhotoPrice').value||0),comboDiscount:Number(document.getElementById('quoteComboDiscount').value||0),discountExplanation:document.getElementById('quoteDefaultExplanation').value.trim(),tiers};
+  try{await saveQuoteFn({settingsOnly:true,settings});quoteSettings=settings;closeModals();alert('Tabela comercial salva.')}catch(e){alert(e?.message||'Não foi possível salvar a tabela.')}
+}
+async function loadPublicQuote(){
+  document.getElementById('loginPage').classList.add('hidden'); document.getElementById('appPage').classList.add('hidden'); document.getElementById('publicQuotePage').classList.remove('hidden');
+  try{
+    const q=(await getPublicQuoteFn({token:publicQuoteToken})).data.quote;
+    document.getElementById('publicQuoteContent').innerHTML=`<div class="public-quote-card"><small>PROPOSTA COMERCIAL</small><h1>${quoteEsc(q.prospectName)}</h1><p>${quoteEsc(q.segment||'')}</p></div>${q.macro?`<div class="public-quote-card"><h2>Visão estratégica</h2><p>${quoteEsc(q.macro).replace(/\n/g,'<br>')}</p></div>`:''}<div class="public-quote-card"><h2>${quoteEsc(q.service)}</h2><p>${q.videoQuantity?`${q.videoQuantity} vídeo(s)`:''}${q.videoQuantity&&q.photoQuantity?' + ':''}${q.photoQuantity?`${q.photoQuantity} foto(s)`:''}</p><p>${quoteEsc(q.deliverables||'').replace(/\n/g,'<br>')}</p><div class="quote-price-grid"><div class="quote-price-box">Valor<strong>${quoteMoney(q.subtotal)}</strong></div><div class="quote-price-box">Economia<strong>${quoteMoney(q.discountAmount)}</strong></div><div class="quote-price-box">Investimento<strong>${quoteMoney(q.total)}</strong></div></div></div><div class="public-quote-card"><button class="btn-green" onclick="publicQuoteResponse('approved')">Aprovar proposta</button> <button class="btn-dark" onclick="publicQuoteResponse('declined')">Não seguir agora</button><div id="publicResponseMsg"></div></div>`;
+  }catch(e){document.getElementById('publicQuoteContent').innerHTML='<div class="public-quote-card">Não foi possível abrir esta proposta.</div>'}
+}
+window.publicQuoteResponse=async function(action){if(!confirm(action==='approved'?'Aprovar esta proposta?':'Registrar que não deseja seguir agora?'))return;try{await respondToQuoteFn({token:publicQuoteToken,action});document.getElementById('publicResponseMsg').innerHTML='<div class="notice">Resposta registrada com sucesso.</div>'}catch(e){alert('Não foi possível registrar a resposta.')}}
+if(publicQuoteToken) loadPublicQuote();
+
+
 window.closeModals = function(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
 function refreshAll(){
-  renderAccessBadge(); if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); renderQuotes(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); 
+  renderAccessBadge(); if(isAdmin){ renderDashboard(); renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderTeam(); renderClients(); renderDemands(); } if(isTeamMember && !isAdmin){ renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); renderInternal(); renderDemands(); } if(!isAdmin && !isTeamMember){ renderMacro(); renderCalendar(); renderScripts(); renderCaptures(); renderLibrary(); } renderClientPanel(selectedClientId); 
   renderTrash();
 }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModals(); });
@@ -1893,7 +2036,6 @@ function renderMobileMenuItems(){
       {label:'👨‍💻 Equipe', action:"mobileGo('team')"},
       {label:'👥 Clientes', action:"mobileGo('clients')"},
       {label:'🗂️ Demandas clientes', action:"mobileGo('demands')"},
-      {label:'💼 Orçamentos', action:"mobileGo('quotes')"},
       {label:'🗑️ Lixeira', action:"closeMobileMenu(); openTrash()"},
       {label:'🖥️ Tela do cliente', action:"mobileGo('clientPanel')"},
       {divider:true},
@@ -1961,8 +2103,7 @@ window.mobileGo = function(view){
     team: 7,
     clients: 8,
     demands: 9,
-    quotes: 10,
-    clientPanel: 12
+    clientPanel: 10
   };
 
   const tabs = document.querySelectorAll('.tab');
