@@ -611,7 +611,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 <section id="appPage" class="hidden">
 <header>
-  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.10</small></div>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.11</small></div>
   <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
   <div class="actions">
     <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
@@ -1972,7 +1972,18 @@ window.saveQuote=async function(){
   }
 }
 function makeQuoteLink(token){const u=new URL(location.href);u.search='';u.hash='';u.searchParams.set('orcamento',token);return u.toString()}
-window.copyQuoteLink=async function(token){const link=makeQuoteLink(token);try{await navigator.clipboard.writeText(link);alert('Link copiado.')}catch{prompt('Copie o link:',link)}}
+window.copyQuoteLink=async function(token){
+  const link=makeQuoteLink(token);
+  const q=quotes.find(x=>x.publicToken===token);
+  const nome=(q?.prospectName||'Cliente').trim();
+  const mensagem=`Orçamento ${nome}\n\nAcesse sua proposta comercial pelo link abaixo:\n${link}`;
+  try{
+    await navigator.clipboard.writeText(mensagem);
+    alert(`Orçamento ${nome} copiado para enviar no WhatsApp.`);
+  }catch{
+    prompt(`Copie a mensagem do orçamento de ${nome}:`,mensagem);
+  }
+}
 function quoteStatusLabel(s){return({sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Enviado'}
 window.renderQuotes=function(){if(!quotesList||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length,open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length,value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);quoteSummary.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;quotesList.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}
 async function loadQuotes(){
