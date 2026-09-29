@@ -1,0 +1,5 @@
+V31 - Backend Firebase Functions
+
+Funções: createAgencyUser, saveQuote, listQuotes, getPublicQuote, respondToQuote.
+
+Implante este backend antes de testar Orçamentos. A abertura do sistema não migra nem altera clientes, equipe, demandas, roteiros, calendário ou captações. Orçamentos só são gravados quando o admin salva. Respostas públicas só gravam quando o destinatário clica em aprovar/recusar.
