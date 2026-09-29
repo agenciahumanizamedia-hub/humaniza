@@ -1,0 +1,15 @@
+HUMANIZA V31.1
+
+01_SITE_FRONTEND
+- index.html
+Este é o arquivo visual do sistema. Substitua o index.html antigo do site por este.
+
+02_FIREBASE_BACKEND
+- index.js
+- package.json
+- LEIA-ME.txt
+Estes são os arquivos do backend/Firebase Functions.
+
+IMPORTANTE:
+Primeiro confirme o FRONTEND e se o menu Orçamentos aparece.
+Não altere regras do Firestore nem faça migração de dados automaticamente.
