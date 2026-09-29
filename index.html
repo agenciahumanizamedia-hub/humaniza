@@ -1987,23 +1987,45 @@ window.copyQuoteLink=async function(token){
   }
 }
 function quoteStatusLabel(s){return({sent:'Enviado',approved:'Aprovado',declined:'Recusado',expired:'Expirado'})[s]||s||'Enviado'}
-async function syncQuotePublicStatuses(){
+let publicQuoteStatusUnsubs=[];
+function stopPublicQuoteStatusListeners(){
+  publicQuoteStatusUnsubs.forEach(fn=>{try{fn()}catch(_){}});
+  publicQuoteStatusUnsubs=[];
+}
+async function applyPublicQuoteStatus(q,data){
+  if(!isAdmin || !q || !data) return;
+  const ps=data.status;
+  if(!['approved','declined','sent'].includes(ps) || ps===q.status) return;
+  q.status=ps;
+  if(data.respondedAt) q.respondedAt=data.respondedAt;
+  renderQuotes();
+  try{
+    await setDoc(doc(db,'quotes',q.id),{
+      status:ps,
+      respondedAt:data.respondedAt||serverTimestamp(),
+      updatedAt:serverTimestamp()
+    },{merge:true});
+  }catch(e){
+    console.warn('Não foi possível sincronizar o status no orçamento interno:',q.id,e);
+  }
+}
+function watchPublicQuoteStatuses(){
+  stopPublicQuoteStatusListeners();
   if(!isAdmin || !quotes.length) return;
-  let changed=false;
-  await Promise.all(quotes.map(async q=>{
+  quotes.forEach(q=>{
     if(!q.publicToken) return;
     try{
-      const snap=await getDoc(doc(db,'publicQuotes',publicQuoteId(q.publicToken)));
-      if(!snap.exists()) return;
-      const data=snap.data()||{};
-      const ps=data.status;
-      if(ps && ['approved','declined','sent'].includes(ps) && ps!==q.status){
-        q.status=ps; changed=true;
-        await setDoc(doc(db,'quotes',q.id),{status:ps,respondedAt:data.respondedAt||serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});
-      }
-    }catch(e){ console.warn('Status público do orçamento:',q.id,e); }
-  }));
-  if(changed) renderQuotes();
+      const ref=doc(db,'publicQuotes',publicQuoteId(q.publicToken));
+      const unsub=onSnapshot(ref,snap=>{
+        if(!snap.exists()) return;
+        applyPublicQuoteStatus(q,snap.data()||{});
+      },e=>console.warn('Status público em tempo real:',q.id,e));
+      publicQuoteStatusUnsubs.push(unsub);
+    }catch(e){console.warn('Listener público do orçamento:',q.id,e)}
+  });
+}
+async function syncQuotePublicStatuses(){
+  watchPublicQuoteStatuses();
 }
 window.renderQuotes=function(){if(!quotesList||!isAdmin)return;const approved=quotes.filter(q=>q.status==='approved').length,open=quotes.filter(q=>!['approved','declined','expired'].includes(q.status)).length,value=quotes.filter(q=>q.status==='approved').reduce((a,q)=>a+Number(q.total||0),0);quoteSummary.innerHTML=`<div class="quote-box"><small>Total</small><h2>${quotes.length}</h2></div><div class="quote-box"><small>Em aberto</small><h2>${open}</h2></div><div class="quote-box"><small>Aprovados</small><h2>${approved}</h2></div><div class="quote-box"><small>Valor aprovado</small><h2>${quoteMoney(value)}</h2></div>`;quotesList.innerHTML=quotes.length?quotes.map(q=>`<div class="quote-card"><div class="top"><div><h3>${quoteEsc(q.prospectName)}</h3><div class="meta"><span class="pill">${quoteEsc(q.service)}</span><span class="pill">${quoteStatusLabel(q.status)}</span></div></div><strong>${quoteMoney(q.total)}</strong></div><div class="actions"><button class="btn-dark" onclick="copyQuoteLink('${q.publicToken}')">Copiar link</button><button onclick="editQuote('${q.id}')">Editar</button></div></div>`).join(''):'<div class="empty">Nenhum orçamento criado.</div>'}
 async function loadQuotes(){
