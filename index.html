@@ -610,6 +610,16 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .script-editor-grid .full{grid-column:1/-1}
 .script-editor-card textarea{min-height:82px}
 .script-editor-card .compact{min-height:54px}
+.script-editor-card.completed{border-color:#5d765d}
+.script-editor-card.collapsed .script-editor-grid{display:none}
+.script-editor-card.collapsed{padding-bottom:12px}
+.script-editor-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.script-project-briefing{background:#202020;border:1px solid #353535;border-radius:16px;padding:18px;margin-top:16px}
+.script-project-briefing textarea{width:100%;min-height:130px}
+.script-progress{margin-top:10px;color:#cfcfcf;font-size:13px}
+.script-progress-bar{height:7px;background:#303030;border-radius:99px;overflow:hidden;margin-top:7px}
+.script-progress-bar>span{display:block;height:100%;background:#f2f2f0;border-radius:99px}
+
 @media(max-width:850px){.script-builder-row{grid-template-columns:1fr 1fr}.script-builder-row .wide{grid-column:1/-1}.script-editor-grid{grid-template-columns:1fr}.script-editor-grid .full{grid-column:auto}}
 
 
@@ -723,14 +733,25 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     </div>
 
     <div class="monthly-filter" style="margin-top:14px">
-      <div><label class="field-label">Mês</label><select id="scriptsMonthFilter" onchange="renderScripts()"></select></div>
-      <div><label class="field-label">Ano</label><select id="scriptsYearFilter" onchange="renderScripts()"></select></div>
+
       <div><label class="field-label">Data da captação</label><input id="builderCaptureDate" type="date"></div>
     </div>
 
     <div class="actions">
       <button id="saveScriptProjectBtn" onclick="saveScriptProject()">Salvar projeto completo</button>
     </div>
+  </div>
+
+  <div id="scriptProjectBriefingBox" class="script-project-briefing" style="display:none">
+    <div class="script-editor-head">
+      <div><span class="pill">Etapa 1</span><strong style="margin-left:8px">Briefing do projeto</strong></div>
+      <button class="btn-dark" type="button" onclick="toggleProjectBriefing()">Recolher / expandir</button>
+    </div>
+    <p class="field-help">O briefing vem antes dos roteiros e vale para o projeto inteiro. Use este espaço para perguntas, respostas, direcionamentos e informações do cliente.</p>
+    <div id="scriptProjectBriefingBody">
+      <textarea id="scriptProjectBriefing" placeholder="Perguntas e respostas do briefing, objetivo geral, público, direcionamentos..."></textarea>
+    </div>
+    <div id="scriptProjectProgress" class="script-progress"></div>
   </div>
 
   <div id="scriptEditorList" class="script-editor-list"></div>
@@ -1616,14 +1637,43 @@ function editorFormatFields(s,i){
     <div class="full"><label class="field-label">Observações / orientações</label><textarea data-f="photoNotes">${scriptEditorField(s.photoNotes||'')}</textarea></div>`;
   return `<div class="full"><label class="field-label">Desenvolvimento / cenas / falas</label><textarea data-f="scenes">${scriptEditorField(s.scenes)}</textarea></div>`;
 }
+
+function projectBriefingFromScripts(data){
+  return (data||[]).map(x=>x.projectBriefing||x.briefing||'').find(Boolean)||'';
+}
+window.toggleProjectBriefing=function(){
+  const b=document.getElementById('scriptProjectBriefingBody');if(b)b.style.display=b.style.display==='none'?'block':'none';
+}
+window.toggleScriptCard=function(btn){
+  const card=btn.closest('.script-editor-card');if(!card)return;
+  card.classList.toggle('collapsed');btn.textContent=card.classList.contains('collapsed')?'Expandir':'Recolher';
+}
+window.completeScriptCard=function(btn){
+  const card=btn.closest('.script-editor-card');if(!card)return;
+  const status=card.querySelector('[data-f="status"]');
+  if(status)status.value='Finalizado';
+  card.classList.add('completed','collapsed');
+  const toggle=card.querySelector('[data-action="toggle"]');if(toggle)toggle.textContent='Expandir';
+  updateScriptProjectProgress();
+}
+function updateScriptProjectProgress(){
+  const cards=[...document.querySelectorAll('#scriptEditorList .script-editor-card')];
+  const done=cards.filter(c=>c.querySelector('[data-f="status"]')?.value==='Finalizado').length;
+  cards.forEach(c=>c.classList.toggle('completed',c.querySelector('[data-f="status"]')?.value==='Finalizado'));
+  const box=document.getElementById('scriptProjectProgress');if(!box)return;
+  const pct=cards.length?Math.round(done/cards.length*100):0;
+  box.innerHTML=`<strong>${done} de ${cards.length} conteúdos concluídos</strong><div class="script-progress-bar"><span style="width:${pct}%"></span></div>`;
+}
 function renderScriptEditorCard(s,i){
- return `<div class="script-editor-card" data-script-id="${s.id||''}" data-new="${s._new?'1':'0'}" data-format="${h(s.format||'Vídeo / Reel')}">
- <div class="script-editor-head"><div><span class="pill">${h(s.format||'Vídeo / Reel')}</span><strong style="margin-left:8px">Conteúdo ${i+1}</strong></div><button class="btn-danger" onclick="removeScriptEditorCard(this)">Remover</button></div>
+ const completed=(s.status||'')==='Finalizado';
+ return `<div class="script-editor-card ${completed?'completed collapsed':''}" data-script-id="${s.id||''}" data-new="${s._new?'1':'0'}" data-format="${h(s.format||'Vídeo / Reel')}">
+ <div class="script-editor-head"><div><span class="pill">${h(s.format||'Vídeo / Reel')}</span><strong style="margin-left:8px">${h(s.title||`Conteúdo ${i+1}`)}</strong>${completed?'<span class="pill" style="margin-left:8px">Concluído</span>':''}</div><div class="script-editor-head-actions"><button class="btn-dark" type="button" data-action="toggle" onclick="toggleScriptCard(this)">${completed?'Expandir':'Recolher'}</button><button type="button" onclick="completeScriptCard(this)">Concluir</button><button class="btn-danger" type="button" onclick="removeScriptEditorCard(this)">Remover</button></div></div>
  <div class="script-editor-grid">
  <div class="full"><label class="field-label">Título / tema</label><input data-f="title" value="${scriptEditorField(s.title)}"></div>
- <div><label class="field-label">Status</label><select data-f="status">${['Escrevendo','Aguardando aprovação','Aprovado','Gravar','Editando','Finalizado'].map(x=>`<option ${x===(s.status||'Escrevendo')?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div><label class="field-label">Status</label><select data-f="status" onchange="updateScriptProjectProgress()">${['Escrevendo','Aguardando aprovação','Aprovado','Gravar','Editando','Finalizado'].map(x=>`<option ${x===(s.status||'Escrevendo')?'selected':''}>${x}</option>`).join('')}</select></div>
  <div><label class="field-label">Data da captação</label><input data-f="captureDate" type="date" value="${scriptEditorField(s.captureDate||document.getElementById('builderCaptureDate')?.value)}"></div>
- <div class="full"><label class="field-label">Briefing</label><textarea class="compact" data-f="briefing">${scriptEditorField(s.briefing)}</textarea></div>
+ <div><label class="field-label">Data da postagem</label><input data-f="publishDate" type="date" value="${scriptEditorField(s.publishDate||'')}"></div>
+ <div><label class="field-label">Horário da postagem</label><input data-f="publishTime" type="time" value="${scriptEditorField(s.publishTime||'')}"></div>
  <div class="full"><label class="field-label">Imagem / foto de referência</label><input data-f="imageLink" value="${scriptEditorField(s.imageLink)}" placeholder="https://..."></div>
  <div class="full"><label class="field-label">Objetivo</label><textarea class="compact" data-f="goal">${scriptEditorField(s.goal)}</textarea></div>
  <div class="full"><label class="field-label">Gancho</label><textarea class="compact" data-f="hook">${scriptEditorField(s.hook)}</textarea></div>
@@ -1638,33 +1688,42 @@ window.buildScriptTemplates=function(){
  const project=selectedUnifiedProject();if(!project)return alert('Selecione primeiro o cliente/projeto.');
  const counts=[['Vídeo / Reel',Number(builderReels.value||0)],['Carrossel',Number(builderCarousels.value||0)],['Estático',Number(builderStatics.value||0)],['Sessão de fotos',Number(document.getElementById('builderPhotos')?.value||0)]];
  const pd=photoDefaultsFromProject(project);
- const newItems=[];counts.forEach(([format,n])=>{for(let i=0;i<n;i++)newItems.push({_new:true,format,status:'Escrevendo',captureDate:builderCaptureDate.value||pd.captureDate||'',title:'',briefing:'',imageLink:'',goal:'',hook:'',scenes:'',cards:'',artText:'',artDirection:'',cta:'',referenceLinks:[],driveLinks:[],referenceLink:'',approvalLink:'',...(format==='Sessão de fotos'?{photoHours:pd.photoHours,treatedPhotos:pd.treatedPhotos,rawPhotosDelivery:pd.rawPhotosDelivery,rawPhotosCustom:pd.rawPhotosCustom,deliveryDays:pd.deliveryDays?String(pd.deliveryDays):'',deliveryCustom:pd.deliveryCustom,photoObjective:'',photoLocation:pd.photoLocation,photoNotes:''}:{})})});
+ const newItems=[];counts.forEach(([format,n])=>{for(let i=0;i<n;i++)newItems.push({_new:true,format,status:'Escrevendo',captureDate:builderCaptureDate.value||pd.captureDate||'',title:'',imageLink:'',goal:'',hook:'',scenes:'',cards:'',artText:'',artDirection:'',cta:'',referenceLinks:[],driveLinks:[],referenceLink:'',approvalLink:'',...(format==='Sessão de fotos'?{photoHours:pd.photoHours,treatedPhotos:pd.treatedPhotos,rawPhotosDelivery:pd.rawPhotosDelivery,rawPhotosCustom:pd.rawPhotosCustom,deliveryDays:pd.deliveryDays?String(pd.deliveryDays):'',deliveryCustom:pd.deliveryCustom,photoObjective:'',photoLocation:pd.photoLocation,photoNotes:''}:{})})});
  if(!newItems.length)return alert('Informe pelo menos 1 Reel, Carrossel, Estático ou Sessão de fotos.');
  scriptEditorList.insertAdjacentHTML('beforeend',newItems.map((s,i)=>renderScriptEditorCard(s,scriptEditorList.children.length+i)).join(''));
  builderReels.value=builderCarousels.value=builderStatics.value=0;if(document.getElementById('builderPhotos'))builderPhotos.value=0;
+ updateScriptProjectProgress();
 }
 function currentScriptEditorData(){
  return [...document.querySelectorAll('#scriptEditorList .script-editor-card')].map(card=>{
    const get=f=>card.querySelector(`[data-f="${f}"]`)?.value?.trim?.()||'';
    const refs=scriptLinksArray(get('referenceLinks')),drives=scriptLinksArray(get('driveLinks'));
-   return {id:card.dataset.scriptId||'',_new:card.dataset.new==='1',format:card.dataset.format||'Vídeo / Reel',title:get('title'),status:get('status')||'Escrevendo',captureDate:get('captureDate'),briefing:get('briefing'),imageLink:get('imageLink'),goal:get('goal'),hook:get('hook'),scenes:get('scenes'),cardCount:get('cardCount'),cards:get('cards'),artText:get('artText'),artDirection:get('artDirection'),cta:get('cta'),referenceLinks:refs,driveLinks:drives,referenceLink:refs[0]||'',approvalLink:drives[0]||'',photoHours:get('photoHours'),treatedPhotos:get('treatedPhotos'),rawPhotosDelivery:get('rawPhotosDelivery'),rawPhotosCustom:get('rawPhotosCustom'),deliveryDays:get('deliveryDays'),deliveryCustom:get('deliveryCustom'),photoObjective:get('photoObjective'),photoLocation:get('photoLocation'),photoNotes:get('photoNotes')};
+   return {id:card.dataset.scriptId||'',_new:card.dataset.new==='1',format:card.dataset.format||'Vídeo / Reel',title:get('title'),status:get('status')||'Escrevendo',captureDate:get('captureDate'),publishDate:get('publishDate'),publishTime:get('publishTime'),imageLink:get('imageLink'),goal:get('goal'),hook:get('hook'),scenes:get('scenes'),cardCount:get('cardCount'),cards:get('cards'),artText:get('artText'),artDirection:get('artDirection'),cta:get('cta'),referenceLinks:refs,driveLinks:drives,referenceLink:refs[0]||'',approvalLink:drives[0]||'',photoHours:get('photoHours'),treatedPhotos:get('treatedPhotos'),rawPhotosDelivery:get('rawPhotosDelivery'),rawPhotosCustom:get('rawPhotosCustom'),deliveryDays:get('deliveryDays'),deliveryCustom:get('deliveryCustom'),photoObjective:get('photoObjective'),photoLocation:get('photoLocation'),photoNotes:get('photoNotes')};
  });
 }
 window.saveScriptProject=async function(){
- const project=selectedUnifiedProject();if(!project)return alert('Selecione o cliente/projeto.');const clientId=scriptStorageClientId(project);
- const items=currentScriptEditorData();if(!items.length)return alert('Crie os conteúdos antes de salvar.');
- const existing=filterByCompetence(scripts,'scriptsMonthFilter','scriptsYearFilter').filter(s=>s.clientId===clientId);
- const keptIds=new Set(items.filter(x=>x.id).map(x=>x.id));
+ const project=selectedUnifiedProject();if(!project)return alert('Selecione o cliente/projeto.');
+ const clientId=scriptStorageClientId(project),items=currentScriptEditorData();
+ if(!items.length)return alert('Crie os conteúdos antes de salvar.');
+ const projectBriefing=document.getElementById('scriptProjectBriefing')?.value?.trim()||'';
+ const selectedProjectId=document.getElementById('scriptsClientFilter')?.value||'';
  try{
-   for(const old of existing){if(!keptIds.has(old.id))await deleteDoc(doc(db,'scripts',old.id));}
    for(const x of items){
+     let scriptId=x.id;
      const old=x.id?scripts.find(s=>s.id===x.id):null;
-     const mode=old?.scheduleMode||'tbd';
-     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:old?.publishDate||'',publishTime:old?.publishTime||'',captureDate:x.captureDate,briefing:x.briefing,imageLink:x.imageLink,month:old?.month||'',goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,referenceLinks:x.referenceLinks||[],driveLinks:x.driveLinks||[],photoHours:x.photoHours?Number(x.photoHours):null,treatedPhotos:x.treatedPhotos?Number(x.treatedPhotos):null,rawPhotosDelivery:x.rawPhotosDelivery||'',rawPhotosCustom:x.rawPhotosCustom||'',deliveryDays:x.deliveryDays||'',deliveryCustom:x.deliveryCustom||'',photoObjective:x.photoObjective||'',photoLocation:x.photoLocation||'',photoNotes:x.photoNotes||'',clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
-     if(x.id)await setDoc(doc(db,'scripts',x.id),data,{merge:true});else await addDoc(collection(db,'scripts'),{...data,createdAt:serverTimestamp(),createdBy:ne(currentUser?.email),createdByName:actorName(),history:[]});
+     if(!scriptId)scriptId='rp_'+crypto.getRandomValues(new Uint32Array(2)).reduce((a,n)=>a+n.toString(36),'').slice(0,16);
+     const mode=x.publishDate?'defined':'tbd';
+     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:x.publishDate||'',publishTime:x.publishTime||'',captureDate:x.captureDate,projectBriefing,briefing:projectBriefing,imageLink:x.imageLink,month:x.publishDate?monthFromDate(x.publishDate):(old?.month||''),goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,referenceLinks:x.referenceLinks||[],driveLinks:x.driveLinks||[],photoHours:x.photoHours?Number(x.photoHours):null,treatedPhotos:x.treatedPhotos?Number(x.treatedPhotos):null,rawPhotosDelivery:x.rawPhotosDelivery||'',rawPhotosCustom:x.rawPhotosCustom||'',deliveryDays:x.deliveryDays||'',deliveryCustom:x.deliveryCustom||'',photoObjective:x.photoObjective||'',photoLocation:x.photoLocation||'',photoNotes:x.photoNotes||'',clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
+     await setDoc(doc(db,'scripts',scriptId),old?data:{...data,createdAt:serverTimestamp(),createdBy:ne(currentUser?.email),createdByName:actorName(),history:[]},{merge:true});
+     await syncScriptCalendar(scriptId,data);
+     const local={...(old||{}),...data,id:scriptId,createdAt:old?.createdAt||new Date()};
+     const pos=scripts.findIndex(s=>s.id===scriptId);if(pos>=0)scripts[pos]=local;else scripts.push(local);
    }
-   alert('Projeto de roteiros salvo com sucesso.');
- }catch(e){console.error(e);alert('Não foi possível salvar todos os roteiros.');}
+   if(document.getElementById('scriptsClientFilter'))scriptsClientFilter.value=selectedProjectId;
+   renderScripts();
+   if(document.getElementById('scriptsClientFilter'))scriptsClientFilter.value=selectedProjectId;
+   alert('Projeto salvo no Firebase. Os roteiros permanecem no projeto e as datas de postagem foram sincronizadas com o calendário.');
+ }catch(e){console.error(e);alert('Não foi possível salvar o projeto completo. Nada foi apagado automaticamente.');}
 }
 window.renderScripts=function(){
  if(btnShareScriptsPage)btnShareScriptsPage.style.display=isAdmin?'inline-block':'none';
@@ -1676,12 +1735,16 @@ window.renderScripts=function(){
    cf.innerHTML='<option value="">Selecione cliente / projeto</option>'+projects.map(p=>`<option value="${h(p.id)}">${h(scriptProjectLabel(p))}</option>`).join('');
    cf.value=projects.some(p=>p.id===keep)?keep:'';
  }
- const p=selectedUnifiedProject(),origin=document.getElementById('scriptClientOrigin');
- if(origin)origin.textContent=!p?'':(p.origin==='agency'?'Cliente já cadastrado na agência.':p.origin==='quote'?'Cliente avulso vindo de orçamento aprovado.':p.origin==='agenda'?'Cliente/prospect avulso encontrado na agenda.':'Projeto já existente em Roteiros.'); if(p?.captureDate && document.getElementById('builderCaptureDate') && !builderCaptureDate.value)builderCaptureDate.value=p.captureDate;
- if(!p){scriptEditorList.innerHTML='<div class="empty">Selecione um cliente da agência ou um cliente avulso para abrir o projeto.</div>';return;}
+ const p=selectedUnifiedProject(),origin=document.getElementById('scriptClientOrigin'),briefBox=document.getElementById('scriptProjectBriefingBox');
+ if(origin)origin.textContent=!p?'':(p.origin==='agency'?'Cliente já cadastrado na agência.':p.origin==='quote'?'Cliente avulso vindo de orçamento aprovado.':p.origin==='agenda'?'Cliente/prospect avulso encontrado na agenda.':'Projeto já existente em Roteiros.');
+ if(p?.captureDate&&document.getElementById('builderCaptureDate')&&!builderCaptureDate.value)builderCaptureDate.value=p.captureDate;
+ if(!p){if(briefBox)briefBox.style.display='none';scriptEditorList.innerHTML='<div class="empty">Selecione um cliente da agência ou um cliente avulso para abrir o projeto.</div>';return;}
  const storageId=scriptStorageClientId(p);
- const data=filterByCompetence(scripts,'scriptsMonthFilter','scriptsYearFilter').filter(s=>s.clientId===storageId || normalizeProjectName(s.clientName||s.projectName)===normalizeProjectName(p.name));
- scriptEditorList.innerHTML=data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum conteúdo neste período. Informe as quantidades de Reels, Carrosséis, Estáticos ou Sessões de fotos e clique em “Criar estrutura”.</div>';
+ const data=(scripts||[]).filter(s=>s.clientId===storageId||normalizeProjectName(s.clientName||s.projectName)===normalizeProjectName(p.name)).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+ if(briefBox)briefBox.style.display='block';
+ const brief=document.getElementById('scriptProjectBriefing');if(brief)brief.value=projectBriefingFromScripts(data);
+ scriptEditorList.innerHTML=data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum conteúdo criado ainda. Preencha o briefing, informe as quantidades e clique em “Criar estrutura”.</div>';
+ updateScriptProjectProgress();
 }
 window.renderCaptures=function(){ if(btnCaptureNew) btnCaptureNew.style.display=isAdmin?'inline-block':'none'; const data=filterByCompetence(scopeByClient(captures),'capturesMonthFilter','capturesYearFilter'); capturesGrid.innerHTML=data.length?data.map(ca=>{const c=clientById(ca.clientId); return `<div class="planning-card"><h3>${ca.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${ca.status||''}</span><span class="pill">${responsibilityLabel(ca)}</span>${ca.date?`<span class="pill">${formatDate(ca.date)}</span>`:''}</div><div class="script-block"><b>Checklist</b><p>${ca.checklist||''}</p></div>${isAdmin?`<div class="script-block"><b>Observações internas</b><p>${ca.notes||''}</p></div>`:''}${ca.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${ca.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editCapture('${ca.id}')">Editar</button>`:`<button class="btn-dark" onclick="commentCapture('${ca.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhuma captação cadastrada.</div>'; }
 window.renderLibrary=function(){ const c=isAdmin?currentVisibleClient():clients[0]; if(!libraryContent) return; if(!c){libraryContent.innerHTML='<div class="empty">Nenhum cliente selecionado.</div>'; return;} libraryContent.innerHTML=`<div class="client-header"><div class="client-title-row">${c.logo?`<div class="brand-logo-box"><img src="${c.logo}" alt="Logo ${c.name}"></div>`:''}<div><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">Biblioteca da marca do cliente.</p></div></div></div><div class="brand-library-grid"><div class="library-item"><h3>🎨 Identidade</h3><p><b>Logo:</b> ${c.logo?'Cadastrada':'Não informada'}</p><p><b>Observações:</b> ${c.obs||'Nenhuma observação.'}</p></div><div class="library-item"><h3>🔗 Links</h3><p><b>Drive:</b> ${c.drive?`<a href="${c.drive}" target="_blank" style="color:#F2F2F0">Abrir Drive</a>`:'Não informado'}</p><p><b>Instagram:</b> ${c.instagram||'Não informado'}</p></div></div>`; }
@@ -1883,7 +1946,8 @@ async function syncScriptCalendar(scriptId,data){
     clientEmail:data.clientEmail,
     date:data.publishDate,
     month:monthFromDate(data.publishDate),
-    format:data.format==='Vídeo / Reel'?'Reels':(data.format==='Estático'?'Post Estático':'Carrossel'),
+    format:data.format==='Vídeo / Reel'?'Reels':(data.format==='Estático'?'Post Estático':(data.format==='Sessão de fotos'?'Fotografia':'Carrossel')),
+    clientName:data.clientName||'',
     theme:data.title,
     status:data.status==='Aprovado'?'Aprovado':(data.status==='Finalizado'?'Em produção':'Em roteiro'),
     visibility:'Visível para cliente',
