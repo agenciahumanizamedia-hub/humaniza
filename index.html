@@ -749,7 +749,17 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     </div>
     <p class="field-help">O briefing vem antes dos roteiros e vale para o projeto inteiro. Use este espaço para perguntas, respostas, direcionamentos e informações do cliente.</p>
     <div id="scriptProjectBriefingBody">
-      <textarea id="scriptProjectBriefing" placeholder="Perguntas e respostas do briefing, objetivo geral, público, direcionamentos..."></textarea>
+      <div class="script-editor-grid" id="scriptBriefingFields">
+<div><label class="field-label">Nome do responsável</label><input id="briefResponsible" placeholder="Nome completo"></div>
+<div><label class="field-label">E-mail</label><input id="briefEmail" type="email" placeholder="email@empresa.com"></div>
+<div><label class="field-label">Nome da empresa / marca</label><input id="briefCompany" placeholder="Nome da empresa"></div>
+<div><label class="field-label">CNPJ</label><input id="briefCnpj" placeholder="CNPJ ou Não possuo"></div>
+<div class="full"><label class="field-label">Conte um pouco da história da empresa</label><textarea class="compact" id="briefHistory"></textarea></div>
+<div class="full"><label class="field-label">O que a empresa oferece hoje?</label><textarea class="compact" id="briefOffer" placeholder="Principais produtos ou serviços"></textarea></div>
+<div class="full"><label class="field-label">Quem é o principal público que vocês querem atingir?</label><textarea class="compact" id="briefAudience"></textarea></div>
+<div class="full"><label class="field-label">Qual é o principal objetivo do marketing neste momento?</label><select id="briefMarketingGoal"><option value="">Selecione</option><option>Vender mais</option><option>Gerar contatos / leads</option><option>Fortalecer a marca</option><option>Divulgar um produto ou serviço</option><option>Aumentar presença nas redes sociais</option><option>Outro</option></select></div>
+<div class="full"><label class="field-label">Existe alguma informação importante que precisamos saber antes de produzir os conteúdos? <span class="muted">(opcional)</span></label><textarea class="compact" id="briefImportant"></textarea></div>
+</div>
     </div>
     <div id="scriptProjectProgress" class="script-progress"></div>
   </div>
@@ -1638,9 +1648,16 @@ function editorFormatFields(s,i){
   return `<div class="full"><label class="field-label">Desenvolvimento / cenas / falas</label><textarea data-f="scenes">${scriptEditorField(s.scenes)}</textarea></div>`;
 }
 
+function emptyProjectBriefing(){return {responsible:'',email:'',company:'',cnpj:'',history:'',offer:'',audience:'',marketingGoal:'',important:''}}
 function projectBriefingFromScripts(data){
-  return (data||[]).map(x=>x.projectBriefing||x.briefing||'').find(Boolean)||'';
+ const structured=(data||[]).map(x=>x.projectBriefingData).find(x=>x&&typeof x==='object');
+ if(structured)return {...emptyProjectBriefing(),...structured};
+ const legacy=(data||[]).map(x=>typeof x.projectBriefing==='string'?x.projectBriefing:(x.briefing||'')).find(Boolean)||'';
+ return {...emptyProjectBriefing(),history:legacy};
 }
+function currentProjectBriefingData(){const v=id=>document.getElementById(id)?.value?.trim?.()||'';return {responsible:v('briefResponsible'),email:v('briefEmail'),company:v('briefCompany'),cnpj:v('briefCnpj'),history:v('briefHistory'),offer:v('briefOffer'),audience:v('briefAudience'),marketingGoal:v('briefMarketingGoal'),important:v('briefImportant')}}
+function projectBriefingText(b){return [['Responsável',b.responsible],['E-mail',b.email],['Empresa / marca',b.company],['CNPJ',b.cnpj],['História',b.history],['Produtos / serviços',b.offer],['Público',b.audience],['Objetivo do marketing',b.marketingGoal],['Informação importante',b.important]].filter(x=>x[1]).map(x=>`${x[0]}: ${x[1]}`).join('\n')}
+function fillProjectBriefing(b,p){b={...emptyProjectBriefing(),...(b||{})};const q=selectedProjectQuote(p)||{};const put=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||''};put('briefResponsible',b.responsible||q.contactName||q.responsibleName||q.prospectName||'');put('briefEmail',b.email||q.email||q.prospectEmail||q.clientEmail||'');put('briefCompany',b.company||q.companyName||q.businessName||q.prospectName||p?.name||'');put('briefCnpj',b.cnpj||q.cnpj||'');put('briefHistory',b.history);put('briefOffer',b.offer);put('briefAudience',b.audience);put('briefMarketingGoal',b.marketingGoal);put('briefImportant',b.important)}
 window.toggleProjectBriefing=function(){
   const b=document.getElementById('scriptProjectBriefingBody');if(b)b.style.display=b.style.display==='none'?'block':'none';
 }
@@ -1705,7 +1722,7 @@ window.saveScriptProject=async function(){
  const project=selectedUnifiedProject();if(!project)return alert('Selecione o cliente/projeto.');
  const clientId=scriptStorageClientId(project),items=currentScriptEditorData();
  if(!items.length)return alert('Crie os conteúdos antes de salvar.');
- const projectBriefing=document.getElementById('scriptProjectBriefing')?.value?.trim()||'';
+ const projectBriefingData=currentProjectBriefingData(),projectBriefing=projectBriefingText(projectBriefingData);
  const selectedProjectId=document.getElementById('scriptsClientFilter')?.value||'';
  try{
    for(const x of items){
@@ -1713,7 +1730,7 @@ window.saveScriptProject=async function(){
      const old=x.id?scripts.find(s=>s.id===x.id):null;
      if(!scriptId)scriptId='rp_'+crypto.getRandomValues(new Uint32Array(2)).reduce((a,n)=>a+n.toString(36),'').slice(0,16);
      const mode=x.publishDate?'defined':'tbd';
-     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:x.publishDate||'',publishTime:x.publishTime||'',captureDate:x.captureDate,projectBriefing,briefing:projectBriefing,imageLink:x.imageLink,month:x.publishDate?monthFromDate(x.publishDate):(old?.month||''),goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,referenceLinks:x.referenceLinks||[],driveLinks:x.driveLinks||[],photoHours:x.photoHours?Number(x.photoHours):null,treatedPhotos:x.treatedPhotos?Number(x.treatedPhotos):null,rawPhotosDelivery:x.rawPhotosDelivery||'',rawPhotosCustom:x.rawPhotosCustom||'',deliveryDays:x.deliveryDays||'',deliveryCustom:x.deliveryCustom||'',photoObjective:x.photoObjective||'',photoLocation:x.photoLocation||'',photoNotes:x.photoNotes||'',clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
+     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:x.publishDate||'',publishTime:x.publishTime||'',captureDate:x.captureDate,projectBriefingData,projectBriefing,briefing:projectBriefing,imageLink:x.imageLink,month:x.publishDate?monthFromDate(x.publishDate):(old?.month||''),goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,referenceLinks:x.referenceLinks||[],driveLinks:x.driveLinks||[],photoHours:x.photoHours?Number(x.photoHours):null,treatedPhotos:x.treatedPhotos?Number(x.treatedPhotos):null,rawPhotosDelivery:x.rawPhotosDelivery||'',rawPhotosCustom:x.rawPhotosCustom||'',deliveryDays:x.deliveryDays||'',deliveryCustom:x.deliveryCustom||'',photoObjective:x.photoObjective||'',photoLocation:x.photoLocation||'',photoNotes:x.photoNotes||'',clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
      await setDoc(doc(db,'scripts',scriptId),old?data:{...data,createdAt:serverTimestamp(),createdBy:ne(currentUser?.email),createdByName:actorName(),history:[]},{merge:true});
      await syncScriptCalendar(scriptId,data);
      const local={...(old||{}),...data,id:scriptId,createdAt:old?.createdAt||new Date()};
@@ -1742,7 +1759,7 @@ window.renderScripts=function(){
  const storageId=scriptStorageClientId(p);
  const data=(scripts||[]).filter(s=>s.clientId===storageId||normalizeProjectName(s.clientName||s.projectName)===normalizeProjectName(p.name)).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
  if(briefBox)briefBox.style.display='block';
- const brief=document.getElementById('scriptProjectBriefing');if(brief)brief.value=projectBriefingFromScripts(data);
+ fillProjectBriefing(projectBriefingFromScripts(data),p);
  scriptEditorList.innerHTML=data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum conteúdo criado ainda. Preencha o briefing, informe as quantidades e clique em “Criar estrutura”.</div>';
  updateScriptProjectProgress();
 }
