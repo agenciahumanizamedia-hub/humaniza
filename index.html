@@ -645,6 +645,13 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .hz-link-row input{flex:1;min-width:0;background:#fff!important;color:#111!important}
 .hz-link-row button{border:1px solid #ddd;background:#fff;color:#111;border-radius:7px;padding:7px 9px;cursor:pointer}
 .hz-add-link{align-self:flex-start;border:1px solid #6d28d9;background:#fff;color:#6d28d9;border-radius:7px;padding:7px 10px;font-weight:700;cursor:pointer}
+
+.hz-rich-toolbar .hz-sep{width:1px;background:#ddd;margin:2px 2px}
+.hz-rich-toolbar select{border:1px solid #d7d7dd;background:#fff;color:#111;border-radius:7px;padding:5px 7px;font:inherit;font-size:12px}
+.hz-rich-editor font[size="2"]{font-size:.86em}
+.hz-rich-editor font[size="3"]{font-size:1em}
+.hz-rich-editor font[size="4"]{font-size:1.18em}
+.hz-rich-editor font[size="5"]{font-size:1.38em}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -1164,11 +1171,14 @@ window.addEventListener('DOMContentLoaded',()=>{
 /* V31.47 rich text */
 function hzSanitizeRichHtml(input){
  const box=document.createElement('div'); box.innerHTML=String(input||'');
- const allowed=new Set(['B','STRONG','I','EM','BR','DIV','P','SPAN']);
+ const allowed=new Set(['B','STRONG','I','EM','BR','DIV','P','SPAN','FONT']);
  [...box.querySelectorAll('*')].forEach(el=>{
    if(!allowed.has(el.tagName)){el.replaceWith(...el.childNodes);return}
    [...el.attributes].forEach(a=>{
-     if(!(el.tagName==='SPAN' && a.name==='class' && (a.value==='hz-purple'||a.value==='hz-black'))) el.removeAttribute(a.name);
+     if(el.tagName==='SPAN' && a.name==='class' && (a.value==='hz-purple'||a.value==='hz-black')) return;
+     if(el.tagName==='FONT' && a.name==='size' && /^[1-7]$/.test(a.value)) return;
+     if(el.tagName==='FONT' && a.name==='face' && /^(Arial|Georgia)$/i.test(a.value)) return;
+     el.removeAttribute(a.name);
    });
  });
  return box.innerHTML;
@@ -1186,43 +1196,68 @@ function hzSyncRich(editor){
  src.dispatchEvent(new Event('input',{bubbles:true}));
  src.dispatchEvent(new Event('change',{bubbles:true}));
 }
-function hzExec(editor,cmd){
- editor.focus();
- if(cmd==='bold') document.execCommand('bold',false,null);
+function hzRestoreSelection(editor){
+ const sel=window.getSelection();
+ if(editor._hzRange && document.contains(editor._hzRange.commonAncestorContainer)){
+   sel.removeAllRanges(); sel.addRange(editor._hzRange);
+ }
+}
+function hzRememberSelection(editor){
+ const sel=window.getSelection();
+ if(sel&&sel.rangeCount && editor.contains(sel.anchorNode)) editor._hzRange=sel.getRangeAt(0).cloneRange();
+}
+function hzExec(editor,cmd,value){
+ editor.focus(); hzRestoreSelection(editor);
+ if(cmd==='undo') document.execCommand('undo',false,null);
+ else if(cmd==='redo') document.execCommand('redo',false,null);
+ else if(cmd==='bold') document.execCommand('bold',false,null);
  else if(cmd==='italic') document.execCommand('italic',false,null);
  else if(cmd==='upper'){
    const sel=window.getSelection(); if(sel&&sel.rangeCount&&!sel.isCollapsed){
-     const txt=sel.toString().toUpperCase(); document.execCommand('insertText',false,txt);
+     document.execCommand('insertText',false,sel.toString().toUpperCase());
    }
  } else if(cmd==='clear'){
    document.execCommand('removeFormat',false,null);
+   // remove our highlight/font wrappers only from selected content when possible
+   const sel=window.getSelection();
+   if(sel&&sel.rangeCount&&!sel.isCollapsed){
+     const r=sel.getRangeAt(0), frag=r.extractContents(), box=document.createElement('div');
+     box.appendChild(frag);
+     box.querySelectorAll('span,font').forEach(n=>n.replaceWith(...n.childNodes));
+     r.insertNode(box); box.replaceWith(...box.childNodes);
+   }
  } else if(cmd==='purple'||cmd==='black'){
    const sel=window.getSelection();
    if(sel&&sel.rangeCount&&!sel.isCollapsed){
-     const range=sel.getRangeAt(0);
-     const span=document.createElement('span'); span.className=cmd==='purple'?'hz-purple':'hz-black';
-     try{range.surroundContents(span)}catch(e){
-       const frag=range.extractContents(); span.appendChild(frag); range.insertNode(span);
-     }
-     sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+     const range=sel.getRangeAt(0), span=document.createElement('span');
+     span.className=cmd==='purple'?'hz-purple':'hz-black';
+     try{range.surroundContents(span)}catch(e){const frag=range.extractContents();span.appendChild(frag);range.insertNode(span)}
    }
- }
- hzSyncRich(editor);
+ } else if(cmd==='smaller') document.execCommand('decreaseFontSize',false,null);
+ else if(cmd==='larger') document.execCommand('increaseFontSize',false,null);
+ else if(cmd==='font') document.execCommand('fontName',false,value);
+ hzSyncRich(editor); hzRememberSelection(editor);
 }
 function hzToolbar(editor){
  const bar=document.createElement('div'); bar.className='hz-rich-toolbar';
- const defs=[
-  ['B','bold','Negrito',''],['I','italic','Itálico',''],['AA','upper','Caixa alta',''],
-  ['Roxo','purple','Destaque roxo Humaniza','hz-purple-btn'],
-  ['Preto','black','Destaque preto Humaniza','hz-black-btn'],
-  ['Limpar','clear','Limpar formatação','']
- ];
- defs.forEach(([label,cmd,title,cls])=>{
-   const b=document.createElement('button'); b.type='button'; b.innerHTML=label==='B'?'<b>B</b>':label==='I'?'<i>I</i>':label;
-   b.title=title; if(cls)b.className=cls;
-   b.addEventListener('mousedown',e=>{e.preventDefault();hzExec(editor,cmd)});
-   bar.appendChild(b);
- });
+ const addBtn=(label,cmd,title,cls='')=>{
+   const b=document.createElement('button'); b.type='button'; b.innerHTML=label; b.title=title; if(cls)b.className=cls;
+   b.addEventListener('mousedown',e=>{e.preventDefault();hzExec(editor,cmd)}); bar.appendChild(b);
+ };
+ addBtn('↶','undo','Desfazer');
+ addBtn('↷','redo','Refazer');
+ const sep=()=>{const x=document.createElement('span');x.className='hz-sep';bar.appendChild(x)};
+ sep(); addBtn('<b>B</b>','bold','Negrito'); addBtn('<i>I</i>','italic','Itálico'); addBtn('AA','upper','Caixa alta');
+ sep(); addBtn('A−','smaller','Diminuir fonte'); addBtn('A+','larger','Aumentar fonte');
+ const fonts=document.createElement('select'); fonts.title='Escolher fonte';
+ fonts.innerHTML='<option value="">Fonte</option><option value="Arial">Fonte 1</option><option value="Georgia">Fonte 2</option>';
+ fonts.addEventListener('mousedown',()=>hzRememberSelection(editor));
+ fonts.addEventListener('change',()=>{if(fonts.value)hzExec(editor,'font',fonts.value);fonts.value=''});
+ bar.appendChild(fonts);
+ sep(); addBtn('Roxo','purple','Destaque roxo Humaniza','hz-purple-btn'); addBtn('Preto','black','Destaque preto Humaniza','hz-black-btn');
+ addBtn('Limpar','clear','Remover formatação do trecho selecionado');
+ editor.addEventListener('mouseup',()=>hzRememberSelection(editor));
+ editor.addEventListener('keyup',()=>hzRememberSelection(editor));
  return bar;
 }
 function hzShouldEnhanceTextarea(t){

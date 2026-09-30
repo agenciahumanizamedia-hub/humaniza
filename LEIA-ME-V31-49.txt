@@ -1,0 +1,14 @@
+HUMANIZA V31.49 — EDITOR COMPLETO
+Base V31.48.
+
+Novo:
+- Desfazer e Refazer
+- Limpar formatação somente do trecho selecionado
+- A− e A+ para tamanho
+- Duas opções tipográficas no editor
+- Negrito, itálico, caixa alta, roxo e preto mantidos
+- Referências múltiplas da V31.48 mantidas
+
+Observação: como os nomes oficiais das fontes da identidade Humaniza não foram fornecidos,
+as duas opções atuais usam Arial e Georgia como alternativas seguras. Elas podem ser
+substituídas depois pelos nomes oficiais sem mudar a estrutura do editor.
