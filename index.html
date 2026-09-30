@@ -599,6 +599,19 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .briefing-box{background:#171717;border:1px solid #333;border-radius:12px;padding:12px}
 .briefing-box textarea{width:100%}
 
+
+/* V31.28 • Editor rápido de roteiros + link público curto */
+.script-builder{background:#242424;border:1px solid #333;border-radius:16px;padding:18px;margin-bottom:18px}
+.script-builder-row{display:grid;grid-template-columns:1.4fr repeat(3,.55fr) auto;gap:10px;align-items:end}
+.script-editor-list{display:grid;gap:16px;margin-top:18px}
+.script-editor-card{background:#202020;border:1px solid #353535;border-radius:16px;padding:18px}
+.script-editor-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.script-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.script-editor-grid .full{grid-column:1/-1}
+.script-editor-card textarea{min-height:82px}
+.script-editor-card .compact{min-height:54px}
+@media(max-width:850px){.script-builder-row{grid-template-columns:1fr 1fr}.script-builder-row .wide{grid-column:1/-1}.script-editor-grid{grid-template-columns:1fr}.script-editor-grid .full{grid-column:auto}}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -681,10 +694,25 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="top"><h2>Calendário Editorial</h2><div class="calendar-toolbar"><select id="calendarClientFilter" onchange="renderCalendar()"></select><input id="calendarMonthFilter" type="month" onchange="renderCalendar()"><button id="btnCalendarNew" onclick="openCalendarModal()">+ Item</button></div></div>
     <div class="calendar-scroll"><div class="calendar-real" id="calendarGrid"></div></div>
   </section>
-  <section id="scriptsView" class="hidden"><div class="top"><h2>Roteiros</h2><div class="actions"><button id="btnShareScriptsPage" class="share-script-btn" onclick="shareCurrentScriptsPage()">Compartilhar página de roteiros</button><button id="btnScriptNew" onclick="openScriptModal()">+ Roteiro</button></div></div>
-<div class="monthly-filter"><div><label class="field-label">Cliente / projeto</label><select id="scriptsClientFilter" onchange="renderScripts()"><option value="">Todos</option></select></div><div><label class="field-label">Mês</label><select id="scriptsMonthFilter" onchange="renderScripts()"></select></div><div><label class="field-label">Ano</label><select id="scriptsYearFilter" onchange="renderScripts()"></select></div></div>
-<div class="planning-grid" id="scriptsGrid"></div></section>
-  <section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div>
+  <section id="scriptsView" class="hidden">
+  <div class="top"><div><h2>Roteiros</h2><p style="color:#A6A6A6">Monte o projeto inteiro na mesma tela e compartilhe uma única página com o cliente.</p></div>
+    <div class="actions"><button id="btnShareScriptsPage" class="share-script-btn" onclick="shareCurrentScriptsPage()">Compartilhar com cliente</button><button id="btnScriptNew" class="btn-dark" onclick="openScriptModal()">+ Roteiro avulso</button></div>
+  </div>
+  <div class="script-builder">
+    <div class="script-builder-row">
+      <div class="wide"><label class="field-label">Cliente / projeto</label><select id="scriptsClientFilter" onchange="renderScripts()"><option value="">Selecione</option></select></div>
+      <div><label class="field-label">Reels</label><input id="builderReels" type="number" min="0" value="0"></div>
+      <div><label class="field-label">Carrosséis</label><input id="builderCarousels" type="number" min="0" value="0"></div>
+      <div><label class="field-label">Estáticos</label><input id="builderStatics" type="number" min="0" value="0"></div>
+      <button onclick="buildScriptTemplates()">Criar estrutura</button>
+    </div>
+    <div class="monthly-filter" style="margin-top:14px"><div><label class="field-label">Mês</label><select id="scriptsMonthFilter" onchange="renderScripts()"></select></div><div><label class="field-label">Ano</label><select id="scriptsYearFilter" onchange="renderScripts()"></select></div><div><label class="field-label">Data da captação</label><input id="builderCaptureDate" type="date"></div></div>
+    <div class="actions"><button id="saveScriptProjectBtn" onclick="saveScriptProject()">Salvar projeto de roteiros</button></div>
+  </div>
+  <div id="scriptEditorList" class="script-editor-list"></div>
+  <div id="scriptsGrid" style="display:none"></div>
+</section>
+<section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div>
 <div class="monthly-filter"><div><label class="field-label">Mês</label><select id="capturesMonthFilter" onchange="renderCaptures()"></select></div><div><label class="field-label">Ano</label><select id="capturesYearFilter" onchange="renderCaptures()"></select></div></div>
 <div class="planning-grid" id="capturesGrid"></div></section>
   <section id="libraryView" class="hidden"><div class="top"><h2>Biblioteca da Marca</h2><button id="btnLibraryEdit" onclick="openClientModal()">Editar cliente</button></div><div id="libraryContent"></div></section>
@@ -1452,25 +1480,86 @@ window.shareCaptureScripts=function(id){
   prompt(`Link da captação pronto (${group.length} roteiro(s)). Copie e envie ao cliente:`,link);
 }
 
+function scriptPublicToken(){return 'r_'+crypto.getRandomValues(new Uint32Array(2)).reduce((a,n)=>a+n.toString(36),'').slice(0,12)}
+function publicScriptDocId(token){return 'script_'+token.replace(/[^a-zA-Z0-9_-]/g,'')}
 window.shareCurrentScriptsPage=async function(){
-  const cf=document.getElementById('scriptsClientFilter');
-  const clientId=cf?.value||'';
-  if(!clientId){alert('Selecione o cliente/projeto que deseja compartilhar.');return;}
-  const data=filterByCompetence(scopeByClient(scripts),'scriptsMonthFilter','scriptsYearFilter').filter(s=>s.clientId===clientId);
-  if(!data.length){alert('Não há roteiros deste cliente neste período.');return;}
-  const c=clientById(clientId);
-  const month=document.getElementById('scriptsMonthFilter')?.value||'';
-  const year=document.getElementById('scriptsYearFilter')?.value||'';
-  const dates=[...new Set(data.map(s=>s.captureDate).filter(Boolean))].sort();
-  const payload={kind:'scriptsPage',client:c?.name||'Cliente',period:[month,year].filter(Boolean).join('/'),captureDates:dates,items:data.map(shareSafeScript)};
-  const slug=('roteiro-'+(c?.name||'cliente')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  const link=window.location.origin+'/roteiro.html?projeto='+encodeURIComponent(slug)+'#'+encodeSharePayload(payload);
+  const clientId=document.getElementById('scriptsClientFilter')?.value||'';
+  if(!clientId){alert('Selecione o cliente/projeto.');return;}
+  const data=currentScriptEditorData();
+  if(!data.length){alert('Crie ou carregue os roteiros deste cliente antes de compartilhar.');return;}
+  const c=clientById(clientId),month=document.getElementById('scriptsMonthFilter')?.value||'',year=document.getElementById('scriptsYearFilter')?.value||'';
+  const payload={kind:'scriptsPage',client:c?.name||'Cliente',period:[month,year].filter(Boolean).join('/'),captureDates:[...new Set(data.map(s=>s.captureDate).filter(Boolean))].sort(),items:data.map(shareSafeScript),updatedAt:serverTimestamp()};
+  const token=scriptPublicToken();
+  try{await setDoc(doc(db,'publicQuotes',publicScriptDocId(token)),payload,{merge:false});}
+  catch(e){console.error(e);alert('Não foi possível gerar o link público. Verifique as permissões do Firebase.');return;}
+  const link=window.location.origin+'/roteiro.html?p='+encodeURIComponent(token);
   const shareData={title:`Roteiros • ${c?.name||'Humaniza'}`,text:`Roteiros preparados pela Humaniza para ${c?.name||'este projeto'}.`,url:link};
   if(navigator.share){try{await navigator.share(shareData);return}catch(e){if(e?.name==='AbortError')return;}}
   await navigator.clipboard?.writeText(link);
-  alert('Link copiado. Agora é só colar e enviar ao cliente.');
+  alert('Link curto copiado. É só colar e enviar ao cliente.');
 }
-window.renderScripts=function(){ if(btnScriptNew) btnScriptNew.style.display=isAdmin?'inline-block':'none'; if(btnShareScriptsPage) btnShareScriptsPage.style.display=isAdmin?'inline-block':'none'; const cf=document.getElementById('scriptsClientFilter');if(cf){const keep=cf.value;const ids=[...new Set(scripts.map(s=>s.clientId).filter(Boolean))];cf.innerHTML='<option value="">Todos</option>'+ids.map(id=>{const c=clientById(id);return `<option value="${h(id)}">${h(c?.name||'Cliente / projeto')}</option>`}).join('');cf.value=ids.includes(keep)?keep:'';} const selectedScriptClient=cf?.value||''; const data=filterByCompetence(scopeByClient(scripts),'scriptsMonthFilter','scriptsYearFilter').filter(s=>!selectedScriptClient||s.clientId===selectedScriptClient); scriptsGrid.innerHTML=data.length?data.map(s=>{const c=clientById(s.clientId); const schedule=s.scheduleMode==='tbd'?'Data a definir':(s.scheduleMode==='not-published'?'Não será publicado':(s.publishDate?`Publicação: ${formatDate(s.publishDate)}`:'Data a definir')); const body=s.format==='Carrossel'?`<div class="script-block"><b>Cards${s.cardCount?' • '+s.cardCount:''}</b><p>${s.cards||''}</p></div>`:(s.format==='Estático'?`<div class="script-block"><b>Texto da arte</b><p>${s.artText||''}</p></div><div class="script-block"><b>Direção visual</b><p>${s.artDirection||''}</p></div>`:`<div class="script-block"><b>Cenas / falas</b><p>${s.scenes||''}</p></div>`); return `<div class="planning-card"><h3>${s.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${s.format||'Vídeo / Reel'}</span><span class="pill">${s.status||''}</span><span class="pill">${responsibilityLabel(s)}</span><span class="pill">${schedule}</span>${s.captureDate?`<span class="pill">Captação: ${formatDate(s.captureDate)}</span>`:''}</div>${s.briefing?`<div class="script-block"><b>Briefing</b><p>${s.briefing}</p></div>`:''}${s.imageLink?`<div class="script-block"><b>Imagem / foto</b><p><a href="${s.imageLink}" target="_blank" rel="noopener">Abrir imagem de referência</a></p></div>`:''}<p><b>Objetivo:</b> ${s.goal||''}</p><div class="script-block"><b>Gancho</b><p>${s.hook||''}</p></div>${body}<div class="script-block"><b>CTA</b><p>${s.cta||''}</p></div>${s.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${s.clientNote}</div>`:''}<div class="actions">${s.approvalLink?`<button class="btn-blue" onclick="window.open('${s.approvalLink}','_blank')">Ver material no Drive</button>`:''}${s.referenceLink&&isAdmin?`<button class="btn-dark" onclick="window.open('${s.referenceLink}','_blank')">Abrir referência</button>`:''}${isAdmin?`<button class="btn-dark" onclick="editScript('${s.id}')">Editar</button>`:`<button onclick="approveScript('${s.id}')">Aprovar roteiro</button><button class="btn-dark" onclick="commentScript('${s.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum roteiro cadastrado.</div>'; }
+
+function scriptEditorField(v=''){return h(v||'')}
+function editorFormatFields(s,i){
+  if(s.format==='Carrossel')return `<div class="full"><label class="field-label">Conteúdo dos cards</label><textarea data-f="cards">${scriptEditorField(s.cards)}</textarea></div><div><label class="field-label">Quantidade de cards</label><input data-f="cardCount" type="number" min="2" value="${scriptEditorField(s.cardCount||'')}"></div>`;
+  if(s.format==='Estático')return `<div class="full"><label class="field-label">Texto da arte</label><textarea data-f="artText">${scriptEditorField(s.artText)}</textarea></div><div class="full"><label class="field-label">Direção visual</label><textarea data-f="artDirection">${scriptEditorField(s.artDirection)}</textarea></div>`;
+  return `<div class="full"><label class="field-label">Desenvolvimento / cenas / falas</label><textarea data-f="scenes">${scriptEditorField(s.scenes)}</textarea></div>`;
+}
+function renderScriptEditorCard(s,i){
+ return `<div class="script-editor-card" data-script-id="${s.id||''}" data-new="${s._new?'1':'0'}" data-format="${h(s.format||'Vídeo / Reel')}">
+ <div class="script-editor-head"><div><span class="pill">${h(s.format||'Vídeo / Reel')}</span><strong style="margin-left:8px">Conteúdo ${i+1}</strong></div><button class="btn-danger" onclick="removeScriptEditorCard(this)">Remover</button></div>
+ <div class="script-editor-grid">
+ <div class="full"><label class="field-label">Título / tema</label><input data-f="title" value="${scriptEditorField(s.title)}"></div>
+ <div><label class="field-label">Status</label><select data-f="status">${['Escrevendo','Aguardando aprovação','Aprovado','Gravar','Editando','Finalizado'].map(x=>`<option ${x===(s.status||'Escrevendo')?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div><label class="field-label">Data da captação</label><input data-f="captureDate" type="date" value="${scriptEditorField(s.captureDate||document.getElementById('builderCaptureDate')?.value)}"></div>
+ <div class="full"><label class="field-label">Briefing</label><textarea class="compact" data-f="briefing">${scriptEditorField(s.briefing)}</textarea></div>
+ <div class="full"><label class="field-label">Imagem / foto de referência</label><input data-f="imageLink" value="${scriptEditorField(s.imageLink)}" placeholder="https://..."></div>
+ <div class="full"><label class="field-label">Objetivo</label><textarea class="compact" data-f="goal">${scriptEditorField(s.goal)}</textarea></div>
+ <div class="full"><label class="field-label">Gancho</label><textarea class="compact" data-f="hook">${scriptEditorField(s.hook)}</textarea></div>
+ ${editorFormatFields(s,i)}
+ <div class="full"><label class="field-label">CTA</label><textarea class="compact" data-f="cta">${scriptEditorField(s.cta)}</textarea></div>
+ <div><label class="field-label">Referência</label><input data-f="referenceLink" value="${scriptEditorField(s.referenceLink)}" placeholder="https://..."></div>
+ <div><label class="field-label">Drive / aprovação</label><input data-f="approvalLink" value="${scriptEditorField(s.approvalLink)}" placeholder="https://..."></div>
+ </div></div>`;
+}
+window.removeScriptEditorCard=function(btn){if(confirm('Remover este item da tela? A exclusão no Firebase acontece ao salvar o projeto.'))btn.closest('.script-editor-card')?.remove()}
+window.buildScriptTemplates=function(){
+ const clientId=scriptsClientFilter.value;if(!clientId)return alert('Selecione primeiro o cliente/projeto.');
+ const counts=[['Vídeo / Reel',Number(builderReels.value||0)],['Carrossel',Number(builderCarousels.value||0)],['Estático',Number(builderStatics.value||0)]];
+ const newItems=[];counts.forEach(([format,n])=>{for(let i=0;i<n;i++)newItems.push({_new:true,format,status:'Escrevendo',captureDate:builderCaptureDate.value||'',title:'',briefing:'',imageLink:'',goal:'',hook:'',scenes:'',cards:'',artText:'',artDirection:'',cta:'',referenceLink:'',approvalLink:''})});
+ if(!newItems.length)return alert('Informe pelo menos 1 Reel, Carrossel ou Estático.');
+ scriptEditorList.insertAdjacentHTML('beforeend',newItems.map((s,i)=>renderScriptEditorCard(s,scriptEditorList.children.length+i)).join(''));
+ builderReels.value=builderCarousels.value=builderStatics.value=0;
+}
+function currentScriptEditorData(){
+ return [...document.querySelectorAll('#scriptEditorList .script-editor-card')].map(card=>{
+   const get=f=>card.querySelector(`[data-f="${f}"]`)?.value?.trim?.()||'';
+   return {id:card.dataset.scriptId||'',_new:card.dataset.new==='1',format:card.dataset.format||'Vídeo / Reel',title:get('title'),status:get('status')||'Escrevendo',captureDate:get('captureDate'),briefing:get('briefing'),imageLink:get('imageLink'),goal:get('goal'),hook:get('hook'),scenes:get('scenes'),cardCount:get('cardCount'),cards:get('cards'),artText:get('artText'),artDirection:get('artDirection'),cta:get('cta'),referenceLink:get('referenceLink'),approvalLink:get('approvalLink')};
+ });
+}
+window.saveScriptProject=async function(){
+ const clientId=scriptsClientFilter.value;if(!clientId)return alert('Selecione o cliente/projeto.');
+ const items=currentScriptEditorData();if(!items.length)return alert('Crie os conteúdos antes de salvar.');
+ const existing=filterByCompetence(scripts,'scriptsMonthFilter','scriptsYearFilter').filter(s=>s.clientId===clientId);
+ const keptIds=new Set(items.filter(x=>x.id).map(x=>x.id));
+ try{
+   for(const old of existing){if(!keptIds.has(old.id))await deleteDoc(doc(db,'scripts',old.id));}
+   for(const x of items){
+     const old=x.id?scripts.find(s=>s.id===x.id):null;
+     const mode=old?.scheduleMode||'tbd';
+     const data={...collectionDataWithClient(clientId),title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:old?.publishDate||'',publishTime:old?.publishTime||'',captureDate:x.captureDate,briefing:x.briefing,imageLink:x.imageLink,month:old?.month||'',goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
+     if(x.id)await setDoc(doc(db,'scripts',x.id),data,{merge:true});else await addDoc(collection(db,'scripts'),{...data,createdAt:serverTimestamp(),createdBy:ne(currentUser?.email),createdByName:actorName(),history:[]});
+   }
+   alert('Projeto de roteiros salvo com sucesso.');
+ }catch(e){console.error(e);alert('Não foi possível salvar todos os roteiros.');}
+}
+window.renderScripts=function(){
+ if(btnScriptNew)btnScriptNew.style.display=isAdmin?'inline-block':'none';if(btnShareScriptsPage)btnShareScriptsPage.style.display=isAdmin?'inline-block':'none';if(saveScriptProjectBtn)saveScriptProjectBtn.style.display=isAdmin?'inline-block':'none';
+ const cf=document.getElementById('scriptsClientFilter');if(cf){const keep=cf.value;const ids=[...new Set([...clients.map(c=>c.id),...scripts.map(s=>s.clientId)].filter(Boolean))];cf.innerHTML='<option value="">Selecione cliente / projeto</option>'+ids.map(id=>{const c=clientById(id);return `<option value="${h(id)}">${h(c?.name||'Cliente / projeto')}</option>`}).join('');cf.value=ids.includes(keep)?keep:'';}
+ const clientId=cf?.value||'';if(!clientId){scriptEditorList.innerHTML='<div class="empty">Selecione um cliente/projeto para abrir os roteiros.</div>';return;}
+ const data=filterByCompetence(scripts,'scriptsMonthFilter','scriptsYearFilter').filter(s=>s.clientId===clientId);
+ scriptEditorList.innerHTML=data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum roteiro neste período. Informe as quantidades acima e clique em “Criar estrutura”.</div>';
+}
 window.renderCaptures=function(){ if(btnCaptureNew) btnCaptureNew.style.display=isAdmin?'inline-block':'none'; const data=filterByCompetence(scopeByClient(captures),'capturesMonthFilter','capturesYearFilter'); capturesGrid.innerHTML=data.length?data.map(ca=>{const c=clientById(ca.clientId); return `<div class="planning-card"><h3>${ca.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${ca.status||''}</span><span class="pill">${responsibilityLabel(ca)}</span>${ca.date?`<span class="pill">${formatDate(ca.date)}</span>`:''}</div><div class="script-block"><b>Checklist</b><p>${ca.checklist||''}</p></div>${isAdmin?`<div class="script-block"><b>Observações internas</b><p>${ca.notes||''}</p></div>`:''}${ca.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${ca.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editCapture('${ca.id}')">Editar</button>`:`<button class="btn-dark" onclick="commentCapture('${ca.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhuma captação cadastrada.</div>'; }
 window.renderLibrary=function(){ const c=isAdmin?currentVisibleClient():clients[0]; if(!libraryContent) return; if(!c){libraryContent.innerHTML='<div class="empty">Nenhum cliente selecionado.</div>'; return;} libraryContent.innerHTML=`<div class="client-header"><div class="client-title-row">${c.logo?`<div class="brand-logo-box"><img src="${c.logo}" alt="Logo ${c.name}"></div>`:''}<div><h2>${c.name}</h2><p style="color:#A6A6A6;margin:0">Biblioteca da marca do cliente.</p></div></div></div><div class="brand-library-grid"><div class="library-item"><h3>🎨 Identidade</h3><p><b>Logo:</b> ${c.logo?'Cadastrada':'Não informada'}</p><p><b>Observações:</b> ${c.obs||'Nenhuma observação.'}</p></div><div class="library-item"><h3>🔗 Links</h3><p><b>Drive:</b> ${c.drive?`<a href="${c.drive}" target="_blank" style="color:#F2F2F0">Abrir Drive</a>`:'Não informado'}</p><p><b>Instagram:</b> ${c.instagram||'Não informado'}</p></div></div>`; }
 

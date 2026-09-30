@@ -1,0 +1,11 @@
+V31.28 — Editor rápido + link curto
+Base: V31.27.
+1) Em Roteiros, selecione Cliente/Projeto.
+2) Informe quantidades de Reels, Carrosséis e Estáticos e clique Criar estrutura.
+3) Edite todos os blocos diretamente na mesma página.
+4) Clique Salvar projeto de roteiros uma única vez.
+5) Compartilhar com cliente salva uma cópia pública sanitizada no mesmo mecanismo público já usado pelos orçamentos e gera URL curta: /roteiro.html?p=r_xxxxx
+6) No celular tenta abrir o compartilhamento nativo; no desktop copia o link automaticamente.
+7) Não altera Clientes, Orçamentos, Agenda, Captação ou dados antigos.
+PUBLICAÇÃO: substitua somente index.html e roteiro.html.
+OBS.: a coleção pública reutilizada é publicQuotes porque as regras públicas do projeto já estão configuradas para ela. Os documentos de roteiro usam prefixo script_ para não colidir com orçamentos.
