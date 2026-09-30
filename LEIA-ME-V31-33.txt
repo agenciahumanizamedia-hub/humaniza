@@ -1,0 +1,15 @@
+V31.33 — Fotografia + múltiplas referências/Drive
+
+Base: V31.32.
+
+Roteiros/Projeto:
+- Novo tipo: Sessão de fotos.
+- Criador em lote agora aceita quantidade de Sessões de fotos.
+- Card de fotografia inclui carga horária, fotos tratadas, entrega de originais/não tratadas, quantidade personalizada, prazo 5/7/10/15/20/30 dias ou personalizado, shot list e local/orientações.
+- Quando o cliente é avulso vindo de orçamento aprovado, o sistema tenta pré-preencher dados de fotografia existentes no orçamento, sem alterar o orçamento.
+- Todos os tipos (Reel, Carrossel, Estático e Sessão de fotos) agora aceitam VÁRIOS links de referência e VÁRIOS links do Drive, um por linha.
+- O primeiro link também é mantido nos campos antigos referenceLink/approvalLink para compatibilidade.
+- A página pública do cliente mostra todos os links daquele card e as informações da sessão de fotos.
+- Não há migração automática ou exclusão de dados.
+
+Publicação: substitua index.html e roteiro.html.

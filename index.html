@@ -719,6 +719,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       <div><label class="field-label">Reels</label><input id="builderReels" type="number" min="0" value="0"></div>
       <div><label class="field-label">Carrosséis</label><input id="builderCarousels" type="number" min="0" value="0"></div>
       <div><label class="field-label">Estáticos</label><input id="builderStatics" type="number" min="0" value="0"></div>
+      <div><label class="field-label">Sessões de fotos</label><input id="builderPhotos" type="number" min="0" value="0"></div>
       <button onclick="buildScriptTemplates()">Criar estrutura</button>
     </div>
 
@@ -1470,15 +1471,7 @@ function fillPlanningSelects(){ const clientOptions=clients.map(c=>`<option valu
 window.renderMacro=function(){ fillPlanningSelects(); if(btnMacroNew) btnMacroNew.style.display=isAdmin?'inline-block':'none'; const data=scopeByClient(macroPlans); macroGrid.innerHTML=data.length?data.map(m=>{const c=clientById(m.clientId); return `<div class="planning-card"><h3>${m.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${m.month||''}</span><span class="pill">${m.status||''}</span></div><p><b>Objetivo:</b> ${m.goal||''}</p><div class="script-block"><b>Datas</b><p>${m.dates||''}</p></div><div class="script-block"><b>Estratégia</b><p>${m.strategy||''}</p></div>${m.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${m.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editMacro('${m.id}')">Editar</button>`:`<button onclick="approveMacro('${m.id}')">Aprovar macro</button><button class="btn-dark" onclick="commentMacro('${m.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhum planejamento macro cadastrado.</div>'; }
 window.renderCalendar=function(){ fillPlanningSelects(); if(btnCalendarNew) btnCalendarNew.style.display=isAdmin?'inline-block':'none'; const filter=calendarClientFilter?.value||'Todos'; const month=calendarMonthFilter?.value||new Date().toISOString().slice(0,7); let data=scopeByClient(calendarItems).filter(x=>!x.teamCalendar); if(filter!=='Todos') data=data.filter(x=>x.clientId===filter); data=data.filter(x=>(x.date||'').startsWith(month)); const [year,mon]=month.split('-').map(Number); const first=new Date(year,mon-1,1); const days=new Date(year,mon,0).getDate(); const start=(first.getDay()+6)%7; const total=Math.ceil((start+days)/7)*7; const weekdays=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(w=>`<div class="calendar-weekday">${w}</div>`).join(''); const cells=Array.from({length:total},(_,i)=>{const day=i-start+1; if(day<1||day>days) return `<div class="calendar-day muted"></div>`; const dateStr=`${month}-${String(day).padStart(2,'0')}`; const items=data.filter(x=>x.date===dateStr); return `<div class="calendar-day"><strong>${day}</strong>${items.length?items.map(item=>`<div class="calendar-item" onclick="${isAdmin?`editCalendarItem('${item.id}')`:`commentCalendarItem('${item.id}')`}"><b>${item.eventType||item.format}${item.startTime?' • '+item.startTime:''}</b>${item.theme}<small>${item.status} • ${responsibilityLabel(item).replace('Responsável: ','')}</small></div>`).join(''):`<div class="calendar-empty-line"></div><div class="calendar-empty-line"></div>`}</div>`}).join(''); calendarGrid.innerHTML=weekdays+cells; }
 
-function shareSafeScript(s){
-  return {
-    title:s.title||'',format:s.format||'Vídeo / Reel',status:s.status||'',
-    captureDate:s.captureDate||'',publishDate:s.publishDate||'',publishTime:s.publishTime||'',
-    briefing:s.briefing||'',imageLink:s.imageLink||'',goal:s.goal||'',hook:s.hook||'',
-    scenes:s.scenes||'',cardCount:s.cardCount||null,cards:s.cards||'',
-    artText:s.artText||'',artDirection:s.artDirection||'',cta:s.cta||'',
-    approvalLink:s.approvalLink||'',referenceLink:s.referenceLink||''
-  };
+function shareSafeScript(s){return {title:s.title||'',format:s.format||'',status:s.status||'',captureDate:s.captureDate||'',briefing:s.briefing||'',imageLink:s.imageLink||'',goal:s.goal||'',hook:s.hook||'',scenes:s.scenes||'',cardCount:s.cardCount||'',cards:s.cards||'',artText:s.artText||'',artDirection:s.artDirection||'',cta:s.cta||'',referenceLink:s.referenceLink||'',approvalLink:s.approvalLink||'',referenceLinks:s.referenceLinks||[],driveLinks:s.driveLinks||[],photoHours:s.photoHours||'',treatedPhotos:s.treatedPhotos||'',rawPhotosDelivery:s.rawPhotosDelivery||'',rawPhotosCustom:s.rawPhotosCustom||'',deliveryDays:s.deliveryDays||'',deliveryCustom:s.deliveryCustom||'',photoShotList:s.photoShotList||'',photoLocation:s.photoLocation||''}};
 }
 function encodeSharePayload(obj){
   const bytes=new TextEncoder().encode(JSON.stringify(obj));
@@ -1538,13 +1531,13 @@ function humanizaUnifiedProjects(){
   (quotes||[]).filter(approved).forEach(q=>{
     const name=quoteName(q);if(!name)return;
     const existing=clients.find(c=>normalizeProjectName(c.name)===normalizeProjectName(name));
-    put(existing?.id||('quote_'+q.id),name,existing?'agency':'quote',{quoteId:q.id,clientId:existing?.id||'',captureDate:q.captureDate||q.shootDate||q.eventDate||''});
+    put(existing?.id||('quote_'+q.id),name,existing?'agency':'quote',{quoteId:q.id,clientId:existing?.id||'',captureDate:q.captureDate||q.shootDate||q.eventDate||'',quoteData:q});
   });
   (agencyAgendaItems||[]).forEach(a=>{
     const name=agendaName(a);if(!name)return;
     const existing=clients.find(c=>normalizeProjectName(c.name)===normalizeProjectName(name));
     const aq=(quotes||[]).find(q=>approved(q)&&normalizeProjectName(quoteName(q))===normalizeProjectName(name));
-    put(existing?.id||(aq?('quote_'+aq.id):('agenda_'+a.id)),name,existing?'agency':(aq?'quote':'agenda'),{agendaId:a.id,quoteId:aq?.id||'',clientId:existing?.id||'',captureDate:a.date||aq?.captureDate||aq?.shootDate||''});
+    put(existing?.id||(aq?('quote_'+aq.id):('agenda_'+a.id)),name,existing?'agency':(aq?'quote':'agenda'),{agendaId:a.id,quoteId:aq?.id||'',clientId:existing?.id||'',captureDate:a.date||aq?.captureDate||aq?.shootDate||'',quoteData:aq||null});
   });
   (calendarItems||[]).forEach(x=>{
     const c=clientById(x.clientId),name=c?.name||x.clientProspect||x.clientName||x.projectName||x.prospect||'';
@@ -1572,7 +1565,17 @@ window.startNewScriptProject=function(){
   document.querySelector('.script-builder')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function scriptEditorField(v=''){return h(v||'')}
+function multiLinkText(v){if(Array.isArray(v))return v.join('\n');return String(v||'')}
 function editorFormatFields(s,i){
+  if(s.format==='Sessão de fotos')return `
+    <div><label class="field-label">Carga horária</label><input data-f="photoHours" value="${scriptEditorField(s.photoHours)}" placeholder="Ex.: 2 horas"></div>
+    <div><label class="field-label">Fotos tratadas</label><input data-f="treatedPhotos" type="number" min="0" value="${scriptEditorField(s.treatedPhotos)}" placeholder="Ex.: 30"></div>
+    <div><label class="field-label">Fotos não tratadas / originais</label><select data-f="rawPhotosDelivery"><option value="all" ${s.rawPhotosDelivery==='all'?'selected':''}>Entregar todas</option><option value="none" ${s.rawPhotosDelivery==='none'?'selected':''}>Não entregar</option><option value="custom" ${s.rawPhotosDelivery==='custom'?'selected':''}>Personalizado</option></select></div>
+    <div><label class="field-label">Quantidade personalizada de originais</label><input data-f="rawPhotosCustom" value="${scriptEditorField(s.rawPhotosCustom)}" placeholder="Opcional"></div>
+    <div><label class="field-label">Prazo de entrega</label><select data-f="deliveryDays"><option value="">A definir</option>${[5,7,10,15,20,30].map(n=>`<option value="${n}" ${String(s.deliveryDays)===String(n)?'selected':''}>${n} dias</option>`).join('')}<option value="custom" ${s.deliveryDays==='custom'?'selected':''}>Personalizado</option></select></div>
+    <div><label class="field-label">Prazo personalizado</label><input data-f="deliveryCustom" value="${scriptEditorField(s.deliveryCustom)}" placeholder="Ex.: 12 dias úteis"></div>
+    <div class="full"><label class="field-label">Fotos / cenas necessárias</label><textarea data-f="photoShotList">${scriptEditorField(s.photoShotList)}</textarea></div>
+    <div class="full"><label class="field-label">Local / orientações da sessão</label><textarea class="compact" data-f="photoLocation">${scriptEditorField(s.photoLocation)}</textarea></div>`;
   if(s.format==='Carrossel')return `<div class="full"><label class="field-label">Conteúdo dos cards</label><textarea data-f="cards">${scriptEditorField(s.cards)}</textarea></div><div><label class="field-label">Quantidade de cards</label><input data-f="cardCount" type="number" min="2" value="${scriptEditorField(s.cardCount||'')}"></div>`;
   if(s.format==='Estático')return `<div class="full"><label class="field-label">Texto da arte</label><textarea data-f="artText">${scriptEditorField(s.artText)}</textarea></div><div class="full"><label class="field-label">Direção visual</label><textarea data-f="artDirection">${scriptEditorField(s.artDirection)}</textarea></div>`;
   return `<div class="full"><label class="field-label">Desenvolvimento / cenas / falas</label><textarea data-f="scenes">${scriptEditorField(s.scenes)}</textarea></div>`;
@@ -1590,23 +1593,35 @@ function renderScriptEditorCard(s,i){
  <div class="full"><label class="field-label">Gancho</label><textarea class="compact" data-f="hook">${scriptEditorField(s.hook)}</textarea></div>
  ${editorFormatFields(s,i)}
  <div class="full"><label class="field-label">CTA</label><textarea class="compact" data-f="cta">${scriptEditorField(s.cta)}</textarea></div>
- <div><label class="field-label">Referência</label><input data-f="referenceLink" value="${scriptEditorField(s.referenceLink)}" placeholder="https://..."></div>
- <div><label class="field-label">Drive / aprovação</label><input data-f="approvalLink" value="${scriptEditorField(s.approvalLink)}" placeholder="https://..."></div>
+ <div class="full"><label class="field-label">Links de referência</label><textarea class="compact" data-f="referenceLinks" placeholder="Um link por linha">${scriptEditorField(multiLinkText(s.referenceLinks||s.referenceLink))}</textarea></div>
+ <div class="full"><label class="field-label">Links do Drive / materiais</label><textarea class="compact" data-f="driveLinks" placeholder="Um link por linha">${scriptEditorField(multiLinkText(s.driveLinks||s.approvalLink))}</textarea></div>
  </div></div>`;
 }
 window.removeScriptEditorCard=function(btn){if(confirm('Remover este item da tela? A exclusão no Firebase acontece ao salvar o projeto.'))btn.closest('.script-editor-card')?.remove()}
+function photoDefaultsFromProject(project){
+ const q=project?.quoteData||{};
+ return {
+   photoHours:q.photoHours||q.hours||q.durationHours||q.captureHours||'',
+   treatedPhotos:q.treatedPhotos||q.editedPhotos||q.photoQuantity||q.photosQty||'',
+   rawPhotosDelivery:(q.deliverRawPhotos===true||q.rawPhotosDelivery==='all')?'all':(q.deliverRawPhotos===false?'none':'all'),
+   rawPhotosCustom:q.rawPhotosCustom||'',
+   deliveryDays:q.deliveryDays||q.photoDeliveryDays||'',
+   deliveryCustom:q.deliveryCustom||q.deliveryDeadline||'',
+   photoLocation:q.location||q.captureLocation||''
+ };
+}
 window.buildScriptTemplates=function(){
  const project=selectedUnifiedProject();if(!project)return alert('Selecione primeiro o cliente/projeto.');
- const counts=[['Vídeo / Reel',Number(builderReels.value||0)],['Carrossel',Number(builderCarousels.value||0)],['Estático',Number(builderStatics.value||0)]];
- const newItems=[];counts.forEach(([format,n])=>{for(let i=0;i<n;i++)newItems.push({_new:true,format,status:'Escrevendo',captureDate:builderCaptureDate.value||'',title:'',briefing:'',imageLink:'',goal:'',hook:'',scenes:'',cards:'',artText:'',artDirection:'',cta:'',referenceLink:'',approvalLink:''})});
- if(!newItems.length)return alert('Informe pelo menos 1 Reel, Carrossel ou Estático.');
+ const counts=[['Vídeo / Reel',Number(builderReels.value||0)],['Carrossel',Number(builderCarousels.value||0)],['Estático',Number(builderStatics.value||0)],['Sessão de fotos',Number(builderPhotos.value||0)]];
+ const newItems=[];const photoDefaults=photoDefaultsFromProject(project);counts.forEach(([format,n])=>{for(let i=0;i<n;i++)newItems.push({_new:true,format,status:'Escrevendo',captureDate:builderCaptureDate.value||project.captureDate||'',title:format==='Sessão de fotos'?'Sessão de fotos':'',briefing:'',imageLink:'',goal:'',hook:'',scenes:'',cards:'',artText:'',artDirection:'',cta:'',referenceLinks:[],driveLinks:[],referenceLink:'',approvalLink:'',...(format==='Sessão de fotos'?photoDefaults:{})})});
+ if(!newItems.length)return alert('Informe pelo menos 1 Reel, Carrossel, Estático ou Sessão de fotos.');
  scriptEditorList.insertAdjacentHTML('beforeend',newItems.map((s,i)=>renderScriptEditorCard(s,scriptEditorList.children.length+i)).join(''));
- builderReels.value=builderCarousels.value=builderStatics.value=0;
+ builderReels.value=builderCarousels.value=builderStatics.value=builderPhotos.value=0;
 }
 function currentScriptEditorData(){
  return [...document.querySelectorAll('#scriptEditorList .script-editor-card')].map(card=>{
    const get=f=>card.querySelector(`[data-f="${f}"]`)?.value?.trim?.()||'';
-   return {id:card.dataset.scriptId||'',_new:card.dataset.new==='1',format:card.dataset.format||'Vídeo / Reel',title:get('title'),status:get('status')||'Escrevendo',captureDate:get('captureDate'),briefing:get('briefing'),imageLink:get('imageLink'),goal:get('goal'),hook:get('hook'),scenes:get('scenes'),cardCount:get('cardCount'),cards:get('cards'),artText:get('artText'),artDirection:get('artDirection'),cta:get('cta'),referenceLink:get('referenceLink'),approvalLink:get('approvalLink')};
+   const lines=f=>get(f).split(/\n+/).map(x=>x.trim()).filter(Boolean);return {id:card.dataset.scriptId||'',_new:card.dataset.new==='1',format:card.dataset.format||'Vídeo / Reel',title:get('title'),status:get('status')||'Escrevendo',captureDate:get('captureDate'),briefing:get('briefing'),imageLink:get('imageLink'),goal:get('goal'),hook:get('hook'),scenes:get('scenes'),cardCount:get('cardCount'),cards:get('cards'),artText:get('artText'),artDirection:get('artDirection'),cta:get('cta'),referenceLinks:lines('referenceLinks'),driveLinks:lines('driveLinks'),referenceLink:lines('referenceLinks')[0]||'',approvalLink:lines('driveLinks')[0]||'',photoHours:get('photoHours'),treatedPhotos:get('treatedPhotos'),rawPhotosDelivery:get('rawPhotosDelivery'),rawPhotosCustom:get('rawPhotosCustom'),deliveryDays:get('deliveryDays'),deliveryCustom:get('deliveryCustom'),photoShotList:get('photoShotList'),photoLocation:get('photoLocation')};
  });
 }
 window.saveScriptProject=async function(){
@@ -1619,7 +1634,7 @@ window.saveScriptProject=async function(){
    for(const x of items){
      const old=x.id?scripts.find(s=>s.id===x.id):null;
      const mode=old?.scheduleMode||'tbd';
-     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:old?.publishDate||'',publishTime:old?.publishTime||'',captureDate:x.captureDate,briefing:x.briefing,imageLink:x.imageLink,month:old?.month||'',goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
+     const data={...collectionDataWithClient(clientId),clientName:project.name,projectOrigin:project.origin,sourceQuoteId:project.quoteId||'',sourceAgendaId:project.agendaId||'',title:x.title,format:x.format,status:x.status,responsibleEmail:old?.responsibleEmail||'',responsibilityState:old?.responsibilityState||'unassigned',participantEmails:old?.participantEmails||[],participantNames:old?.participantNames||[],scheduleMode:mode,publishDate:old?.publishDate||'',publishTime:old?.publishTime||'',captureDate:x.captureDate,briefing:x.briefing,imageLink:x.imageLink,month:old?.month||'',goal:x.goal,hook:x.hook,scenes:x.scenes,cardCount:x.cardCount?Number(x.cardCount):null,cards:x.cards,artText:x.artText,artDirection:x.artDirection,cta:x.cta,approvalLink:x.approvalLink,referenceLink:x.referenceLink,referenceLinks:x.referenceLinks||[],driveLinks:x.driveLinks||[],photoHours:x.photoHours||'',treatedPhotos:x.treatedPhotos?Number(x.treatedPhotos):null,rawPhotosDelivery:x.rawPhotosDelivery||'',rawPhotosCustom:x.rawPhotosCustom||'',deliveryDays:x.deliveryDays||'',deliveryCustom:x.deliveryCustom||'',photoShotList:x.photoShotList||'',photoLocation:x.photoLocation||'',clientNote:old?.clientNote||'',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),updatedByName:actorName()};
      if(x.id)await setDoc(doc(db,'scripts',x.id),data,{merge:true});else await addDoc(collection(db,'scripts'),{...data,createdAt:serverTimestamp(),createdBy:ne(currentUser?.email),createdByName:actorName(),history:[]});
    }
    alert('Projeto de roteiros salvo com sucesso.');
