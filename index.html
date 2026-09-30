@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -670,7 +671,8 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       if(loginPage)loginPage.classList.add('hidden');
       if(appPage)appPage.classList.remove('hidden');
       clearTimeout(watchdog);
-      setTimeout(()=>location.reload(),900);
+      // Não recarregar a página após autenticar.
+      // O onAuthStateChanged do módulo principal assume a sessão e abre o painel.
     }catch(e){
       clearTimeout(watchdog);
       console.error('Login fallback:',e);
@@ -2716,3 +2718,4 @@ window.mobileGo = function(view){
 </script>
 </body>
 </html>
+```
