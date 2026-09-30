@@ -1,0 +1,22 @@
+HUMANIZA V31.29 — PROJETO DE ROTEIROS EM LOTE
+
+Base: V31.28.
+
+O que mudou:
+- + Novo projeto de roteiros não abre mais o modal de um roteiro por vez.
+- O seletor reúne:
+  1. clientes cadastrados na agência;
+  2. clientes avulsos vindos de orçamentos com status aprovado;
+  3. clientes/prospects existentes na Agenda da Equipe;
+  4. projetos já existentes em Roteiros.
+- O seletor identifica visualmente Cliente da agência ou Avulso.
+- Escolha quantos Reels, Carrosséis e Estáticos e clique Criar estrutura.
+- Todos os cards são criados na mesma tela para edição contínua.
+- Salvar projeto completo grava todos os cards de uma vez.
+- O projeto mantém nome/origem e referência ao orçamento/agenda quando houver.
+- Compartilhar com cliente continua usando o link curto da V31.28.
+- Nenhuma migração automática foi adicionada.
+- Registros antigos não são apagados ao abrir a versão.
+
+PUBLICAÇÃO:
+Substitua somente index.html e roteiro.html.
