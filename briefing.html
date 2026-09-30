@@ -1,0 +1,42 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Briefing | Humaniza</title><style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#f5f5f5;font-family:Arial,sans-serif}main{max-width:820px;margin:auto;padding:28px 18px 60px}.brand{font-size:22px;font-weight:800;margin-bottom:6px}.muted{color:#aaa}.card{background:#1d1d1d;border:1px solid #333;border-radius:18px;padding:22px;margin-top:22px}label{display:block;font-weight:700;margin:18px 0 7px}input,textarea,select{width:100%;background:#111;color:#fff;border:1px solid #444;border-radius:10px;padding:12px;font:inherit}textarea{min-height:95px;resize:vertical}button{margin-top:22px;border:0;border-radius:10px;padding:13px 18px;font-weight:800;cursor:pointer}.hide{display:none}#done{padding:24px;text-align:center}h1{margin-bottom:5px}
+</style></head><body><main><div class="brand">HUMANIZA</div><div class="muted">Briefing de projeto</div><div id="loading" class="card">Carregando briefing...</div>
+<div id="form" class="card hide"><h1 id="projectName">Briefing</h1><p class="muted">Suas respostas vão nos ajudar a produzir o conteúdo com o direcionamento certo.</p>
+<label>Nome do responsável</label><input id="responsible">
+<label>E-mail</label><input id="email" type="email">
+<label>Nome da empresa / marca</label><input id="company">
+<label>CNPJ</label><input id="cnpj" placeholder="Se não possuir, escreva Não possuo">
+<div id="agencyFields">
+<label>Conte um pouco da história da empresa</label><textarea id="history"></textarea>
+<label>O que a empresa oferece hoje?</label><textarea id="offer"></textarea>
+<label>Quem é o principal público que vocês querem atingir?</label><textarea id="audience"></textarea>
+<label>Qual é o principal objetivo do marketing neste momento?</label><select id="marketingGoal"><option value="">Selecione</option><option>Vender mais</option><option>Gerar contatos / leads</option><option>Fortalecer a marca</option><option>Divulgar um produto ou serviço</option><option>Aumentar presença nas redes sociais</option><option>Outro</option></select>
+<label>Existe alguma informação importante que precisamos saber antes de produzir os conteúdos? <span class="muted">(opcional)</span></label><textarea id="important"></textarea>
+</div>
+<div id="avulsoFields" class="hide">
+<label>O que será produzido neste projeto?</label><textarea id="production" placeholder="Ex.: vídeos, fotos, cobertura..."></textarea>
+<label>Qual é a intenção principal dos vídeos, fotos ou conteúdos?</label><textarea id="contentIntent" placeholder="Ex.: apresentar um serviço, gerar vendas, autoridade, lançamento..."></textarea>
+<label>Qual mensagem principal você quer transmitir?</label><textarea id="mainMessage"></textarea>
+<label>Quem é o público que você quer atingir?</label><textarea id="audience2"></textarea>
+<label>Tem alguma referência ou estilo que você gosta?</label><textarea id="references" placeholder="Pode colar links ou descrever"></textarea>
+<label>Existe alguma orientação importante para a produção? <span class="muted">(opcional)</span></label><textarea id="important2"></textarea>
+</div>
+<button id="send">Enviar briefing</button></div><div id="done" class="card hide"><h2>Briefing enviado</h2><p>Obrigado. Suas respostas foram recebidas pela Humaniza.</p></div></main>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,serverTimestamp}from"https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+const firebaseConfig={
+  apiKey: "AIzaSyB2xU6wgDjswece50JVE-thiCb40wP-58M",
+  authDomain: "humaniza-os.firebaseapp.com",
+  projectId: "humaniza-os",
+  storageBucket: "humaniza-os.firebasestorage.app",
+  messagingSenderId: "416592042651",
+  appId: "1:416592042651:web:66dd16c8e823e57d5b443e",
+  measurementId: "G-YQMK274JER"
+};const db=getFirestore(initializeApp(firebaseConfig));const token=new URLSearchParams(location.search).get('p');let data=null;
+const ids=['responsible','email','company','cnpj','history','offer','audience','marketingGoal','important','production','contentIntent','mainMessage','references'];const el=id=>document.getElementById(id);
+async function init(){if(!token)return fail();try{const s=await getDoc(doc(db,'publicBriefings',token));if(!s.exists())return fail();data=s.data();el('loading').classList.add('hide');el('form').classList.remove('hide');el('projectName').textContent='Briefing • '+(data.clientName||'Projeto');const a=data.answers||{};ids.forEach(k=>{if(el(k))el(k).value=a[k]||''});if(data.clientType==='avulso'){el('agencyFields').classList.add('hide');el('avulsoFields').classList.remove('hide');el('audience2').value=a.audience||'';el('important2').value=a.important||''}}catch(e){fail()}}
+function fail(){el('loading').textContent='Este briefing não está disponível. Peça um novo link à Humaniza.'}
+el('send').onclick=async()=>{const av=data.clientType==='avulso';const answers={responsible:el('responsible').value.trim(),email:el('email').value.trim(),company:el('company').value.trim(),cnpj:el('cnpj').value.trim(),history:av?'':el('history').value.trim(),offer:av?'':el('offer').value.trim(),audience:(av?el('audience2'):el('audience')).value.trim(),marketingGoal:av?'':el('marketingGoal').value,important:(av?el('important2'):el('important')).value.trim(),production:av?el('production').value.trim():'',contentIntent:av?el('contentIntent').value.trim():'',mainMessage:av?el('mainMessage').value.trim():'',references:av?el('references').value.trim():''};el('send').disabled=true;el('send').textContent='Enviando...';try{await setDoc(doc(db,'publicBriefings',token),{answers,status:'completed',submittedAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});el('form').classList.add('hide');el('done').classList.remove('hide')}catch(e){el('send').disabled=false;el('send').textContent='Enviar briefing';alert('Não foi possível enviar agora. Tente novamente.')}};init();
+</script></body></html>

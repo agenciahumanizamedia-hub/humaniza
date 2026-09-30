@@ -1,0 +1,14 @@
+V31.42 — Briefing separado do Roteiros
+Base direta: V31.41.
+
+Fluxo:
+Orçamento/cliente -> Briefing -> Roteiros -> Captação -> Postagem/Entrega.
+
+- Nova aba Briefings.
+- Serve para Cliente da Agência ou Cliente Avulso.
+- Se for Cliente da Agência e ainda não existir no cadastro, aparece "Criar cliente na Agência".
+- Esse botão abre o cadastro normal de cliente já existente e reaproveita empresa, e-mail, responsável e CNPJ; não cria automaticamente.
+- Briefing salvo em coleção projectBriefings, separado dos roteiros.
+- Roteiros mostram somente status "Briefing concluído" ou "Briefing pendente".
+- Roteiros continuam persistentes e usam o briefing salvo sem duplicar perguntas.
+- Login/autenticação não foram alterados.

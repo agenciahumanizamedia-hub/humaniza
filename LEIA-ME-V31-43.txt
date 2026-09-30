@@ -1,0 +1,15 @@
+V31.43 — Briefing público compartilhável
+Base: V31.42 aprovada pelo usuário.
+
+NOVO
+- Botão Compartilhar briefing na aba Briefings.
+- Gera link curto briefing.html?p=TOKEN e usa compartilhamento nativo/cópia.
+- Cliente responde sem login administrativo.
+- Cliente da Agência recebe perguntas institucionais/marketing.
+- Cliente Avulso recebe perguntas específicas do trabalho, incluindo intenção dos vídeos/fotos/conteúdos, mensagem, público e referências.
+- Respostas públicas ficam em publicBriefings; ao abrir Briefings no admin, respostas concluídas são sincronizadas para projectBriefings.
+- Roteiros não foram reestruturados.
+- Login/autenticação não foram alterados.
+
+IMPORTANTE FIRESTORE
+A página pública precisa que as regras do projeto permitam leitura e atualização SOMENTE do documento publicBriefings/{token}. Se as regras atuais não contemplarem publicBriefings, o link abrirá como indisponível ou não conseguirá enviar. Não altere regras às cegas; valide no deploy.
