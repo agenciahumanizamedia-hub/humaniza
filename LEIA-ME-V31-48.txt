@@ -1,0 +1,18 @@
+HUMANIZA V31.48 — EDITOR + REFERÊNCIAS
+
+Base: V31.47.
+
+Ajustes:
+1. Campos do editor rico agora têm fundo branco e texto preto por padrão.
+2. A formatação continua opcional: negrito, itálico, caixa alta, roxo, preto e limpar.
+3. Em Roteiros, rótulos como "Referência de imagem" / "Foto de referência" foram simplificados para "Referência".
+4. Links de referência usam um campo por link e botão "+ Adicionar link".
+5. Os links continuam sendo armazenados no mesmo valor já utilizado pelo sistema, separados por linha, preservando compatibilidade com Firebase e dados anteriores.
+
+Não alterado:
+- Login
+- Firebase/coleções
+- Dados existentes
+- Briefing
+- Orçamentos
+- Demais módulos e estrutura

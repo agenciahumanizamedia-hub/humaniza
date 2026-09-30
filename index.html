@@ -629,16 +629,22 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 /* V31.47 — Editor rico Humaniza para campos de texto longo */
 .hz-rich-wrap{margin:6px 0 10px}
 .hz-rich-toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:6px;border:1px solid #e5e5ea;border-bottom:0;border-radius:9px 9px 0 0;background:#fafafa}
-.hz-rich-toolbar button{min-width:32px;border:1px solid #d7d7dd;background:#fff;border-radius:7px;padding:5px 8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.hz-rich-toolbar button{min-width:32px;border:1px solid #d7d7dd;background:#fff;color:#111;border-radius:7px;padding:5px 8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
 .hz-rich-toolbar .hz-purple-btn{background:#6d28d9;color:#fff;border-color:#6d28d9}
 .hz-rich-toolbar .hz-black-btn{background:#111;color:#fff;border-color:#111}
-.hz-rich-editor{min-height:92px;width:100%;box-sizing:border-box;border:1px solid #e5e5ea;border-radius:0 0 9px 9px;padding:10px 12px;background:#fff;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.hz-rich-editor{min-height:92px;width:100%;box-sizing:border-box;border:1px solid #e5e5ea;border-radius:0 0 9px 9px;padding:10px 12px;background:#fff;color:#111;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .hz-rich-editor:focus{border-color:#6d28d9;box-shadow:0 0 0 2px rgba(109,40,217,.10)}
 .hz-rich-editor:empty:before{content:attr(data-placeholder);color:#999;pointer-events:none}
 .hz-rich-editor .hz-purple,.hz-rich-view .hz-purple{background:#6d28d9;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
 .hz-rich-editor .hz-black,.hz-rich-view .hz-black{background:#111;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
 .hz-source-textarea{display:none!important}
 
+
+.hz-links-ui{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.hz-link-row{display:flex;gap:6px;align-items:center}
+.hz-link-row input{flex:1;min-width:0;background:#fff!important;color:#111!important}
+.hz-link-row button{border:1px solid #ddd;background:#fff;color:#111;border-radius:7px;padding:7px 9px;cursor:pointer}
+.hz-add-link{align-self:flex-start;border:1px solid #6d28d9;background:#fff;color:#6d28d9;border-radius:7px;padding:7px 10px;font-weight:700;cursor:pointer}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -1110,6 +1116,50 @@ Card 3: ..."></textarea></div>
 </div>
 
 <script type="module">
+
+function hzIsReferenceLinksTextarea(t){
+ const n=(t.id+' '+t.name+' '+(t.placeholder||'')).toLowerCase();
+ return /(referenc|reference)/.test(n) && /(link|url)/.test(n);
+}
+function hzBuildLinksUI(t){
+ if(!t || t.dataset.hzLinks==='1')return;
+ t.dataset.hzLinks='1';
+ // If rich editor was added to this URL field by generic detection, remove only its visual wrapper.
+ const rich=document.querySelector(`.hz-rich-wrap[data-hz-for="${CSS.escape(t.id)}"]`);
+ if(rich)rich.remove();
+ t.classList.add('hz-source-textarea');
+ const box=document.createElement('div'); box.className='hz-links-ui'; box.dataset.hzLinksFor=t.id;
+ const sync=()=>{
+   const vals=[...box.querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean);
+   t.value=vals.join('\n');
+   t.dispatchEvent(new Event('input',{bubbles:true}));
+   t.dispatchEvent(new Event('change',{bubbles:true}));
+ };
+ const add=(value='')=>{
+   const row=document.createElement('div'); row.className='hz-link-row';
+   const inp=document.createElement('input'); inp.type='url'; inp.placeholder='Cole o link da referência'; inp.value=value;
+   inp.addEventListener('input',sync);
+   const del=document.createElement('button'); del.type='button'; del.textContent='×'; del.title='Remover link';
+   del.addEventListener('click',()=>{row.remove(); if(!box.querySelector('.hz-link-row'))add(''); sync();});
+   row.append(inp,del); box.insertBefore(row,box.lastElementChild); return inp;
+ };
+ const btn=document.createElement('button'); btn.type='button'; btn.className='hz-add-link'; btn.textContent='+ Adicionar link';
+ btn.addEventListener('click',()=>add('').focus());
+ box.appendChild(btn);
+ const vals=String(t.value||'').split(/\n+/).map(v=>v.trim()).filter(Boolean);
+ (vals.length?vals:['']).forEach(add);
+ t.insertAdjacentElement('afterend',box);
+}
+function hzRefreshReferenceLinks(root=document){
+ root.querySelectorAll('textarea').forEach(t=>{if(hzIsReferenceLinksTextarea(t))hzBuildLinksUI(t)});
+}
+window.addEventListener('DOMContentLoaded',()=>{
+ hzRefreshReferenceLinks();
+ const ob=new MutationObserver(()=>requestAnimationFrame(()=>hzRefreshReferenceLinks()));
+ ob.observe(document.body,{childList:true,subtree:true});
+});
+
+
 
 /* V31.47 rich text */
 function hzSanitizeRichHtml(input){
