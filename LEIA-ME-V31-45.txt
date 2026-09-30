@@ -1,0 +1,17 @@
+HUMANIZA V31.45 — FILTRO DO BRIEFING + CARTÃO
+
+Base: V31.44 BRIEFING PRO.
+
+Alterações pontuais:
+1. Ao trocar Cliente / Projeto no Briefing, os campos do cliente anterior são limpos antes do carregamento.
+2. O sistema passa a carregar somente o briefing correspondente ao projeto selecionado.
+3. Se o projeto não tiver briefing respondido, a tela aparece limpa e com status "Briefing pendente".
+4. No orçamento, a linguagem do cartão foi simplificada para:
+   "Cartão de crédito: parcelamento disponível, com os juros da maquininha."
+
+Não há migração, exclusão ou alteração automática de dados no Firebase.
+Login, Roteiros, Captação, Calendários, Clientes e demais módulos foram preservados.
+
+PUBLICAÇÃO:
+Substitua index.html pelo desta pasta.
+Mantenha briefing.html e roteiro.html desta mesma versão na raiz do projeto.
