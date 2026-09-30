@@ -1526,7 +1526,7 @@ function humanizaUnifiedProjects(){
   const map=new Map();
   const norm=v=>String(v||'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const approved=q=>['aprovado','approved','aceito','accepted'].includes(norm(q.status))||norm(q.status).includes('aprov');
-  const quoteName=q=>q.clientName||q.customerName||q.name||q.client||q.prospect||q.company||q.businessName||'';
+  const quoteName=q=>q.prospectName||q.clientName||q.customerName||q.name||q.client||q.prospect||q.company||q.businessName||'';
   const agendaName=a=>a.clientProspect||a.clientName||a.client||a.prospect||a.titleClient||'';
   const put=(id,name,origin,meta={})=>{
     name=String(name||'').trim();if(!name)return;
@@ -1546,9 +1546,9 @@ function humanizaUnifiedProjects(){
     const aq=(quotes||[]).find(q=>approved(q)&&normalizeProjectName(quoteName(q))===normalizeProjectName(name));
     put(existing?.id||(aq?('quote_'+aq.id):('agenda_'+a.id)),name,existing?'agency':(aq?'quote':'agenda'),{agendaId:a.id,quoteId:aq?.id||'',clientId:existing?.id||'',captureDate:a.date||aq?.captureDate||aq?.shootDate||''});
   });
-  (calendarItems||[]).filter(x=>!x.teamCalendar).forEach(x=>{
-    const c=clientById(x.clientId),name=c?.name||x.clientName||x.projectName||x.prospect||'';
-    if(name)put(c?.id||x.clientId||('calendar_'+x.id),name,c?'agency':'calendar',{clientId:c?.id||x.clientId||''});
+  (calendarItems||[]).forEach(x=>{
+    const c=clientById(x.clientId),name=c?.name||x.clientProspect||x.clientName||x.projectName||x.prospect||'';
+    if(name){const qid=x.quoteId||x.sourceId||'';const q=(quotes||[]).find(q=>q.id===qid);put(c?.id||x.clientId||(qid?('quote_'+qid):('calendar_'+x.id)),name,c?'agency':(q?'quote':'calendar'),{clientId:c?.id||x.clientId||'',quoteId:qid,captureDate:x.date||''});}
   });
   scripts.forEach(s=>{
     const c=clientById(s.clientId),name=c?.name||s.clientName||s.projectName||'';

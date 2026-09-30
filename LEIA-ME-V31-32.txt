@@ -1,0 +1,16 @@
+HUMANIZA V31.32 — CORREÇÃO DO CLIENTE AVULSO NO FILTRO DE ROTEIROS
+
+Correção pontual sobre a V31.31.
+
+Diagnóstico: o módulo de Orçamentos salva o nome do cliente no campo prospectName. O resolvedor unificado estava procurando outros nomes de campo, por isso um orçamento aprovado como Rejane Caetano podia aparecer no Calendário da Equipe, mas não no filtro de Roteiros.
+
+Correções:
+- o filtro unificado agora lê prospectName dos Orçamentos;
+- também lê os calendarItems automáticos da Agenda da Equipe, inclusive teamCalendar=true;
+- usa clientProspect dos itens automáticos de captação;
+- preserva quoteId/sourceId para reconhecer que o avulso veio do orçamento aprovado;
+- usa a data da captação do calendário como sugestão do projeto;
+- regra vale para TODOS os clientes avulsos, não somente Rejane;
+- nenhuma migração, exclusão ou duplicação automática de clientes.
+
+PUBLICAÇÃO: substitua somente index.html.
