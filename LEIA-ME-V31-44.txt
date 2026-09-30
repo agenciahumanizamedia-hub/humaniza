@@ -1,0 +1,11 @@
+V31.44 — Briefing PRO + perguntas adicionais
+Base direta: V31.43.
+
+- Mantém fluxo Briefing -> Roteiros.
+- Adiciona + Adicionar pergunta no briefing administrativo.
+- Perguntas extras são exclusivas daquele projeto e aparecem no link público.
+- Cliente responde perguntas extras junto com o briefing.
+- Página briefing.html redesenhada para manter identidade profissional Humaniza.
+- Não altera login nem estrutura de Roteiros.
+- Inclui REGRA-FIREBASE-PUBLIC-BRIEFINGS.txt com SOMENTE o bloco a acrescentar às regras existentes.
+- O arquivo de regra não é implantado automaticamente. É proposital para não sobrescrever as regras atuais.
