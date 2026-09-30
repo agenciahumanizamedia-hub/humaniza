@@ -625,6 +625,16 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 
 #scriptClientOrigin{margin-top:7px;color:#9f9f9f;font-size:12px}
 .script-editor-card input,.script-editor-card textarea,.script-editor-card select{width:100%}
+
+/* V31.46 — Destaques Humaniza */
+.humaniza-formatbar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.humaniza-formatbar button{border:1px solid #d7d7dd;background:#fff;border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.humaniza-formatbar button:hover{transform:translateY(-1px)}
+.humaniza-formatbar .fmt-purple{background:#6d28d9;color:#fff;border-color:#6d28d9}
+.humaniza-formatbar .fmt-black{background:#111;color:#fff;border-color:#111}
+.humaniza-richtext{white-space:pre-wrap;line-height:1.55}
+.humaniza-richtext .hz-purple{background:#6d28d9;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
+.humaniza-richtext .hz-black{background:#111;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -934,21 +944,21 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 <div class="briefing-box full">
 <strong>Briefing do conteúdo</strong>
 <div class="field-help">Informações que ajudam a equipe e podem acompanhar o roteiro no link compartilhado.</div>
-<textarea id="scriptBriefing" rows="4" placeholder="Briefing: contexto, produto/serviço, público, pontos importantes, restrições..."></textarea>
+${hzFormatBar('scriptBriefing')}<textarea id="scriptBriefing" rows="4" placeholder="Briefing: contexto, produto/serviço, público, pontos importantes, restrições..."></textarea>
 </div>
 <input id="scriptImageLink" class="full" placeholder="Imagem / foto de referência (link)">
-<textarea id="scriptGoal" class="full" rows="2" placeholder="Objetivo do conteúdo"></textarea>
-<textarea id="scriptHook" class="full" rows="2" placeholder="Gancho / chamada principal"></textarea>
-<div id="scriptVideoFields" class="full"><textarea id="scriptScenes" rows="5" placeholder="Cenas, falas, takes e materiais necessários"></textarea></div>
-<div id="scriptCarouselFields" class="full hidden"><input id="scriptCardCount" type="number" min="2" max="20" placeholder="Quantidade de cards"><textarea id="scriptCards" rows="7" placeholder="Conteúdo por card. Ex:
+${hzFormatBar('scriptGoal')}<textarea id="scriptGoal" class="full" rows="2" placeholder="Objetivo do conteúdo"></textarea>
+${hzFormatBar('scriptHook')}<textarea id="scriptHook" class="full" rows="2" placeholder="Gancho / chamada principal"></textarea>
+<div id="scriptVideoFields" class="full">${hzFormatBar('scriptScenes')}<textarea id="scriptScenes" rows="5" placeholder="Cenas, falas, takes e materiais necessários"></textarea></div>
+<div id="scriptCarouselFields" class="full hidden"><input id="scriptCardCount" type="number" min="2" max="20" placeholder="Quantidade de cards">${hzFormatBar('scriptCards')}<textarea id="scriptCards" rows="7" placeholder="Conteúdo por card. Ex:
 Card 1: capa
 Card 2: ...
 Card 3: ..."></textarea></div>
-<div id="scriptStaticFields" class="full hidden"><textarea id="scriptArtText" rows="4" placeholder="Texto principal da arte"></textarea><textarea id="scriptArtDirection" rows="3" placeholder="Direção visual / orientação para o designer"></textarea></div>
-<textarea id="scriptCTA" class="full" rows="2" placeholder="CTA"></textarea>
+<div id="scriptStaticFields" class="full hidden">${hzFormatBar('scriptArtText')}<textarea id="scriptArtText" rows="4" placeholder="Texto principal da arte"></textarea>${hzFormatBar('scriptArtDirection')}<textarea id="scriptArtDirection" rows="3" placeholder="Direção visual / orientação para o designer"></textarea></div>
+${hzFormatBar('scriptCTA')}<textarea id="scriptCTA" class="full" rows="2" placeholder="CTA"></textarea>
 <input id="scriptApprovalLink" class="full" placeholder="Link do Drive / material para aprovação">
 <input id="scriptReferenceLink" class="full" placeholder="Referência / link interno (opcional)">
-<textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
+${hzFormatBar('scriptClientNote')}<textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
 <div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
 </div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" id="historyScriptBtn" onclick="openScriptHistory(editingScript)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
 <div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" id="historyCaptureBtn" onclick="openCaptureHistory(editingCapture)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
@@ -1838,6 +1848,48 @@ window.saveScriptProject=async function(){
    alert('Projeto salvo no Firebase. Os roteiros permanecem no projeto e as datas de postagem foram sincronizadas com o calendário.');
  }catch(e){console.error(e);alert('Não foi possível salvar o projeto completo. Nada foi apagado automaticamente.');}
 }
+
+function hzEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function hzEncodePlain(v){return hzEsc(v).replace(/\n/g,'<br>')}
+function hzStrip(v){
+ const d=document.createElement('div'); d.innerHTML=String(v||''); return d.textContent||'';
+}
+function hzApplyToTextarea(id,kind){
+ const el=document.getElementById(id); if(!el)return;
+ const a=el.selectionStart,b=el.selectionEnd;
+ if(a===b){alert('Selecione uma palavra ou trecho primeiro.');return}
+ const raw=el.value, selected=raw.slice(a,b);
+ let replacement=selected;
+ if(kind==='bold')replacement=`<strong>${selected}</strong>`;
+ if(kind==='italic')replacement=`<em>${selected}</em>`;
+ if(kind==='upper')replacement=selected.toUpperCase();
+ if(kind==='purple')replacement=`<span class="hz-purple">${selected}</span>`;
+ if(kind==='black')replacement=`<span class="hz-black">${selected}</span>`;
+ if(kind==='clear')replacement=hzStrip(selected);
+ el.value=raw.slice(0,a)+replacement+raw.slice(b);
+ el.focus(); el.selectionStart=a; el.selectionEnd=a+replacement.length;
+ el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function hzFormatBar(id){
+ return `<div class="humaniza-formatbar">
+  <button type="button" onclick="hzApplyToTextarea('${id}','bold')" title="Negrito"><b>B</b></button>
+  <button type="button" onclick="hzApplyToTextarea('${id}','italic')" title="Itálico"><i>I</i></button>
+  <button type="button" onclick="hzApplyToTextarea('${id}','upper')" title="Caixa alta">AA</button>
+  <button type="button" class="fmt-purple" onclick="hzApplyToTextarea('${id}','purple')" title="Destaque roxo">Roxo</button>
+  <button type="button" class="fmt-black" onclick="hzApplyToTextarea('${id}','black')" title="Destaque preto">Preto</button>
+  <button type="button" onclick="hzApplyToTextarea('${id}','clear')" title="Limpar formatação">Limpar</button>
+ </div>`;
+}
+window.hzApplyToTextarea=hzApplyToTextarea;
+
+function hzSafeRich(v){
+ let s=hzEsc(v);
+ s=s.replace(/&lt;strong&gt;/gi,'<strong>').replace(/&lt;\/strong&gt;/gi,'</strong>');
+ s=s.replace(/&lt;em&gt;/gi,'<em>').replace(/&lt;\/em&gt;/gi,'</em>');
+ s=s.replace(/&lt;span class=&quot;hz-purple&quot;&gt;/gi,'<span class="hz-purple">').replace(/&lt;span class=&quot;hz-black&quot;&gt;/gi,'<span class="hz-black">').replace(/&lt;\/span&gt;/gi,'</span>');
+ return s.replace(/\n/g,'<br>');
+}
+
 window.renderScripts=function(){
  if(btnShareScriptsPage)btnShareScriptsPage.style.display=isAdmin?'inline-block':'none';
  if(btnNewScriptProject)btnNewScriptProject.style.display=isAdmin?'inline-block':'none';

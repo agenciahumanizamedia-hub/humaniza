@@ -1,0 +1,22 @@
+HUMANIZA V31.46 — EDITOR DE DESTAQUES
+
+Base: V31.45.
+
+Novo recurso nos campos de roteiro/conteúdo:
+- Negrito
+- Itálico
+- CAIXA ALTA
+- Destaque roxo Humaniza
+- Destaque preto Humaniza
+- Limpar formatação
+
+Uso:
+Selecione uma palavra ou trecho dentro do campo e clique na opção desejada.
+A marcação fica salva junto ao texto do conteúdo e foi preparada para aparecer também no roteiro compartilhado.
+
+Segurança:
+A exibição pública aceita somente as marcações de formatação previstas pelo editor.
+Não houve alteração de login, Firebase, filtros, orçamento, clientes ou demais módulos.
+
+PUBLICAÇÃO:
+Use index.html, roteiro.html e briefing.html desta pasta.
