@@ -652,6 +652,15 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 .hz-rich-editor font[size="3"]{font-size:1em}
 .hz-rich-editor font[size="4"]{font-size:1.18em}
 .hz-rich-editor font[size="5"]{font-size:1.38em}
+
+.hz-rich-editor .hz-size-sm{font-size:.85em}.hz-rich-editor .hz-size-lg{font-size:1.25em}
+.hz-rich-editor .hz-font-1{font-family:Arial,sans-serif}.hz-rich-editor .hz-font-2{font-family:Georgia,serif}
+
+.hz-team-activities{margin-top:12px;padding:12px;border:1px solid #e5e5ea;border-radius:12px;background:#fff;color:#111}
+.hz-team-activities-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hz-team-activities-head span{background:#6d28d9;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px}
+.hz-team-activity{padding:8px 0;border-top:1px solid #eee}.hz-team-activity:first-of-type{border-top:0}
+.hz-team-activity small{color:#666}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -1124,6 +1133,76 @@ Card 3: ..."></textarea></div>
 
 <script type="module">
 
+/* V31.52 — isolamento visual do Briefing */
+function hzIsBriefingTarget(el){
+ const txt=((el?.dataset?.tab||'')+' '+(el?.getAttribute?.('href')||'')+' '+(el?.getAttribute?.('onclick')||'')+' '+(el?.textContent||'')).toLowerCase();
+ return txt.includes('briefing');
+}
+function hzHideBriefingOutside(){
+ ['briefingFormBox','briefingList','briefingContent','briefingPanel'].forEach(id=>{
+   const el=document.getElementById(id); if(el)el.style.display='none';
+ });
+ document.querySelectorAll('[data-briefing-only="true"]').forEach(el=>el.style.display='none');
+}
+document.addEventListener('click',e=>{
+ const nav=e.target.closest('button,a,[data-tab],[data-section]');
+ if(!nav)return;
+ const navtxt=((nav.dataset?.tab||'')+' '+(nav.dataset?.section||'')+' '+(nav.getAttribute('onclick')||'')+' '+(nav.textContent||'')).toLowerCase();
+ if((/equipe|capta[cç][aã]o|calend|cliente|demanda|ag[eê]ncia|macro|roteiro|or[cç]amento|lixeira|vis[aã]o geral/.test(navtxt)) && !hzIsBriefingTarget(nav)){
+   hzHideBriefingOutside();
+ }
+},true);
+
+
+/* V31.52 — visão administrativa das atividades por integrante */
+function hzNorm(v){return String(v||'').trim().toLowerCase()}
+function hzAssigneeMatches(item,member){
+ const email=hzNorm(member?.email), name=hzNorm(member?.name||member?.nome);
+ const vals=[
+   item?.responsibleEmail,item?.responsavelEmail,item?.assignedToEmail,item?.assigneeEmail,
+   item?.responsible,item?.responsavel,item?.assignedTo,item?.assignee,item?.teamMember,
+   ...(Array.isArray(item?.participantEmails)?item.participantEmails:[]),
+   ...(Array.isArray(item?.participants)?item.participants:[])
+ ].flat().filter(Boolean).map(hzNorm);
+ return (!!email&&vals.includes(email)) || (!!name&&vals.includes(name));
+}
+function hzCollectMemberActivities(member){
+ const pools=[
+  ['Tarefa interna',window.internalTasks||[]],
+  ['Captação',window.captures||[]],
+  ['Demanda',window.demands||[]],
+  ['Agenda',window.calendarItems||[]]
+ ];
+ const out=[];
+ pools.forEach(([type,arr])=>{
+   if(!Array.isArray(arr))return;
+   arr.forEach(item=>{if(hzAssigneeMatches(item,member))out.push({type,item})});
+ });
+ return out;
+}
+function hzActivityTitle(x){
+ const i=x.item||{};
+ return i.title||i.name||i.task||i.description||i.clientName||i.clientProspect||i.projectName||'Atividade';
+}
+function hzActivityStatus(x){
+ const i=x.item||{}; return i.status||i.state||(i.done===true?'Concluída':'Pendente');
+}
+function hzRenderMemberActivities(member,host){
+ if(!host)return;
+ const list=hzCollectMemberActivities(member);
+ host.innerHTML=`<div class="hz-team-activities">
+   <div class="hz-team-activities-head"><strong>Atividades atribuídas</strong><span>${list.length}</span></div>
+   ${list.length?list.map(x=>`<div class="hz-team-activity">
+      <div><b>${hzEsc(x.type)}</b> · ${hzEsc(hzActivityTitle(x))}</div>
+      <small>${hzEsc(hzActivityStatus(x))}</small>
+   </div>`).join(''):'<div class="muted">Nenhuma atividade atribuída a esta pessoa.</div>'}
+ </div>`;
+}
+window.hzCollectMemberActivities=hzCollectMemberActivities;
+window.hzRenderMemberActivities=hzRenderMemberActivities;
+
+
+
 function hzIsReferenceLinksTextarea(t){
  const n=(t.id+' '+t.name+' '+(t.placeholder||'')).toLowerCase();
  return /(referenc|reference)/.test(n) && /(link|url)/.test(n);
@@ -1175,7 +1254,7 @@ function hzSanitizeRichHtml(input){
  [...box.querySelectorAll('*')].forEach(el=>{
    if(!allowed.has(el.tagName)){el.replaceWith(...el.childNodes);return}
    [...el.attributes].forEach(a=>{
-     if(el.tagName==='SPAN' && a.name==='class' && (a.value==='hz-purple'||a.value==='hz-black')) return;
+     if(el.tagName==='SPAN' && a.name==='class' && /^(hz-purple|hz-black|hz-size-sm|hz-size-lg|hz-font-1|hz-font-2)$/.test(a.value)) return;
      if(el.tagName==='FONT' && a.name==='size' && /^[1-7]$/.test(a.value)) return;
      if(el.tagName==='FONT' && a.name==='face' && /^(Arial|Georgia)$/i.test(a.value)) return;
      el.removeAttribute(a.name);
@@ -1196,48 +1275,17 @@ function hzSyncRich(editor){
  src.dispatchEvent(new Event('input',{bubbles:true}));
  src.dispatchEvent(new Event('change',{bubbles:true}));
 }
-function hzRestoreSelection(editor){
- const sel=window.getSelection();
- if(editor._hzRange && document.contains(editor._hzRange.commonAncestorContainer)){
-   sel.removeAllRanges(); sel.addRange(editor._hzRange);
- }
-}
-function hzRememberSelection(editor){
- const sel=window.getSelection();
- if(sel&&sel.rangeCount && editor.contains(sel.anchorNode)) editor._hzRange=sel.getRangeAt(0).cloneRange();
-}
-function hzExec(editor,cmd,value){
- editor.focus(); hzRestoreSelection(editor);
- if(cmd==='undo') document.execCommand('undo',false,null);
- else if(cmd==='redo') document.execCommand('redo',false,null);
- else if(cmd==='bold') document.execCommand('bold',false,null);
- else if(cmd==='italic') document.execCommand('italic',false,null);
- else if(cmd==='upper'){
-   const sel=window.getSelection(); if(sel&&sel.rangeCount&&!sel.isCollapsed){
-     document.execCommand('insertText',false,sel.toString().toUpperCase());
-   }
- } else if(cmd==='clear'){
-   document.execCommand('removeFormat',false,null);
-   // remove our highlight/font wrappers only from selected content when possible
-   const sel=window.getSelection();
-   if(sel&&sel.rangeCount&&!sel.isCollapsed){
-     const r=sel.getRangeAt(0), frag=r.extractContents(), box=document.createElement('div');
-     box.appendChild(frag);
-     box.querySelectorAll('span,font').forEach(n=>n.replaceWith(...n.childNodes));
-     r.insertNode(box); box.replaceWith(...box.childNodes);
-   }
- } else if(cmd==='purple'||cmd==='black'){
-   const sel=window.getSelection();
-   if(sel&&sel.rangeCount&&!sel.isCollapsed){
-     const range=sel.getRangeAt(0), span=document.createElement('span');
-     span.className=cmd==='purple'?'hz-purple':'hz-black';
-     try{range.surroundContents(span)}catch(e){const frag=range.extractContents();span.appendChild(frag);range.insertNode(span)}
-   }
- } else if(cmd==='smaller') document.execCommand('decreaseFontSize',false,null);
- else if(cmd==='larger') document.execCommand('increaseFontSize',false,null);
- else if(cmd==='font') document.execCommand('fontName',false,value);
- hzSyncRich(editor); hzRememberSelection(editor);
-}
+function hzRememberSelection(editor){const s=window.getSelection();if(s&&s.rangeCount&&editor.contains(s.anchorNode))editor._hzRange=s.getRangeAt(0).cloneRange()}
+function hzRestoreSelection(editor){const s=window.getSelection();if(editor._hzRange){try{s.removeAllRanges();s.addRange(editor._hzRange);return true}catch(e){}}return false}
+function hzInitHistory(editor){if(!editor._hist){editor._hist=[hzRichToStored(editor)];editor._hi=0}}
+function hzPushHistory(editor){hzInitHistory(editor);const v=hzRichToStored(editor);if(editor._hist[editor._hi]===v)return;editor._hist=editor._hist.slice(0,editor._hi+1);editor._hist.push(v);editor._hi=editor._hist.length-1}
+function hzHistory(editor,d){hzInitHistory(editor);const n=editor._hi+d;if(n<0||n>=editor._hist.length)return;editor._hi=n;editor.innerHTML=editor._hist[n];hzSyncRich(editor);const r=document.createRange(),sel=window.getSelection();r.selectNodeContents(editor);r.collapse(false);sel.removeAllRanges();sel.addRange(r)}
+function hzWrap(editor,cls){const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return;const r=sel.getRangeAt(0);if(!editor.contains(r.commonAncestorContainer))return;const sp=document.createElement('span');sp.className=cls;sp.appendChild(r.extractContents());r.insertNode(sp);const nr=document.createRange();nr.selectNodeContents(sp);sel.removeAllRanges();sel.addRange(nr);editor._hzRange=nr.cloneRange()}
+function hzClear(editor){const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return;const r=sel.getRangeAt(0);if(!editor.contains(r.commonAncestorContainer))return;const t=document.createTextNode(r.toString());r.deleteContents();r.insertNode(t);const nr=document.createRange();nr.selectNodeContents(t);sel.removeAllRanges();sel.addRange(nr);editor._hzRange=nr.cloneRange()}
+function hzExec(editor,cmd,value){editor.focus();if(cmd==='undo'){hzHistory(editor,-1);return}if(cmd==='redo'){hzHistory(editor,1);return}hzRestoreSelection(editor);hzPushHistory(editor);
+if(cmd==='bold')document.execCommand('bold');else if(cmd==='italic')document.execCommand('italic');else if(cmd==='upper'){const x=window.getSelection();if(x&&!x.isCollapsed)document.execCommand('insertText',false,x.toString().toUpperCase())}
+else if(cmd==='clear')hzClear(editor);else if(cmd==='purple'||cmd==='black')hzWrap(editor,cmd==='purple'?'hz-purple':'hz-black');else if(cmd==='smaller')hzWrap(editor,'hz-size-sm');else if(cmd==='larger')hzWrap(editor,'hz-size-lg');else if(cmd==='font')hzWrap(editor,value==='Georgia'?'hz-font-2':'hz-font-1');
+hzSyncRich(editor);hzPushHistory(editor);hzRememberSelection(editor)}
 function hzToolbar(editor){
  const bar=document.createElement('div'); bar.className='hz-rich-toolbar';
  const addBtn=(label,cmd,title,cls='')=>{
@@ -1262,11 +1310,19 @@ function hzToolbar(editor){
 }
 function hzShouldEnhanceTextarea(t){
  if(!t || t.dataset.hzRich==='1' || t.disabled || t.readOnly) return false;
- const rows=parseInt(t.getAttribute('rows')||'0',10);
  const n=(t.id+' '+t.name+' '+t.className+' '+(t.placeholder||'')).toLowerCase();
- const skip=/(url|link|email|e-mail|telefone|phone|whatsapp|cnpj|cpf|senha|password)/;
+
+ // Nunca aplicar o editor rico em campos operacionais/administrativos.
+ const skip=/(url|link|email|e-mail|telefone|phone|whatsapp|cnpj|cpf|senha|password|agenda|calendar|evento|event|google|local|location|participante|responsavel|responsável|cliente|prospect|observa[cç][aã]o do cliente)/;
  if(skip.test(n)) return false;
- return rows>=2 || t.offsetHeight>=55 || /(roteiro|script|copy|legenda|brief|observ|descr|texto|conteudo|conteúdo|orient|objetivo|mensagem|hist|oferta|publico|público|referenc|nota|tarefa)/.test(n);
+
+ // Editor rico somente em áreas de criação de conteúdo.
+ const contentField=/(roteiro|script|copy|legenda|conteudo|conteúdo|gancho|desenvolvimento|cta|texto do post|texto do reel|carrossel|estatico|estático|reel)/.test(n);
+ if(contentField) return true;
+
+ // Se o campo estiver dentro da área/cartão de Roteiros, também pode receber o editor.
+ const ctx=t.closest('[id*="script" i],[class*="script" i],[id*="roteiro" i],[class*="roteiro" i],[data-format],[data-script-id]');
+ return !!ctx;
 }
 function hzEnhanceTextarea(t){
  if(!hzShouldEnhanceTextarea(t))return;
@@ -1275,13 +1331,21 @@ function hzEnhanceTextarea(t){
  const wrap=document.createElement('div'); wrap.className='hz-rich-wrap'; wrap.dataset.hzFor=t.id;
  const ed=document.createElement('div'); ed.className='hz-rich-editor'; ed.contentEditable='true'; ed.dataset.sourceId=t.id;
  ed.dataset.placeholder=t.placeholder||'Digite aqui...'; ed.innerHTML=hzInitialHtml(t.value);
- ed.addEventListener('input',()=>hzSyncRich(ed));
+ ed.addEventListener('input',()=>{hzSyncRich(ed);clearTimeout(ed._ht);ed._ht=setTimeout(()=>hzPushHistory(ed),250)});
  ed.addEventListener('blur',()=>hzSyncRich(ed));
- wrap.appendChild(hzToolbar(ed)); wrap.appendChild(ed);
+ wrap.appendChild(hzToolbar(ed)); wrap.appendChild(ed); hzInitHistory(ed);
  t.insertAdjacentElement('afterend',wrap);
 }
 function hzRefreshRichEditors(root=document){
- root.querySelectorAll('textarea').forEach(hzEnhanceTextarea);
+ root.querySelectorAll('textarea').forEach(t=>{
+   if(hzShouldEnhanceTextarea(t)) hzEnhanceTextarea(t);
+   else if(t.dataset.hzRich==='1'){
+     const wrap=document.querySelector(`.hz-rich-wrap[data-hz-for="${CSS.escape(t.id)}"]`);
+     if(wrap) wrap.remove();
+     t.dataset.hzRich='0';
+     t.classList.remove('hz-source-textarea');
+   }
+ });
  root.querySelectorAll('.hz-rich-editor').forEach(ed=>{
    const src=document.getElementById(ed.dataset.sourceId);
    if(src && document.activeElement!==ed && hzRichToStored(ed)!==String(src.value||'')) ed.innerHTML=hzInitialHtml(src.value);
@@ -3039,6 +3103,29 @@ window.mobileGo = function(view){
   const tab = tabs[tabMap[view]] || null;
   showView(view, tab);
 }
+
+
+function hzRefreshTeamActivityPanels(){
+ const members=window.team||window.teamMembers||window.equipe||[];
+ if(!Array.isArray(members)||!members.length)return;
+ members.forEach(member=>{
+   const email=String(member.email||'').trim(), name=String(member.name||member.nome||'').trim();
+   const candidates=[...document.querySelectorAll('[class*="team" i],[class*="equipe" i],[data-team-id],[data-member-id]')];
+   const card=candidates.find(el=>{
+     const t=(el.textContent||'').toLowerCase();
+     return (email&&t.includes(email.toLowerCase()))||(name&&t.includes(name.toLowerCase()));
+   });
+   if(card && !card.querySelector('.hz-team-activities')){
+     const host=document.createElement('div'); host.className='hz-member-activities-host';
+     card.appendChild(host); hzRenderMemberActivities(member,host);
+   }
+ });
+}
+const hzTeamObserver=new MutationObserver(()=>requestAnimationFrame(hzRefreshTeamActivityPanels));
+window.addEventListener('DOMContentLoaded',()=>{
+ hzTeamObserver.observe(document.body,{childList:true,subtree:true});
+ setInterval(hzRefreshTeamActivityPanels,1500);
+});
 
 </script>
 </body>

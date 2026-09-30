@@ -1,0 +1,18 @@
+HUMANIZA V31.52 — BRIEFING ISOLADO + EQUIPE INTERLIGADA
+
+Base: V31.51.
+
+1. Briefing
+- O componente do Briefing é ocultado ao navegar para Equipe, Captação, Calendário,
+  Clientes, Demandas, Agência, Macro, Roteiros, Orçamentos, Lixeira ou Visão Geral.
+- Nenhum briefing é apagado; é apenas isolamento visual da aba correta.
+
+2. Equipe
+- Cada integrante passa a ter uma visão administrativa de "Atividades atribuídas".
+- A visão agrega registros já existentes, sem criar coleção paralela:
+  tarefas internas, captações, demandas e itens da agenda.
+- A associação procura responsável/atribuído/participante por e-mail ou nome.
+- O administrador consegue ver quantidade, tipo, título e status das atividades.
+
+Não alterado:
+login, regras Firebase, coleções, dados existentes, Google Agenda, Orçamentos.

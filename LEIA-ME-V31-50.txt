@@ -1,0 +1,1 @@
+V31.50: corrige Desfazer/Refazer com histórico próprio; Limpar atua só na seleção; A-/A+ funcionam na seleção; mantém referências múltiplas e base anterior.

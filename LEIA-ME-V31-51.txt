@@ -1,0 +1,20 @@
+HUMANIZA V31.51 — EDITOR SOMENTE EM CONTEÚDO
+
+Base: V31.50.
+
+Correção:
+- Agenda da Equipe não recebe mais editor rico.
+- Campos de evento, observações operacionais, cliente/prospect, Google Agenda,
+  local, responsável e participantes permanecem campos simples.
+- Editor completo permanece nos campos de criação de conteúdo/Roteiros.
+- Desfazer, Refazer, Negrito, Itálico, Caixa Alta, A-/A+, fontes,
+  Roxo, Preto e Limpar continuam disponíveis onde o editor é permitido.
+- Referências múltiplas permanecem.
+
+Não alterado:
+- Login/autenticação
+- Firebase e coleções
+- Eventos já cadastrados
+- Integração Google Agenda
+- Orçamentos
+- Dados existentes
