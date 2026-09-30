@@ -1,0 +1,15 @@
+V31.39 — BASE V31.32 ESTÁVEL
+
+Adicionado sem alterar o fluxo de login/autenticação:
+- Sessão de fotos no construtor de projetos.
+- Prefill de fotografia a partir do orçamento aprovado quando os campos existirem.
+- Carga horária, fotos tratadas e condição separada para fotos originais.
+- Prazo rápido: 5, 7, 10, 15, 20, 30 dias ou Personalizado.
+- Objetivo, local, observações e data da sessão.
+- Vários links de referência em TODOS os cards (um por linha).
+- Vários links do Drive em TODOS os cards (um por linha).
+- Compatibilidade mantida com os campos antigos referenceLink e approvalLink.
+- Página compartilhada exibe Fotografia profissional e todos os links.
+
+PUBLICAÇÃO:
+Substitua index.html e roteiro.html pelos arquivos desta pasta.
