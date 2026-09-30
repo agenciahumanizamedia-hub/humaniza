@@ -1,0 +1,1163 @@
+import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, onSnapshot } from "./firebase.js";
+
+let clients=[], projects=[], briefingQuestions=[], briefingAnswers=[], editingClientId=null, selectedClientId=localStorage.getItem('hubSelectedClient')||null, selectedProjectId=localStorage.getItem('hubSelectedProject')||null, adminView=localStorage.getItem('hubAdminView')||'client';
+
+let realtimeReady=false;
+function showRealtimeNotice(){
+  let n=document.getElementById('realtimeNotice');
+  if(!n){
+    n=document.createElement('div');
+    n.id='realtimeNotice';
+    n.className='realtime-notice';
+    document.body.appendChild(n);
+  }
+  n.textContent='Atualizado agora';
+  n.classList.add('show');
+  clearTimeout(window.__rtNotice);
+  window.__rtNotice=setTimeout(()=>n.classList.remove('show'),1800);
+}
+function applyRealtimeData(newClients,newProjects){
+  clients=newClients;
+  projects=newProjects;
+  if(selectedClientId&&!clients.find(c=>c.id===selectedClientId))selectedClientId=clients[0]?.id||null;
+  if(!selectedClientId&&clients[0])selectedClientId=clients[0].id;
+  let ps=projects.filter(p=>p.clientId===selectedClientId);
+  if(selectedProjectId&&!ps.find(p=>p.id===selectedProjectId))selectedProjectId=ps[0]?.id||null;
+  if(!selectedProjectId&&ps[0])selectedProjectId=ps[0].id;
+  localStorage.setItem('hubSelectedClient',selectedClientId||'');
+  localStorage.setItem('hubSelectedProject',selectedProjectId||'');
+  render();
+  if(realtimeReady)showRealtimeNotice();
+  realtimeReady=true;
+}
+function startRealtime(){
+  let latestClients=[],latestProjects=[];
+  let gotClients=false,gotProjects=false;
+  onSnapshot(collection(db,'hubClients'),snap=>{
+    latestClients=snap.docs.map(d=>({id:d.id,...d.data()}));
+    gotClients=true;
+    if(gotProjects)applyRealtimeData(latestClients,latestProjects);
+  },err=>{
+    console.error('Erro tempo real clientes:',err);
+    alert('Erro ao acompanhar clientes em tempo real: '+(err.message||err));
+  });
+  onSnapshot(collection(db,'hubProjects'),snap=>{
+    latestProjects=snap.docs.map(d=>({id:d.id,...d.data()}));
+    gotProjects=true;
+    if(gotClients)applyRealtimeData(latestClients,latestProjects);
+  },err=>{
+    console.error('Erro tempo real projetos:',err);
+    alert('Erro ao acompanhar projetos em tempo real: '+(err.message||err));
+  });
+  onSnapshot(collection(db,'hubBriefingQuestions'),snap=>{
+    briefingQuestions=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+    render();
+  },err=>console.error('Erro ao acompanhar perguntas do briefing:',err));
+  onSnapshot(collection(db,'hubBriefingAnswers'),snap=>{
+    briefingAnswers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    render();
+  },err=>console.error('Erro ao acompanhar respostas do briefing:',err));
+}
+
+
+Object.assign(window,{openClientModal,editClient,openProjectModal,closeModals,saveClient,saveProject,selectClient,selectProject,deleteClient,copyClientLink,copyBriefingLink,applyAdminContentFilters,clearAdminContentFilters,approveStrategic,approveProduction,approveCalendar,requestAdjust,autoGrow,render,addContentItem,removeContentItem,toggleChecklist,formatText,formatHighlight,clearFormat,setTextSize,normalizeEditor,pasteClean,releaseStage,saveDraft,updateClientControl,updateProjectControl,updateStageControl,printDevelopment,printCalendar,printFullProject,setPrintMode,addBriefingQuestion,editBriefingQuestion,deleteBriefingQuestion,toggleBriefingQuestion,moveBriefingQuestion,releaseBriefingEdit,lockBriefingEdit,createRecommendedBriefingQuestions,showBriefingModel,showClientWorkspace,setBriefingStatus,duplicateBriefingQuestion,previewBriefing,toggleCollapse,openContentLink,toggleProjectTypeFields,copyCaptureProjectLink});
+
+function setPrintMode(mode){
+  document.body.setAttribute('data-print-mode', mode);
+  setTimeout(()=>window.print(), 120);
+}
+function printDevelopment(){setPrintMode('development');}
+function printCalendar(){setPrintMode('calendar');}
+function printFullProject(){setPrintMode('full');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function autoGrow(el){el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px'}
+function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'))}
+
+function normalizeExternalUrl(value){
+  const url=String(value||'').trim();
+  if(!url)return '';
+  if(/^https?:\/\//i.test(url))return url;
+  return 'https://'+url.replace(/^\/\//,'');
+}
+function openContentLink(button,fieldName){
+  const box=button?.closest?.('[data-item]');
+  const field=box?.querySelector?.(`[data-field="${fieldName}"]`);
+  const url=normalizeExternalUrl(field?.value||'');
+  if(!url){
+    alert(fieldName==='driveLink'?'Cole primeiro o link do Drive.':'Cole primeiro o link de referência.');
+    field?.focus?.();
+    return;
+  }
+  window.open(url,'_blank','noopener,noreferrer');
+}
+
+function formatText(cmd,value=null){
+  document.execCommand(cmd,false,value);
+}
+function formatHighlight(){
+  document.execCommand('foreColor',false,'#FFFFFF');
+  document.execCommand('backColor',false,'#111111');
+}
+function clearFormat(){
+  document.execCommand('removeFormat',false,null);
+  document.execCommand('foreColor',false,'#1C1C1C');
+}
+function setTextSize(size){
+  document.execCommand('fontSize', false, '7');
+  document.querySelectorAll('font[size="7"]').forEach(el=>{
+    const span=document.createElement('span');
+    span.style.fontSize=size;
+    span.innerHTML=el.innerHTML;
+    el.replaceWith(span);
+  });
+}
+function normalizeEditor(){
+  const selection=window.getSelection();
+  let target=null;
+  if(selection && selection.anchorNode){
+    target=selection.anchorNode.nodeType===1?selection.anchorNode:selection.anchorNode.parentElement;
+    target=target?.closest?.('.rich-editor');
+  }
+  if(!target)target=document.activeElement?.closest?.('.rich-editor')||document.activeElement;
+  if(!target || !target.classList?.contains('rich-editor'))return;
+  const text=target.innerText;
+  target.innerHTML=text.replace(/\n/g,'<br>');
+  target.style.fontSize='';
+  target.style.fontFamily='';
+  target.style.color='';
+}
+function pasteClean(e){
+  e.preventDefault();
+  const text=(e.clipboardData||window.clipboardData).getData('text/plain');
+  document.execCommand('insertText',false,text);
+}
+
+function htmlToText(html){
+  const div=document.createElement('div');
+  div.innerHTML=html||'';
+  return div.innerText||'';
+}
+function richField(label,id,value){
+  return `<div class="content-box rich-box">
+    <label>${label}</label>
+    <div class="rich-toolbar">
+      <button type="button" onclick="setTextSize('14px')" title="Texto pequeno">Pequeno</button><button type="button" onclick="setTextSize('16px')" title="Texto normal">Normal</button><button type="button" onclick="setTextSize('20px')" title="Subtítulo">Subtítulo</button><button type="button" onclick="setTextSize('26px')" title="Título">Título</button><button type="button" onclick="formatText('bold')" title="Negrito">B</button><button type="button" onclick="formatText('foreColor','#5B56FF')" title="Letra roxa">Roxo</button><button type="button" onclick="formatText('foreColor','#1C1C1C')" title="Letra preta">Preto</button><button type="button" onclick="formatText('foreColor','#FFFFFF')" title="Letra branca">Branco</button><button type="button" onclick="formatHighlight()" title="Fundo preto com letra branca">Destaque</button><button type="button" onclick="normalizeEditor()" title="Padronizar texto deste campo">Normalizar</button><button type="button" onclick="clearFormat()" title="Remover formatação">Limpar</button>
+    </div>
+    <div class="rich-editor" onpaste="pasteClean(event)" id="${id}" contenteditable="true" oninput="this.dataset.changed='1'">${value||''}</div>
+  </div>`;
+}
+function richValue(id,fallback=''){
+  const el=document.getElementById(id);
+  if(!el)return fallback||'';
+  return el.innerHTML;
+}
+
+function statusPill(s){if(s==='Aprovado')return'<span class="pill green">Aprovado</span>';if(s==='Ajustes solicitados')return'<span class="pill yellow">Ajustes</span>';if(s==='Bloqueado')return'<span class="pill lock">Bloqueado</span>';if(s==='Em andamento'||s==='Em desenvolvimento')return'<span class="pill purple">'+s+'</span>';return'<span class="pill yellow">'+s+'</span>'}
+function progress(p){let n=0;if(p.strategicStatus==='Aprovado')n+=25;if(p.productionStatus==='Aprovado')n+=25;if(p.calendarStatus==='Aprovado')n+=25;if(p.approvalStatus==='Finalizado')n+=25;return n}
+
+function defaultChecklist(type){
+  if(type === 'roteiro'){
+    return [
+      {label:'Conteúdo criado',done:false},
+      {label:'Revisado internamente',done:false},
+      {label:'Cliente aprovou',done:false},
+      {label:'Gravado',done:false},
+      {label:'Editado',done:false},
+      {label:'Legenda pronta',done:false},
+      {label:'Publicado',done:false}
+    ];
+  }
+  return [
+    {label:'Conteúdo criado',done:false},
+    {label:'Revisado internamente',done:false},
+    {label:'Cliente aprovou',done:false},
+    {label:'Arte criada',done:false},
+    {label:'Legenda pronta',done:false},
+    {label:'Publicado',done:false}
+  ];
+}
+function newContentItem(type){
+  const map={roteiro:'Roteiro',carrossel:'Carrossel',estatico:'Estático'};
+  return {
+    id:uid(),
+    type,
+    title:map[type]||'Conteúdo',
+    driveLink:'',
+    referenceLink:'',
+    postDate:'',
+    week:'Semana 1',
+    itemStatus:'Em criação',
+    responsible:'',
+    fields:{tema:'',objetivo:'',gancho:'',desenvolvimento:'',cta:'',slides:'',mensagem:'',legenda:''},
+    checklist:defaultChecklist(type),
+    note:''
+  }
+}
+
+function baseCaptureProject(period,clientId,captureDate='',captureTime='',captureLocation=''){
+  return {
+    clientId,period,projectType:'capture',
+    captureDate,captureTime,captureLocation,
+    projectState:'Em andamento',
+    strategicStatus:'Aprovado',
+    productionStatus:'Em desenvolvimento',
+    calendarStatus:'Aprovado',
+    approvalStatus:'Em andamento',
+    history:['Equipe Humaniza criou uma captação avulsa.'],
+    strategic:{macro:'',editorial:'',themes:'',creative:'',note:''},
+    production:{items:[newContentItem('roteiro')],note:''},
+    calendar:{content:'',note:''}
+  };
+}
+function baseProject(period,clientId){return{clientId,period,strategicStatus:'Aguardando aprovação',productionStatus:'Bloqueado',calendarStatus:'Bloqueado',approvalStatus:'Bloqueado',history:['Equipe Humaniza criou o projeto.'],strategic:{macro:'Objetivo principal do mês.',editorial:'Autoridade, conexão, prova e conversão.',themes:'Tema 01\nTema 02\nTema 03\nTema 04',creative:'Tom humano, claro e estratégico.',note:''},production:{items:[newContentItem('roteiro'),newContentItem('carrossel'),newContentItem('estatico')],note:''},calendar:{content:'Calendário Editorial\n\n01/07:\nFormato:\nTema:\nStatus:',note:''}}}
+
+async function loadData(){clients=(await getDocs(collection(db,'hubClients'))).docs.map(d=>({id:d.id,...d.data()}));projects=(await getDocs(collection(db,'hubProjects'))).docs.map(d=>({id:d.id,...d.data()}));if(selectedClientId&&!clients.find(c=>c.id===selectedClientId))selectedClientId=clients[0]?.id||null;if(!selectedClientId&&clients[0])selectedClientId=clients[0].id;let ps=projects.filter(p=>p.clientId===selectedClientId);if(selectedProjectId&&!ps.find(p=>p.id===selectedProjectId))selectedProjectId=ps[0]?.id||null;if(!selectedProjectId&&ps[0])selectedProjectId=ps[0].id;localStorage.setItem('hubSelectedClient',selectedClientId||'');localStorage.setItem('hubSelectedProject',selectedProjectId||'');render()}
+function currentClient(){return clients.find(c=>c.id===selectedClientId)}
+function currentProject(){return projects.find(p=>p.id===selectedProjectId)}
+function openClientModal(){
+  editingClientId=null;
+  document.getElementById('clientModalTitle').textContent='Novo cliente';
+  document.getElementById('clientSaveButton').textContent='Salvar cliente';
+  clientName.value='';clientEmail.value='';responsibleName.value='';responsiblePhone.value='';clientStatus.value='Ativo';clientAccess.value='Liberado';clientService.value='Não definido';clientServiceCustom.value='';clientObs.value='';toggleCustomServiceField();clientModal.classList.add('active')
+}
+function editClient(id){
+  const c=clients.find(x=>x.id===id);if(!c)return;
+  editingClientId=id;
+  document.getElementById('clientModalTitle').textContent='Editar cliente';
+  document.getElementById('clientSaveButton').textContent='Salvar alterações';
+  clientName.value=c.name||'';clientEmail.value=c.email||'';responsibleName.value=c.responsibleName||'';responsiblePhone.value=c.responsiblePhone||'';clientStatus.value=c.status||'Ativo';clientAccess.value=c.access||'Liberado';clientService.value=c.serviceType||'Não definido';clientServiceCustom.value=c.serviceCustom||'';clientObs.value=c.obs||'';toggleCustomServiceField();clientModal.classList.add('active')
+}
+function toggleCustomServiceField(){
+  const wrap=document.getElementById('clientServiceCustomWrap');
+  if(wrap)wrap.classList.toggle('hidden',document.getElementById('clientService')?.value!=='Personalizado');
+}
+window.toggleCustomServiceField=toggleCustomServiceField;
+function openProjectModal(){if(!clients.length){alert('Cadastre um cliente primeiro.');return}projectClient.innerHTML=clients.map(c=>`<option value="${c.id}" ${c.id===selectedClientId?'selected':''}>${c.name}</option>`).join('');projectType.value='monthly';projectPeriod.value='';projectCaptureDate.value='';projectCaptureTime.value='';projectCaptureLocation.value='';updateCopyOptions();projectClient.onchange=updateCopyOptions;toggleProjectTypeFields();projectModal.classList.add('active')}
+function toggleProjectTypeFields(){
+  const capture=projectType?.value==='capture';
+  captureDateWrap?.classList.toggle('hidden',!capture);
+  captureTimeWrap?.classList.toggle('hidden',!capture);
+  captureLocationWrap?.classList.toggle('hidden',!capture);
+  projectCopyWrap?.classList.toggle('hidden',capture);
+  if(projectPeriodLabel)projectPeriodLabel.textContent=capture?'Nome da captação':'Período';
+  if(projectPeriod)projectPeriod.placeholder=capture?'Ex: Captação Rejane • Outubro 2026':'Ex: Julho 2026';
+}
+function updateCopyOptions(){let list=projects.filter(p=>p.clientId===projectClient.value&&(p.projectType||'monthly')==='monthly');projectCopy.innerHTML='<option value="">Começar em branco</option>'+list.map(p=>`<option value="${p.id}">Duplicar ${p.period}</option>`).join('')}
+async function saveClient(){
+  let name=clientName.value.trim();if(!name){alert('Coloque o nome do cliente.');return}
+  const payload={name,email:clientEmail.value.trim(),responsibleName:responsibleName.value.trim(),responsiblePhone:responsiblePhone.value.trim().replace(/\D/g,''),status:clientStatus.value,access:clientAccess.value,serviceType:clientService.value,serviceCustom:clientService.value==='Personalizado'?clientServiceCustom.value.trim():'',obs:clientObs.value.trim(),updatedAt:serverTimestamp()};
+  if(editingClientId){
+    await updateDoc(doc(db,'hubClients',editingClientId),payload);selectedClientId=editingClientId;
+  }else{
+    const r=await addDoc(collection(db,'hubClients'),{...payload,createdAt:serverTimestamp()});selectedClientId=r.id;selectedProjectId=null;
+  }
+  editingClientId=null;closeModals();await loadData()
+}
+async function saveProject(){
+  let clientId=projectClient.value,period=projectPeriod.value.trim(),type=projectType?.value||'monthly';
+  if(!period){alert(type==='capture'?'Coloque um nome para a captação.':'Coloque o período.');return}
+  let data,copyId=projectCopy.value;
+  if(type==='capture'){
+    data=baseCaptureProject(period,clientId,projectCaptureDate.value,projectCaptureTime.value,projectCaptureLocation.value.trim());
+  }else if(copyId){
+    let old=projects.find(p=>p.id===copyId);data=JSON.parse(JSON.stringify(old));delete data.id;data.period=period;data.clientId=clientId;data.projectType='monthly';data.history=['Equipe Humaniza criou o projeto duplicando '+old.period+'.'];data.strategicStatus='Aguardando aprovação';data.productionStatus='Bloqueado';data.calendarStatus='Bloqueado';data.approvalStatus='Bloqueado';
+  }else{
+    data=baseProject(period,clientId);data.projectType='monthly';
+  }
+  data.createdAt=serverTimestamp();data.updatedAt=serverTimestamp();
+  let r=await addDoc(collection(db,'hubProjects'),data);selectedClientId=clientId;selectedProjectId=r.id;closeModals();await loadData()
+}
+function selectClient(id){captureUiState();selectedClientId=id;selectedProjectId=projects.filter(p=>p.clientId===id)[0]?.id||null;preservedUiState=null;localStorage.setItem('hubSelectedClient',id);localStorage.setItem('hubSelectedProject',selectedProjectId||'');render()}
+function selectProject(id){captureUiState();selectedProjectId=id;preservedUiState=null;localStorage.setItem('hubSelectedProject',id);render()}
+function clientServiceLabel(c){
+  if(!c)return 'Não definido';
+  if(c.serviceType==='Personalizado')return c.serviceCustom||'Personalizado';
+  return c.serviceType||'Não definido';
+}
+let preservedUiState=null;
+
+function uiStorageKey(){
+  return 'hubUiState:v2:'+(adminView||'client')+':'+(selectedClientId||'none')+':'+(selectedProjectId||'none');
+}
+
+function readPersistedUiState(){
+  try{return JSON.parse(localStorage.getItem(uiStorageKey())||'null');}
+  catch(e){return null;}
+}
+
+function persistUiState(state){
+  if(!state)return;
+  preservedUiState=state;
+  try{localStorage.setItem(uiStorageKey(),JSON.stringify(state));}catch(e){}
+}
+
+function collapseKeyFor(el,index){
+  if(el.dataset.item)return 'item:'+el.dataset.item;
+  const title=(el.querySelector(':scope > .stage-head h2, :scope > .content-item-head h4, :scope > h2')?.textContent||('section-'+index)).trim();
+  return 'section:'+title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-');
+}
+
+function findUiAnchor(){
+  const nodes=[...document.querySelectorAll('#workspace .collapsible-card[data-collapse-key]')];
+  if(!nodes.length)return {anchorKey:'',anchorOffset:null};
+
+  const headerBottom=document.querySelector('header')?.getBoundingClientRect().bottom||0;
+  let best=null;
+  let bestDistance=Infinity;
+
+  nodes.forEach(el=>{
+    const rect=el.getBoundingClientRect();
+    if(rect.bottom<=headerBottom)return;
+    const distance=Math.abs(rect.top-headerBottom);
+    if(distance<bestDistance){
+      bestDistance=distance;
+      best=el;
+    }
+  });
+
+  if(!best)best=nodes[0];
+  return {
+    anchorKey:best?.dataset?.collapseKey||'',
+    anchorOffset:best?best.getBoundingClientRect().top:null
+  };
+}
+
+function captureUiState(options={}){
+  const currentPanels=[...document.querySelectorAll('#workspace .collapsible-card[data-collapse-key]')];
+  const previous=readPersistedUiState()||{};
+  const panels={...(previous.panels||{})};
+
+  currentPanels.forEach(el=>{
+    panels[el.dataset.collapseKey]=el.classList.contains('collapsed');
+  });
+
+  const active=document.activeElement;
+  const anchor=findUiAnchor();
+
+  const state={
+    scrollY:window.scrollY,
+    panels,
+    anchorKey:anchor.anchorKey||previous.anchorKey||'',
+    anchorOffset:anchor.anchorOffset!==null?anchor.anchorOffset:(previous.anchorOffset??null),
+    focusId:active?.id||'',
+    focusItem:active?.closest?.('[data-item]')?.dataset.item||'',
+    focusField:active?.dataset?.field||'',
+    selectionStart:typeof active?.selectionStart==='number'?active.selectionStart:null,
+    selectionEnd:typeof active?.selectionEnd==='number'?active.selectionEnd:null,
+    pendingTargetItemId:options.pendingTargetItemId!==undefined?options.pendingTargetItemId:(previous.pendingTargetItemId||'')
+  };
+
+  persistUiState(state);
+  return state;
+}
+
+function getSavedUiState(){
+  return preservedUiState||readPersistedUiState();
+}
+
+function applyCollapsedState(el,collapsed){
+  el.classList.toggle('collapsed',!!collapsed);
+  const btn=el.querySelector(':scope > .stage-head .btn-collapse, :scope > .content-item-head .btn-collapse');
+  if(btn){
+    btn.setAttribute('aria-expanded',collapsed?'false':'true');
+    btn.textContent=collapsed?'Abrir':'Recolher';
+  }
+}
+
+function restoreUiState(){
+  const state=getSavedUiState();
+  if(!state)return;
+
+  document.querySelectorAll('#workspace .collapsible-card[data-collapse-key]').forEach(el=>{
+    if(Object.prototype.hasOwnProperty.call(state.panels||{},el.dataset.collapseKey)){
+      applyCollapsedState(el,!!state.panels[el.dataset.collapseKey]);
+    }
+  });
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    let restoredByTarget=false;
+
+    if(state.pendingTargetItemId){
+      const newItem=document.querySelector(`[data-item="${state.pendingTargetItemId}"]`);
+      if(newItem){
+        applyCollapsedState(newItem,false);
+        const parentStage=newItem.closest('.stage.collapsible-card');
+        if(parentStage)applyCollapsedState(parentStage,false);
+
+        newItem.scrollIntoView({behavior:'auto',block:'center'});
+        restoredByTarget=true;
+
+        state.pendingTargetItemId='';
+        state.scrollY=window.scrollY;
+        const newAnchor=findUiAnchor();
+        state.anchorKey=newAnchor.anchorKey||state.anchorKey;
+        state.anchorOffset=newAnchor.anchorOffset!==null?newAnchor.anchorOffset:state.anchorOffset;
+        persistUiState(state);
+      }
+    }
+
+    if(!restoredByTarget){
+      const anchor=state.anchorKey
+        ?document.querySelector(`#workspace .collapsible-card[data-collapse-key="${CSS.escape(state.anchorKey)}"]`)
+        :null;
+
+      if(anchor&&state.anchorOffset!==null&&state.anchorOffset!==undefined){
+        const currentTop=anchor.getBoundingClientRect().top;
+        const delta=currentTop-Number(state.anchorOffset);
+        if(Math.abs(delta)>1)window.scrollBy(0,delta);
+      }else{
+        window.scrollTo(0,Number(state.scrollY)||0);
+      }
+    }
+
+    let target=state.focusId?document.getElementById(state.focusId):null;
+    if(!target&&state.focusItem&&state.focusField){
+      target=document.querySelector(`[data-item="${state.focusItem}"] [data-field="${state.focusField}"]`);
+    }
+
+    if(target){
+      target.focus({preventScroll:true});
+      if(typeof target.setSelectionRange==='function'&&state.selectionStart!==null){
+        try{target.setSelectionRange(state.selectionStart,state.selectionEnd??state.selectionStart);}catch(e){}
+      }
+    }
+
+    state.scrollY=window.scrollY;
+    persistUiState(state);
+    preservedUiState=null;
+  }));
+}
+
+function resetUiState(){
+  preservedUiState=null;
+  try{localStorage.removeItem(uiStorageKey());}catch(e){}
+}
+
+function toggleCollapse(button){
+  const target=button?.closest('.collapsible-card');
+  if(!target)return;
+
+  const beforeTop=button.getBoundingClientRect().top;
+  const collapsed=!target.classList.contains('collapsed');
+  applyCollapsedState(target,collapsed);
+
+  const state=captureUiState();
+  state.panels[target.dataset.collapseKey]=collapsed;
+  persistUiState(state);
+
+  requestAnimationFrame(()=>{
+    const afterTop=button.getBoundingClientRect().top;
+    const delta=afterTop-beforeTop;
+    if(Math.abs(delta)>1)window.scrollBy(0,delta);
+
+    const refreshed=captureUiState();
+    refreshed.panels[target.dataset.collapseKey]=collapsed;
+    persistUiState(refreshed);
+  });
+}
+
+function enhanceCollapsibles(){
+  const saved=getSavedUiState();
+
+  document.querySelectorAll('#workspace .stage, #workspace .content-item').forEach((el,index)=>{
+    if(el.dataset.collapseReady==='1')return;
+
+    el.dataset.collapseReady='1';
+    el.classList.add('collapsible-card');
+    el.dataset.collapseKey=collapseKeyFor(el,index);
+
+    const head=el.querySelector(':scope > .stage-head, :scope > .content-item-head');
+    if(!head)return;
+
+    const body=document.createElement('div');
+    body.className='collapsible-body';
+    [...el.children].filter(child=>child!==head).forEach(child=>body.appendChild(child));
+    el.appendChild(body);
+
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='btn-collapse no-print';
+    btn.onclick=()=>toggleCollapse(btn);
+    head.appendChild(btn);
+
+    const hasSaved=Object.prototype.hasOwnProperty.call(saved?.panels||{},el.dataset.collapseKey);
+    const defaultCollapsed=index>=2;
+    const collapsed=hasSaved?!!saved.panels[el.dataset.collapseKey]:defaultCollapsed;
+    applyCollapsedState(el,collapsed);
+  });
+
+  restoreUiState();
+}
+
+function refreshWorkspacePreservingUi(){
+  captureUiState();
+  renderWorkspace();
+  setTimeout(()=>{
+    document.querySelectorAll('textarea').forEach(t=>autoGrow(t));
+    enhanceCollapsibles();
+  },0);
+}
+
+function renderDashboard(){dashboard.innerHTML=`<div class="dashboard-card"><span class="muted">Clientes</span><strong>${clients.length}</strong></div><div class="dashboard-card"><span class="muted">Projetos</span><strong>${projects.length}</strong></div><div class="dashboard-card"><span class="muted">Aguardando</span><strong>${projects.filter(x=>x.strategicStatus!=='Aprovado').length}</strong></div><div class="dashboard-card"><span class="muted">Finalizados</span><strong>${projects.filter(x=>progress(x)===100).length}</strong></div>`}
+function renderClients(){let q=(searchClient.value||'').toLowerCase(),list=clients.filter(c=>c.name.toLowerCase().includes(q));clientsList.innerHTML=list.length?list.map(c=>{let count=projects.filter(p=>p.clientId===c.id).length,first=projects.find(p=>p.clientId===c.id);return`<div class="client-card ${c.id===selectedClientId?'active':''}" onclick="selectClient('${c.id}')"><h3>${c.name}</h3><div class="muted">Resp.: ${c.responsibleName||'Não definido'}<br>Serviço: ${escapeHtml(clientServiceLabel(c))}<br>${count} projeto(s)</div><div class="pills"><span class="pill">${c.status}</span><span class="pill">${c.access}</span>${first?statusPill(first.strategicStatus):''}</div></div>`}).join(''):'<div class="empty">Nenhum cliente.</div>'}
+
+function normalizeFilterText(value){
+  const div=document.createElement('div');
+  div.innerHTML=value||'';
+  return (div.innerText||div.textContent||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'');
+}
+
+function renderContentFilters(scope){
+  return `<div class="admin-control-panel no-print">
+    <div class="control-head">
+      <h3>Localizar conteúdos</h3>
+      <p>Use a busca, a semana e o status para encontrar um conteúdo com mais facilidade.</p>
+    </div>
+    <div class="control-grid">
+      <label class="control-field">
+        <span>Buscar palavra</span>
+        <input id="${scope}_content_search" placeholder="Tema, objetivo, gancho, CTA..." oninput="applyAdminContentFilters('${scope}')">
+      </label>
+      <label class="control-field">
+        <span>Semana</span>
+        <select id="${scope}_content_week" onchange="applyAdminContentFilters('${scope}')">
+          <option value="">Todas</option>
+          <option>Semana 1</option>
+          <option>Semana 2</option>
+          <option>Semana 3</option>
+          <option>Semana 4</option>
+          <option>Semana 5</option>
+        </select>
+      </label>
+      <label class="control-field">
+        <span>Status</span>
+        <select id="${scope}_content_status" onchange="applyAdminContentFilters('${scope}')">
+          <option value="">Todos</option>
+          <option>Em criação</option>
+          <option>Aguardando aprovação</option>
+          <option>Aprovado</option>
+          <option>Ajustes</option>
+          <option>Postado</option>
+        </select>
+      </label>
+      <label class="control-field">
+        <span>Resultados</span>
+        <div class="pills"><span class="pill purple" id="${scope}_content_count">Todos</span></div>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn-dark" type="button" onclick="clearAdminContentFilters('${scope}')">Limpar filtros</button>
+    </div>
+  </div>`;
+}
+
+function applyAdminContentFilters(scope='admin'){
+  const search=normalizeFilterText(document.getElementById(scope+'_content_search')?.value||'');
+  const week=document.getElementById(scope+'_content_week')?.value||'';
+  const status=document.getElementById(scope+'_content_status')?.value||'';
+  const items=[...document.querySelectorAll(`.content-item[data-filter-scope="${scope}"]`)];
+  let visible=0;
+
+  items.forEach(item=>{
+    const text=normalizeFilterText(item.dataset.search||item.innerText);
+    const matchesSearch=!search||text.includes(search);
+    const matchesWeek=!week||item.dataset.week===week;
+    const matchesStatus=!status||item.dataset.status===status;
+    const show=matchesSearch&&matchesWeek&&matchesStatus;
+    item.classList.toggle('hidden',!show);
+    if(show)visible++;
+  });
+
+  const count=document.getElementById(scope+'_content_count');
+  if(count)count.textContent=items.length?`${visible} de ${items.length}`:'Nenhum';
+  const empty=document.getElementById(scope+'_content_empty');
+  if(empty)empty.classList.toggle('hidden',visible!==0||items.length===0);
+}
+
+function clearAdminContentFilters(scope='admin'){
+  const ids=[scope+'_content_search',scope+'_content_week',scope+'_content_status'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  applyAdminContentFilters(scope);
+}
+
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+function questionTypeLabel(type){
+  return ({text:'Resposta curta',textarea:'Resposta longa',number:'Número',date:'Data',url:'Link',yesno:'Sim ou não'})[type]||'Resposta longa';
+}
+function briefingCategoryLabel(category){
+  return String(category||'Geral').trim()||'Geral';
+}
+function groupBriefingQuestions(questions){
+  const groups=[];
+  questions.forEach(q=>{
+    const category=briefingCategoryLabel(q.category);
+    let group=groups.find(g=>g.category===category);
+    if(!group){group={category,questions:[]};groups.push(group);}
+    group.questions.push(q);
+  });
+  return groups;
+}
+function isBriefingQuestionForClient(q,clientId){
+  const owner=String(q?.clientId||'').trim();
+  return !owner||owner===String(clientId||'').trim();
+}
+function questionsForClient(clientId){
+  return briefingQuestions
+    .filter(q=>q.active!==false&&isBriefingQuestionForClient(q,clientId))
+    .sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+}
+
+function showBriefingModel(){
+  adminView='briefing-model';
+  localStorage.setItem('hubAdminView',adminView);
+  renderWorkspace();
+}
+function showClientWorkspace(){
+  adminView='client';
+  localStorage.setItem('hubAdminView',adminView);
+  renderWorkspace();
+}
+function renderBriefingModel(){
+  const ordered=[...briefingQuestions].sort((a,b)=>(a.order||0)-(b.order||0));
+  return `<div class="panel">
+    <div class="top" style="margin:0">
+      <div><h2>Modelo de Briefing</h2><p class="muted">Gerencie todas as perguntas que poderão aparecer nos briefings dos clientes.</p></div>
+      <button class="btn-dark" onclick="showClientWorkspace()">Voltar aos clientes</button>
+    </div>
+    <div class="actions">
+      <button onclick="addBriefingQuestion(true)">+ Nova pergunta</button>
+      ${!briefingQuestions.length?'<button class="btn-dark" onclick="createRecommendedBriefingQuestions()">Importar perguntas padrão</button>':''}
+    </div>
+    <div class="admin-control-panel">
+      <div class="control-head"><h3>Todas as perguntas</h3><p>As perguntas desativadas continuam visíveis aqui para você corrigir, reativar ou excluir.</p></div>
+      ${ordered.length?ordered.map((q,index)=>{
+        const clientName=q.clientId?(clients.find(c=>c.id===q.clientId)?.name||'Cliente não encontrado'):'Todos os clientes';
+        return `<div class="content-box">
+          <label>${index+1}. ${escapeHtml(q.text)}</label>
+          ${q.description?`<div class="muted">${escapeHtml(q.description)}</div>`:''}
+          <div class="pills"><span class="pill">${questionTypeLabel(q.type)}</span><span class="pill ${q.required!==false?'green':'yellow'}">${q.required!==false?'Obrigatória':'Opcional'}</span><span class="pill ${q.active!==false?'purple':'lock'}">${q.active!==false?'Ativa':'Desativada'}</span><span class="pill">${escapeHtml(clientName)}</span></div>
+          <div class="actions"><button class="btn-dark" onclick="editBriefingQuestion('${q.id}')">Editar</button><button class="btn-dark" onclick="moveBriefingQuestion('${q.id}',-1)">Subir</button><button class="btn-dark" onclick="moveBriefingQuestion('${q.id}',1)">Descer</button><button class="btn-yellow" onclick="toggleBriefingQuestion('${q.id}')">${q.active!==false?'Desativar':'Ativar'}</button><button class="btn-danger" onclick="deleteBriefingQuestion('${q.id}')">Excluir</button></div>
+        </div>`;
+      }).join(''):'<div class="empty">Nenhuma pergunta cadastrada. Clique em Importar perguntas padrão.</div>'}
+    </div>
+  </div>`;
+}
+
+function latestBriefingAnswer(clientId){
+  return briefingAnswers.filter(a=>a.clientId===clientId).sort((a,b)=>(b.version||0)-(a.version||0))[0]||null;
+}
+function renderAnswerValue(value){
+  if(value===undefined||value===null||value==='')return 'Não informado';
+  return escapeHtml(value).replace(/\n/g,'<br>');
+}
+function renderBriefingPreviewInput(q){
+  if(q.type==='text')return '<input disabled placeholder="Resposta curta do cliente">';
+  if(q.type==='number')return '<input type="number" disabled placeholder="0">';
+  if(q.type==='date')return '<input type="date" disabled>';
+  if(q.type==='url')return '<input type="url" disabled placeholder="https://">';
+  if(q.type==='yesno')return '<select disabled><option>Selecione</option><option>Sim</option><option>Não</option></select>';
+  return '<textarea disabled placeholder="Resposta do cliente"></textarea>';
+}
+function renderBriefingAdmin(c){
+  const questions=briefingQuestions.filter(q=>isBriefingQuestionForClient(q,c.id)).sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+  const activeQuestions=questions.filter(q=>q.active!==false);
+  const groupedQuestions=groupBriefingQuestions(questions);
+  const groupedActive=groupBriefingQuestions(activeQuestions);
+  const latest=latestBriefingAnswer(c.id);
+  const rawStatus=c.briefingStatus||'Em edição';
+  const status=latest&&rawStatus!=='Liberado'&&rawStatus!=='Em edição'&&rawStatus!=='Bloqueado'?'Respondido':rawStatus;
+  const statusClass=status==='Liberado'?'purple':status==='Respondido'?'green':status==='Bloqueado'?'lock':'yellow';
+  const answeredCount=latest?activeQuestions.filter(q=>String(latest.answers?.[q.id]??'').trim()!=='').length:0;
+  const completion=activeQuestions.length?Math.round((answeredCount/activeQuestions.length)*100):0;
+  return `<div class="stage">
+    <div class="stage-head">
+      <div><h2>Briefing estratégico</h2><p>Revise toda a estrutura antes de liberar. O cliente apenas responde e nunca consegue alterar as perguntas.</p></div>
+      <span class="pill ${statusClass}">${escapeHtml(status)}</span>
+    </div>
+    <div class="content-grid">
+      <div class="content-box"><label>Perguntas cadastradas</label><div class="readonly-box">${questions.length}</div></div>
+      <div class="content-box"><label>Perguntas ativas</label><div class="readonly-box">${activeQuestions.length}</div></div>
+      <div class="content-box"><label>Respondidas</label><div class="readonly-box">${answeredCount}</div></div>
+      <div class="content-box"><label>Preenchimento</label><div class="readonly-box">${completion}%</div></div>
+    </div>
+    <div class="actions">
+      <button onclick="addBriefingQuestion()">+ Adicionar pergunta</button>
+      <button class="btn-dark" onclick="createRecommendedBriefingQuestions()">Importar briefing estratégico completo</button>
+      <button class="btn-dark" onclick="previewBriefing()">Visualizar como cliente</button>
+      <button class="btn-dark" onclick="copyBriefingLink()">Copiar link do briefing</button>
+    </div>
+    <div class="admin-control-panel">
+      <div class="control-head"><h3>Controle de acesso</h3><p>O link só deve ser enviado quando o status estiver como Liberado.</p></div>
+      <div class="actions">
+        <button class="btn-yellow" onclick="setBriefingStatus('Em edição')">Manter em edição</button>
+        <button class="btn-green" onclick="setBriefingStatus('Liberado')">Liberar para responder</button>
+        <button class="btn-danger" onclick="setBriefingStatus('Bloqueado')">Bloquear acesso</button>
+      </div>
+      <div class="pills"><span class="pill yellow">Em edição: cliente aguarda</span><span class="pill purple">Liberado: cliente responde</span><span class="pill green">Respondido: envio concluído</span><span class="pill lock">Bloqueado: acesso fechado</span></div>
+    </div>
+    <div class="admin-control-panel">
+      <div class="control-head"><h3>Gerenciar perguntas</h3><p>As perguntas estão separadas por etapa estratégica. Você pode editar, duplicar, reordenar, desativar ou excluir sem alterar o restante do portal.</p></div>
+      ${questions.length?groupedQuestions.map(group=>`<div class="content-box"><h3>${escapeHtml(group.category)}</h3><p class="muted">${group.questions.length} pergunta(s) nesta etapa.</p></div>${group.questions.map((q,index)=>`<div class="content-box">
+        <label>${escapeHtml(q.text)}</label>
+        ${q.description?`<div class="muted">${escapeHtml(q.description)}</div>`:''}
+        <div class="pills"><span class="pill">${escapeHtml(group.category)}</span><span class="pill">${questionTypeLabel(q.type)}</span><span class="pill ${q.required!==false?'green':'yellow'}">${q.required!==false?'Obrigatória':'Opcional'}</span><span class="pill ${q.active!==false?'purple':'lock'}">${q.active!==false?'Ativa':'Desativada'}</span></div>
+        <div class="actions"><button class="btn-dark" onclick="editBriefingQuestion('${q.id}')">Editar</button><button class="btn-dark" onclick="duplicateBriefingQuestion('${q.id}')">Duplicar</button><button class="btn-dark" onclick="moveBriefingQuestion('${q.id}',-1)">Subir</button><button class="btn-dark" onclick="moveBriefingQuestion('${q.id}',1)">Descer</button><button class="btn-yellow" onclick="toggleBriefingQuestion('${q.id}')">${q.active!==false?'Desativar':'Ativar'}</button><button class="btn-danger" onclick="deleteBriefingQuestion('${q.id}')">Excluir</button></div>
+      </div>`).join('')}`).join(''):'<div class="empty">Nenhuma pergunta cadastrada. Clique em “Importar briefing estratégico completo”.</div>'}
+    </div>
+    <div class="admin-control-panel">
+      <div class="control-head"><h3>Prévia real antes de enviar</h3><p>Esta é a ordem e a estrutura que o cliente verá. Os campos aparecem bloqueados somente nesta visualização administrativa.</p></div>
+      ${activeQuestions.length?groupedActive.map(group=>`<div class="content-box"><h3>${escapeHtml(group.category)}</h3></div><div class="form">${group.questions.map((q,index)=>`<div class="full content-box"><label>${escapeHtml(q.text)} ${q.required!==false?'<strong>*</strong>':''}</label>${q.description?`<div class="muted">${escapeHtml(q.description)}</div>`:''}${renderBriefingPreviewInput(q)}</div>`).join('')}</div>`).join(''):'<div class="empty">Nenhuma pergunta ativa será exibida ao cliente.</div>'}
+    </div>
+    ${latest?`<div class="admin-control-panel"><div class="control-head"><h3>Últimas respostas recebidas</h3><p>Versão ${latest.version||1} • Enviado em ${escapeHtml(latest.answeredAt||'data não informada')}</p></div>${groupedActive.map(group=>`<div class="content-box"><h3>${escapeHtml(group.category)}</h3></div><div class="content-grid">${group.questions.map(q=>`<div class="content-box"><label>${escapeHtml(q.text)}</label><div class="readonly-box">${renderAnswerValue(latest.answers?.[q.id])}</div></div>`).join('')}</div>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function previewBriefing(){
+  const c=currentClient(); if(!c)return;
+  const questions=questionsForClient(c.id);
+  const grouped=groupBriefingQuestions(questions);
+  const fields=grouped.map(group=>`<div class="content-box"><h2>${escapeHtml(group.category)}</h2></div><div class="form">${group.questions.map((q,index)=>`<div class="full content-box"><label>${escapeHtml(q.text)} ${q.required!==false?'<strong>*</strong>':''}</label>${q.description?`<div class="muted">${escapeHtml(q.description)}</div>`:''}${renderBriefingPreviewInput(q)}</div>`).join('')}</div>`).join('');
+  const w=window.open('','_blank');
+  if(!w){alert('O navegador bloqueou a prévia. Libere pop-ups para este site.');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prévia do briefing</title><link rel="stylesheet" href="${window.location.origin}/style.css"></head><body><main><div class="panel"><div class="top"><div><h1>Briefing estratégico</h1><p class="muted">Cliente: ${escapeHtml(c.name)}</p><p class="muted">Este formulário será usado como base para o posicionamento, conteúdo, campanhas e processo comercial.</p></div><span class="pill purple">Prévia administrativa</span></div>${fields||'<div class="empty">Nenhuma pergunta ativa.</div>'}<div class="actions"><button disabled>Enviar briefing</button></div></div></main></body></html>`);
+  w.document.close();
+}
+
+async function setBriefingStatus(status){
+  const c=currentClient(); if(!c)return;
+  await updateDoc(doc(db,'hubClients',c.id),{briefingStatus:status,briefingEditAllowed:status==='Liberado',updatedAt:serverTimestamp()});
+  c.briefingStatus=status;
+  c.briefingEditAllowed=status==='Liberado';
+  refreshWorkspacePreservingUi();
+  alert(status==='Liberado'?'Briefing liberado para o cliente responder.':status==='Bloqueado'?'Briefing bloqueado para o cliente.':'Briefing mantido em edição administrativa.');
+}
+
+async function duplicateBriefingQuestion(id){
+  const q=briefingQuestions.find(x=>x.id===id); if(!q)return;
+  const maxOrder=Math.max(0,...briefingQuestions.map(x=>Number(x.order)||0));
+  const ref=await addDoc(collection(db,'hubBriefingQuestions'),{text:q.text+' (cópia)',description:q.description||'',category:q.category||'Geral',type:q.type||'textarea',required:q.required!==false,active:q.active!==false,clientId:q.clientId||null,order:maxOrder+1,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  briefingQuestions.push({...q,id:ref.id,text:q.text+' (cópia)',order:maxOrder+1});
+  refreshWorkspacePreservingUi();
+}
+
+async function addBriefingQuestion(fromModel=false){
+  const c=currentClient();
+  if(!fromModel&&!c)return;
+  const text=prompt('Digite a pergunta:'); if(!text?.trim())return;
+  const description=prompt('Orientação opcional para o cliente:')||'';
+  const category=prompt('Categoria da pergunta:','Geral')||'Geral';
+  const type=(prompt('Tipo: text, textarea, number, date, url ou yesno','textarea')||'textarea').toLowerCase();
+  const required=confirm('Essa pergunta será obrigatória?');
+  const onlyClient=!!c&&confirm('Esta pergunta deve aparecer somente para o cliente selecionado?');
+  const maxOrder=Math.max(0,...briefingQuestions.map(q=>Number(q.order)||0));
+  const payload={text:text.trim(),description:description.trim(),category:category.trim()||'Geral',type:['text','textarea','number','date','url','yesno'].includes(type)?type:'textarea',required,active:true,clientId:onlyClient&&c?c.id:null,order:maxOrder+1,createdAt:serverTimestamp(),updatedAt:serverTimestamp()}; const ref=await addDoc(collection(db,'hubBriefingQuestions'),payload); briefingQuestions.push({...payload,id:ref.id}); refreshWorkspacePreservingUi();
+}
+async function editBriefingQuestion(id){
+  const q=briefingQuestions.find(x=>x.id===id); if(!q)return;
+  const text=prompt('Edite a pergunta:',q.text); if(!text?.trim())return;
+  const description=prompt('Edite a orientação:',q.description||'')||'';
+  const category=prompt('Edite a categoria:',q.category||'Geral')||'Geral';
+  const type=(prompt('Tipo: text, textarea, number, date, url ou yesno',q.type||'textarea')||q.type||'textarea').toLowerCase();
+  const required=confirm('Clique em OK para obrigatória ou Cancelar para opcional.');
+  const changes={text:text.trim(),description:description.trim(),category:category.trim()||'Geral',type:['text','textarea','number','date','url','yesno'].includes(type)?type:'textarea',required,updatedAt:serverTimestamp()}; await updateDoc(doc(db,'hubBriefingQuestions',id),changes); Object.assign(q,changes); refreshWorkspacePreservingUi();
+}
+async function deleteBriefingQuestion(id){
+  if(!confirm('Excluir esta pergunta? As respostas antigas continuarão preservadas no histórico.'))return;
+  await deleteDoc(doc(db,'hubBriefingQuestions',id)); briefingQuestions=briefingQuestions.filter(q=>q.id!==id); refreshWorkspacePreservingUi();
+}
+async function toggleBriefingQuestion(id){
+  const q=briefingQuestions.find(x=>x.id===id); if(!q)return;
+  const active=q.active===false; await updateDoc(doc(db,'hubBriefingQuestions',id),{active,updatedAt:serverTimestamp()}); q.active=active; refreshWorkspacePreservingUi();
+}
+async function moveBriefingQuestion(id,direction){
+  const ordered=[...briefingQuestions].sort((a,b)=>(a.order||0)-(b.order||0));
+  const index=ordered.findIndex(q=>q.id===id), swap=index+direction;
+  if(index<0||swap<0||swap>=ordered.length)return;
+  const a=ordered[index],b=ordered[swap],ao=a.order||index+1,bo=b.order||swap+1;
+  await Promise.all([updateDoc(doc(db,'hubBriefingQuestions',a.id),{order:bo,updatedAt:serverTimestamp()}),updateDoc(doc(db,'hubBriefingQuestions',b.id),{order:ao,updatedAt:serverTimestamp()})]);
+}
+async function releaseBriefingEdit(){
+  const c=currentClient(); if(!c)return;
+  await updateDoc(doc(db,'hubClients',c.id),{briefingEditAllowed:true,briefingStatus:'Liberado para edição',updatedAt:serverTimestamp()});
+  alert('Edição do briefing liberada para este cliente.');
+}
+async function lockBriefingEdit(){
+  const c=currentClient(); if(!c)return;
+  await updateDoc(doc(db,'hubClients',c.id),{briefingEditAllowed:false,briefingStatus:latestBriefingAnswer(c.id)?'Respondido':'Pendente',updatedAt:serverTimestamp()});
+  alert('Edição do briefing bloqueada.');
+}
+async function createRecommendedBriefingQuestions(){
+  const c=currentClient();
+  if(!c){alert('Selecione um cliente antes de importar perguntas.');return;}
+  const recommended=[
+    ['Empresa','Qual é o nome completo da empresa e como ela deve ser apresentada ao público?','text','Informe nome oficial, nome fantasia e forma preferida de apresentação.'],
+    ['Empresa','Conte resumidamente como a empresa surgiu.','textarea','Inclua a motivação, os marcos importantes e o momento atual.'],
+    ['Empresa','Em quais cidades ou regiões a empresa atende?','textarea','Informe atendimento presencial, online e possíveis limitações geográficas.'],
+    ['Empresa','Quem são as pessoas responsáveis pela empresa e quais funções exercem?','textarea','Isso ajuda a definir quem poderá aparecer nos conteúdos e quem participa das aprovações.'],
+    ['Posicionamento','Como você gostaria que a empresa fosse reconhecida pelo mercado?','textarea','Descreva a percepção que deseja construir.'],
+    ['Posicionamento','Quais são os principais diferenciais da empresa?','textarea','Explique por que alguém deveria escolher sua empresa e não outra.'],
+    ['Posicionamento','Quais palavras definem a personalidade da marca?','textarea','Exemplo: próxima, elegante, técnica, acessível, moderna, acolhedora.'],
+    ['Posicionamento','Como a empresa não deseja ser percebida?','textarea','Informe estilos, abordagens ou posicionamentos que devem ser evitados.'],
+    ['Produtos e serviços','Quais produtos ou serviços a empresa oferece atualmente?','textarea','Liste os principais e explique brevemente cada um.'],
+    ['Produtos e serviços','Qual produto ou serviço deve receber maior destaque nos próximos meses?','textarea','Informe também o motivo dessa prioridade.'],
+    ['Produtos e serviços','Qual produto ou serviço gera maior lucro ou possui maior valor estratégico?','textarea','Essa informação ficará restrita ao planejamento interno.'],
+    ['Produtos e serviços','Existe algum produto ou serviço que não deve ser divulgado?','textarea','Explique restrições comerciais, técnicas ou de disponibilidade.'],
+    ['Público','Quem é o cliente ideal da empresa?','textarea','Descreva idade, cidade, profissão, rotina, renda aproximada e comportamento.'],
+    ['Público','Quais problemas ou necessidades levam esse cliente a procurar a empresa?','textarea','Liste dores práticas e emocionais.'],
+    ['Público','Quais desejos ou resultados esse cliente espera alcançar?','textarea','Descreva o que ele realmente quer conquistar.'],
+    ['Público','Quem normalmente toma a decisão de compra?','textarea','Pode ser o próprio cliente, cônjuge, família, gestor ou outra pessoa.'],
+    ['Vendas','Como um novo cliente costuma chegar até a empresa?','textarea','Exemplo: indicação, Instagram, Google, WhatsApp, eventos ou prospecção.'],
+    ['Vendas','Como funciona o atendimento desde o primeiro contato até a venda?','textarea','Explique as etapas, responsáveis e tempo médio de resposta.'],
+    ['Vendas','Quais são as principais dúvidas antes da compra?','textarea','Liste perguntas recorrentes recebidas pela equipe.'],
+    ['Vendas','Quais são as principais objeções que impedem a compra?','textarea','Exemplo: preço, prazo, medo, distância, confiança ou comparação.'],
+    ['Vendas','O que normalmente faz o cliente decidir comprar?','textarea','Explique os fatores que aumentam a confiança e aceleram a decisão.'],
+    ['Vendas','Existe acompanhamento após a venda? Como funciona?','textarea','Descreva pós-venda, retorno, suporte e fidelização.'],
+    ['Concorrência','Quem são os principais concorrentes?','textarea','Informe nomes, cidades, sites ou perfis.'],
+    ['Concorrência','O que esses concorrentes fazem bem?','textarea','Considere comunicação, atendimento, produto e presença digital.'],
+    ['Concorrência','Em quais pontos sua empresa é diferente ou superior?','textarea','Seja específico e evite respostas genéricas.'],
+    ['Referências','Quais empresas ou perfis você considera boas referências?','textarea','Podem ser do mesmo segmento ou de outros mercados.'],
+    ['Referências','Existe algum estilo de conteúdo, imagem ou comunicação que você não gosta?','textarea','Compartilhe exemplos quando possível.'],
+    ['Marketing','Quais são os principais objetivos de marketing para os próximos 3 a 6 meses?','textarea','Exemplo: gerar leads, vender mais, fortalecer marca ou lançar um serviço.'],
+    ['Marketing','Quais canais de divulgação a empresa utiliza hoje?','textarea','Instagram, Facebook, Google, site, e-mail, WhatsApp, eventos e outros.'],
+    ['Marketing','A empresa já investe em anúncios?','textarea','Informe plataformas, investimento médio e resultados percebidos.'],
+    ['Marketing','Quais ações de marketing já deram bons resultados?','textarea','Explique o que foi feito e qual resultado trouxe.'],
+    ['Marketing','Quais ações não deram resultado ou não devem ser repetidas?','textarea','Isso ajuda a evitar erros e compreender experiências anteriores.'],
+    ['Conteúdo','Quais assuntos a empresa precisa falar com frequência?','textarea','Liste temas educativos, comerciais, institucionais e de autoridade.'],
+    ['Conteúdo','Quais perguntas dos clientes poderiam virar conteúdo?','textarea','Liste dúvidas reais recebidas no atendimento.'],
+    ['Conteúdo','Quem poderá aparecer nos vídeos e fotos?','textarea','Informe disponibilidade, limitações e nível de conforto diante da câmera.'],
+    ['Conteúdo','Existem assuntos, pessoas ou imagens que não podem aparecer?','textarea','Inclua questões legais, éticas, de privacidade ou preferência.'],
+    ['Conteúdo','Qual tom de comunicação combina mais com a empresa?','textarea','Exemplo: profissional, leve, direto, educativo, sofisticado ou emocional.'],
+    ['Conteúdo','Quais datas, campanhas, eventos ou lançamentos são importantes?','textarea','Informe datas previstas para os próximos meses.'],
+    ['Autoridade','A empresa possui depoimentos, avaliações ou casos de sucesso?','yesno','Depois será possível incluir os links e materiais no planejamento.'],
+    ['Autoridade','Quais provas de autoridade podem ser usadas na comunicação?','textarea','Prêmios, certificados, tempo de mercado, números, resultados, estrutura ou equipe.'],
+    ['Autoridade','Existe algum caso real que represente bem o trabalho da empresa?','textarea','Conte o contexto, o problema e a transformação alcançada.'],
+    ['Identidade visual','A empresa possui logotipo, cores, fontes e manual de marca?','yesno','Informe depois onde os arquivos estão armazenados.'],
+    ['Identidade visual','Onde estão os arquivos, fotos e vídeos disponíveis?','url','Cole o link do Google Drive, Dropbox ou outra pasta.'],
+    ['Identidade visual','Existe alguma orientação obrigatória para o uso da marca?','textarea','Informe regras de cor, logotipo, assinatura, créditos ou proibições.'],
+    ['Metas','Qual é a principal meta comercial para os próximos meses?','textarea','Pode ser uma meta de vendas, faturamento, clientes, agenda ou expansão.'],
+    ['Metas','Quais produtos, serviços ou unidades precisam atingir essa meta?','textarea','Isso ajuda a direcionar campanhas e conteúdo.'],
+    ['Metas','Como a empresa saberá que o trabalho de marketing está dando resultado?','textarea','Defina os indicadores mais importantes para a empresa.'],
+    ['Aprovação','Quem será responsável por revisar e aprovar os conteúdos?','textarea','Informe nome, função e melhor canal de contato.'],
+    ['Aprovação','Em quanto tempo a empresa consegue aprovar um conteúdo?','text','Informe o prazo realista para não atrasar o calendário.'],
+    ['Aprovação','Existe outra pessoa que precisa participar das decisões?','textarea','Informe quem deve ser consultado e em quais situações.'],
+    ['Estratégia','O que você gostaria que todo cliente entendesse antes de entrar em contato?','textarea','Essa resposta costuma revelar excelentes temas de conteúdo.'],
+    ['Estratégia','Qual crença errada sobre seu mercado precisa ser corrigida?','textarea','Liste mitos, comparações e expectativas irreais.'],
+    ['Estratégia','O que faz um cliente desistir ou escolher um concorrente?','textarea','Considere preço, atendimento, prazo, confiança e experiência.'],
+    ['Estratégia','Se pudesse comunicar apenas uma mensagem ao mercado, qual seria?','textarea','Pense na ideia central que representa a empresa.'],
+    ['Estratégia','Existe alguma oportunidade, mudança ou risco importante para os próximos meses?','textarea','Considere mercado, equipe, concorrência, sazonalidade e estrutura.'],
+    ['Informações finais','Existe alguma informação importante que não foi perguntada?','textarea','Use este espaço para complementar o briefing.']
+  ];
+
+  if(!confirm('Importar o briefing estratégico completo? As perguntas existentes serão preservadas e o modelo ficará disponível para todos os clientes.'))return;
+
+  const button=document.activeElement;
+  const originalText=button?.textContent||'';
+  if(button?.tagName==='BUTTON'){
+    button.disabled=true;
+    button.textContent='Importando perguntas...';
+  }
+
+  try{
+    const normalize=value=>String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const existing=new Set(
+      briefingQuestions
+        .filter(q=>isBriefingQuestionForClient(q,c.id))
+        .map(q=>normalize(q.text))
+    );
+    let order=Math.max(0,...briefingQuestions.map(q=>Number(q.order)||0));
+    const pending=recommended
+      .filter(([,text])=>!existing.has(normalize(text)))
+      .map(([category,text,type,description])=>({
+        category,
+        text,
+        description,
+        type,
+        required:true,
+        active:true,
+        clientId:null,
+        order:++order,
+        createdAt:serverTimestamp(),
+        updatedAt:serverTimestamp()
+      }));
+
+    if(!pending.length){
+      alert('Todas as perguntas deste modelo já estão cadastradas.');
+      refreshWorkspacePreservingUi();
+      return;
+    }
+
+    const refs=await Promise.all(
+      pending.map(payload=>addDoc(collection(db,'hubBriefingQuestions'),payload))
+    );
+
+    const created=pending.map((payload,index)=>({...payload,id:refs[index].id}));
+    const knownIds=new Set(briefingQuestions.map(q=>q.id));
+    created.forEach(q=>{if(!knownIds.has(q.id))briefingQuestions.push(q);});
+    briefingQuestions.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+    refreshWorkspacePreservingUi();
+    alert(created.length+' perguntas estratégicas importadas e exibidas abaixo.');
+  }catch(err){
+    console.error('Erro ao importar briefing:',err);
+    alert('Não foi possível importar as perguntas. Verifique as permissões da coleção hubBriefingQuestions no Firebase. Detalhes: '+(err.message||err));
+  }finally{
+    if(button?.tagName==='BUTTON'){
+      button.disabled=false;
+      button.textContent=originalText;
+    }
+  }
+}
+
+function copyBriefingLink(){
+  const c=currentClient();
+  if(!c)return;
+  const link=window.location.origin+'/cliente.html?id='+c.id+'&briefing=1';
+  navigator.clipboard?.writeText(link);
+  alert('Link do briefing copiado: '+link);
+}
+
+
+function copyCaptureProjectLink(){
+  const c=currentClient(),p=currentProject();
+  if(!c||!p||p.projectType!=='capture'){alert('Selecione uma captação avulsa.');return;}
+  const link=window.location.origin+'/cliente.html?id='+c.id+'&project='+p.id+'&mode=capture';
+  navigator.clipboard?.writeText(link);
+  alert('Link exclusivo da captação copiado: '+link);
+}
+function captureInfoAdmin(p){
+  return `<div class="stage capture-summary">
+    <div class="stage-head"><div><h2>Captação avulsa</h2><p>Projeto independente do gerenciamento mensal.</p></div><span class="pill purple">Somente captação</span></div>
+    <div class="content-grid">
+      <div class="content-box"><label>Data</label><div class="readonly-box">${p.captureDate?formatDateBR(p.captureDate):'A definir'}</div></div>
+      <div class="content-box"><label>Horário</label><div class="readonly-box">${p.captureTime||'A definir'}</div></div>
+      <div class="content-box full"><label>Local</label><div class="readonly-box">${escapeHtml(p.captureLocation||'A definir')}</div></div>
+    </div>
+    <div class="actions"><button class="btn-dark" onclick="copyCaptureProjectLink()">Copiar link exclusivo da captação</button></div>
+  </div>`;
+}
+function renderCaptureProjectDetail(c,p,isAdmin){
+  return `<div class="stage"><div class="stage-head"><div><h2>${escapeHtml(p.period)}</h2><p>Roteiros, referências, Drive e orientações da captação.</p></div><span class="pill purple">Captação avulsa</span></div></div>
+  ${isAdmin?captureInfoAdmin(p):''}
+  ${stageProduction(p,isAdmin)}
+  <div class="stage"><h2>Histórico</h2><div class="timeline">${(p.history||[]).map(h=>`<div>${h}</div>`).join('')}</div></div>`;
+}
+function renderWorkspace(){if(adminView==='briefing-model'){workspace.innerHTML=renderBriefingModel();return}let c=currentClient();if(!c){workspace.innerHTML='<div class="panel"><div class="actions"><button class="btn-dark" onclick="showBriefingModel()">Modelo de Briefing</button></div><div class="empty">Cadastre ou selecione um cliente.</div></div>';return}let p=currentProject();workspace.innerHTML=`<div class="panel"><div class="top" style="margin:0"><div><h2>${c.name}</h2><p class="muted">Responsável: ${c.responsibleName||'Não definido'} • Serviço: ${escapeHtml(clientServiceLabel(c))} • Acesso: ${c.access}</p></div><div class="actions"><button class="btn-dark" onclick="editClient('${c.id}')">Editar cliente</button><button class="btn-danger" onclick="deleteClient('${c.id}')">Excluir cliente</button></div></div><div class="actions"><button class="btn-dark" onclick="showBriefingModel()">Modelo de Briefing</button><button onclick="openProjectModal()">+ Novo projeto</button><button class="btn-dark" onclick="copyClientLink()">Copiar link do cliente</button><button class="btn-dark" onclick="copyBriefingLink()">Copiar link do briefing</button>
+        <button class="btn-dark" onclick="printFullProject()">PDF Projeto completo</button>
+        <button class="btn-dark" onclick="printDevelopment()">PDF Desenvolvimento</button>
+        <button class="btn-dark" onclick="printCalendar()">PDF Calendário</button>
+        <button class="btn-dark" onclick="printFullProject()">Salvar projeto em PDF</button>
+        <button class="btn-dark" onclick="printDevelopment()">PDF Desenvolvimento</button>
+        <button class="btn-dark" onclick="printCalendar()">PDF Calendário</button></div></div>${renderBriefingAdmin(c)}${renderProjects(c)}${p?renderProjectDetail(c,p,true):'<div class="empty">Esse cliente ainda não tem projetos. Clique em + Novo projeto/mês.</div>'}`}
+function renderProjects(c){let list=projects.filter(p=>p.clientId===c.id);if(!list.length)return'';return`<div class="project-list">${list.map(x=>`<div class="project-card ${x.id===selectedProjectId?'active':''}" onclick="selectProject('${x.id}')"><h3>${x.period}</h3><div class="pills">${statusPill(x.strategicStatus)}${statusPill(x.productionStatus)}</div><div class="progress"><span style="width:${progress(x)}%"></span></div></div>`).join('')}</div>`}
+function stepClass(s){if(s==='Aprovado')return'done';if(s==='Bloqueado')return'locked';return'active'}
+function renderProjectDetail(c,p,isAdmin){if(p?.projectType==='capture')return renderCaptureProjectDetail(c,p,isAdmin);return`<div class="stage"><div class="stage-head"><div><h2>Projeto ${p.period}</h2><p>Etapas liberadas conforme aprovação.</p></div><span class="pill">${progress(p)}%</span></div><div class="flow"><div class="step ${stepClass(p.strategicStatus)}"><b>01 Planejamento</b><br>${p.strategicStatus}</div><div class="step ${stepClass(p.productionStatus)}"><b>02 Desenvolvimento</b><br>${p.productionStatus}</div><div class="step ${stepClass(p.calendarStatus)}"><b>03 Calendário</b><br>${p.calendarStatus}</div><div class="step ${stepClass(p.approvalStatus)}"><b>04 Aprovações</b><br>${p.approvalStatus}</div></div></div>${isAdmin?adminControls(c,p):''}${stageStrategic(p,isAdmin)}${stageProduction(p,isAdmin)}${stageCalendar(p,isAdmin)}${stageApproval(p,isAdmin)}<div class="stage"><h2>Histórico</h2><div class="timeline">${(p.history||[]).map(h=>`<div>${h}</div>`).join('')}</div></div>`}
+function field(label,id,value,isAdmin){
+  if(isAdmin)return richField(label,id,value);
+  return `<div class="content-box"><label>${label}</label><div class="readonly-box">${value||''}</div></div>`;
+}
+function stageStrategic(p,isAdmin){return`<div class="stage"><div class="stage-head"><div><h2>01 Planejamento Estratégico</h2><p>A produção só libera após essa aprovação.</p></div>${statusPill(p.strategicStatus)}</div>${isAdmin?stageControl('strategic',p.strategicStatus):''}<div class="content-grid">${field('Visão Macro','strategic_macro',p.strategic?.macro,isAdmin)}${field('Linha Editorial','strategic_editorial',p.strategic?.editorial,isAdmin)}${field('Temas do mês','strategic_themes',p.strategic?.themes,isAdmin)}${field('Direção Criativa','strategic_creative',p.strategic?.creative,isAdmin)}</div><label>Observações do cliente</label><textarea class="note" id="strategic_note" oninput="autoGrow(this)">${p.strategic?.note||''}</textarea><div class="actions"><button class="btn-dark" onclick="saveDraft('planejamento estratégico')">Salvar alterações</button><button class="btn-green" onclick="approveStrategic()">Aprovar planejamento</button><button class="btn-yellow" onclick="requestAdjust('strategic')">Solicitar ajustes</button></div></div>`}
+function stageProduction(p,isAdmin){let items=p.production?.items||[];let blocked=!isAdmin&&p.productionStatus==='Bloqueado';return`<div class="stage ${blocked?'locked':''}"><div class="stage-head"><div><h2>02 Desenvolvimento Criativo</h2><p>${isAdmin?'Área liberada para a agência preparar antes da aprovação do cliente.':'Cards separados para roteiros, carrosséis e estáticos.'}</p></div>${statusPill(p.productionStatus)}</div>${isAdmin?stageControl('production',p.productionStatus):''}${blocked?'<p class="muted">Bloqueado até aprovação do planejamento.</p>':`${renderContentFilters('admin')}<div id="admin_content_empty" class="empty hidden">Nenhum conteúdo encontrado com esses filtros.</div><div class="content-actions"><button onclick="addContentItem('roteiro')">+ Adicionar roteiro</button><button onclick="addContentItem('carrossel')">+ Adicionar carrossel</button><button onclick="addContentItem('estatico')">+ Adicionar estático</button><button class="btn-dark" onclick="printDevelopment()">PDF Desenvolvimento Criativo</button></div>${items.map(renderContentItem).join('')}<label>Observações gerais do desenvolvimento</label><textarea class="note" id="production_note" oninput="autoGrow(this)">${p.production?.note||''}</textarea><div class="actions"><button class="btn-dark" onclick="saveDraft('desenvolvimento criativo')">Salvar alterações</button><button class="btn-green" onclick="releaseStage('production')">Liberar desenvolvimento ao cliente</button><button class="btn-dark" onclick="saveDraft('calendário editorial')">Salvar alterações</button><button class="btn-green" onclick="releaseStage('calendar')">Liberar calendário ao cliente</button><button class="btn-yellow" onclick="requestAdjust('production')">Registrar ajustes</button></div>`}</div>`}
+function itemProgress(item){let total=item.checklist?.length||0,done=(item.checklist||[]).filter(x=>x.done).length;return total?Math.round(done*100/total):0}
+
+function renderAdjustmentAlert(item){
+  const requested=item?.clientApproval==='Ajustes solicitados'||item?.itemStatus==='Ajustes';
+  const note=String(item?.clientNote||'').trim();
+  if(!requested)return '';
+  const summary=note.length>140?note.slice(0,137)+'...':note;
+  return `<div class="pills" style="margin-top:8px"><span class="pill" style="color:#ff7b7b;border-color:rgba(255,90,90,.45);font-weight:900">⚠ Ajuste solicitado</span>${summary?`<span style="color:#ffb3b3;font-size:12px;font-weight:800;line-height:1.35">${escapeHtml(summary)}</span>`:''}</div>`;
+}
+
+function renderContentItem(item){let pct=itemProgress(item),typeLabel=item.type==='roteiro'?'🎬 Roteiro':item.type==='carrossel'?'📚 Carrossel':'🖼️ Estático';return`<div class="content-item ${pct===100?'done':''}" data-item="${item.id}" data-filter-scope="admin" data-week="${item.week||''}" data-status="${item.itemStatus||''}" data-search="${htmlToText(Object.values(item.fields||{}).join(' ')+' '+(item.note||'')+' '+(item.responsible||'')).replace(/"/g,'&quot;')}"><div class="content-item-head"><div><h4>${typeLabel}</h4><span class="muted">${pct}% concluído</span>${renderAdjustmentAlert(item)}</div><button class="btn-danger" onclick="removeContentItem('${item.id}')">Remover</button></div><div class="content-progress"><span style="width:${pct}%"></span></div><label>Responsável</label><textarea data-field="responsible" oninput="autoGrow(this)" placeholder="Ex: Diego, Luana, Lucas">${item.responsible||''}</textarea><label>Link do Drive</label><input type="url" data-field="driveLink" value="${escapeHtml(item.driveLink||'')}" placeholder="Cole aqui o link do Drive"><div class="actions"><button type="button" class="btn-dark" onclick="openContentLink(this,'driveLink')">Abrir Drive</button></div><label>Link de referência</label><input type="url" data-field="referenceLink" value="${escapeHtml(item.referenceLink||'')}" placeholder="Instagram, TikTok, YouTube, Pinterest, site..."><div class="actions"><button type="button" class="btn-dark" onclick="openContentLink(this,'referenceLink')">Abrir referência</button></div><label>Data de postagem</label><input type="date" data-field="postDate" value="${item.postDate||''}"><label>Semana do mês</label><select data-field="week"><option ${item.week==='Semana 1'?'selected':''}>Semana 1</option><option ${item.week==='Semana 2'?'selected':''}>Semana 2</option><option ${item.week==='Semana 3'?'selected':''}>Semana 3</option><option ${item.week==='Semana 4'?'selected':''}>Semana 4</option><option ${item.week==='Semana 5'?'selected':''}>Semana 5</option></select><label>Status do conteúdo</label><select data-field="itemStatus"><option ${item.itemStatus==='Em criação'?'selected':''}>Em criação</option><option ${item.itemStatus==='Aguardando aprovação'?'selected':''}>Aguardando aprovação</option><option ${item.itemStatus==='Aprovado'?'selected':''}>Aprovado</option><option ${item.itemStatus==='Ajustes'?'selected':''}>Ajustes</option><option ${item.itemStatus==='Postado'?'selected':''}>Postado</option></select><label>Tema</label><div class="rich-toolbar"><button type="button" onclick="formatText('bold')" title="Negrito">B</button><button type="button" onclick="formatText('foreColor','#5B56FF')" title="Letra roxa">Roxo</button><button type="button" onclick="formatText('foreColor','#1C1C1C')" title="Letra preta">Preto</button><button type="button" onclick="formatText('foreColor','#FFFFFF')" title="Letra branca">Branco</button><button type="button" onclick="formatHighlight()" title="Fundo preto com letra branca">Destaque</button><button type="button" onclick="clearFormat()" title="Remover formatação">Limpar</button></div><div class="rich-editor" onpaste="pasteClean(event)" data-field="tema" contenteditable="true">${item.fields?.tema||''}</div>${item.type==='roteiro'?`<label>Objetivo</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="objetivo" contenteditable="true">${item.fields?.objetivo||''}</div><label>Gancho</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="gancho" contenteditable="true">${item.fields?.gancho||''}</div><label>Desenvolvimento</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="desenvolvimento" contenteditable="true">${item.fields?.desenvolvimento||''}</div><label>CTA</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="cta" contenteditable="true">${item.fields?.cta||''}</div>`:''}${item.type==='carrossel'?`<label>Objetivo</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="objetivo" contenteditable="true">${item.fields?.objetivo||''}</div><label>Slides</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="slides" contenteditable="true">${item.fields?.slides||''}</div><label>Legenda</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="legenda" contenteditable="true">${item.fields?.legenda||''}</div><label>CTA</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="cta" contenteditable="true">${item.fields?.cta||''}</div>`:''}${item.type==='estatico'?`<label>Mensagem principal</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="mensagem" contenteditable="true">${item.fields?.mensagem||''}</div><label>Legenda</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="legenda" contenteditable="true">${item.fields?.legenda||''}</div><label>CTA</label><div class="rich-editor" onpaste="pasteClean(event)" data-field="cta" contenteditable="true">${item.fields?.cta||''}</div>`:''}<div class="checklist">${(item.checklist||[]).map((c,i)=>`<label class="checkline"><input type="checkbox" ${c.done?'checked':''} onchange="toggleChecklist('${item.id}',${i},this.checked)"> ${c.label}</label>`).join('')}</div><label>Observações</label><textarea data-field="note" oninput="autoGrow(this)">${item.note||''}</textarea></div>`}
+
+function formatDateBR(v){if(!v)return 'Sem data';const [y,m,d]=v.split('-');return `${d}/${m}/${y}`;}
+function itemFormatLabel(type){return type==='roteiro'?'🎬 Roteiro':type==='carrossel'?'📚 Carrossel':'🖼️ Estático';}
+function calendarItemsFromProduction(p){
+  const items=p.production?.items||[];
+  return items.map(item=>({
+    id:item.id,
+    date:item.postDate||'',
+    week:item.week||'',
+    format:itemFormatLabel(item.type),
+    theme:htmlToText(item.fields?.tema||'Sem tema'),
+    status:item.itemStatus||'Em criação', note:item.clientNote||''
+  })).sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+}
+function renderAutoCalendar(p,isAdmin){
+  const list=calendarItemsFromProduction(p);
+  if(!list.length)return '<div class="empty">Nenhum conteúdo com data no Desenvolvimento Criativo.</div>';
+  return `<div class="auto-calendar">
+    ${list.map(item=>`<div class="calendar-row">
+      <div><strong>${formatDateBR(item.date)}</strong><span>${item.week||''}</span></div>
+      <div><strong>${item.format}</strong><span>${item.theme}</span></div>
+      <div><span class="calendar-status ${item.status.replaceAll(' ','-').toLowerCase()}">${item.status}</span>${item.note?`<small class="calendar-note">${item.note}</small>`:''}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function stageCalendar(p,isAdmin){let blocked=!isAdmin&&p.calendarStatus==='Bloqueado';return`<div class="stage ${blocked?'locked':''}"><div class="stage-head"><div><h2>03 Calendário Editorial</h2><div class="actions no-print"><button class="btn-dark" onclick="printCalendar()">PDF Calendário Editorial</button></div><p>${isAdmin?'Área liberada para a agência preparar antes da liberação ao cliente.':'Organização de datas, formatos e temas.'}</p></div>${statusPill(p.calendarStatus)}</div>${isAdmin?stageControl('calendar',p.calendarStatus):''}${blocked?'<p class="muted">Bloqueado até aprovação do desenvolvimento.</p>':`<div class="content-box"><label>Calendário automático</label>${renderAutoCalendar(p,isAdmin)}</div>${field('Observações do calendário','calendar_content',p.calendar?.content,isAdmin)}<label>Observações do cliente</label><textarea class="note" id="calendar_note" oninput="autoGrow(this)">${p.calendar?.note||''}</textarea><div class="actions"><button class="btn-dark" onclick="saveDraft('calendário editorial')">Salvar alterações</button><button class="btn-green" onclick="releaseStage('calendar')">Liberar calendário ao cliente</button><button class="btn-green" onclick="releaseStage('approval')">Liberar aprovação final</button><button class="btn-yellow" onclick="requestAdjust('calendar')">Registrar ajustes</button></div>`}</div>`}
+function stageApproval(p,isAdmin){
+  let blocked=!isAdmin&&p.approvalStatus==='Bloqueado';
+  return `<div class="stage ${blocked?'locked':''}">
+    <div class="stage-head">
+      <div><h2>04 Aprovação Final</h2><p>${isAdmin?'Área liberada para a agência preparar antes de mostrar ao cliente.':'Conteúdos finais liberados para sua conferência.'}</p></div>
+      ${statusPill(p.approvalStatus)}
+    </div>
+    ${blocked?'<p class="muted">Esta etapa ainda não foi liberada pela agência.</p>':`
+      <div class="content-box">
+        <label>Orientações finais</label>
+        ${isAdmin?`<div class="rich-toolbar"><button type="button" onclick="formatText('bold')" title="Negrito">B</button><button type="button" onclick="formatText('foreColor','#5B56FF')" title="Letra roxa">Roxo</button><button type="button" onclick="formatText('foreColor','#1C1C1C')" title="Letra preta">Preto</button><button type="button" onclick="formatText('foreColor','#FFFFFF')" title="Letra branca">Branco</button><button type="button" onclick="formatHighlight()" title="Fundo preto com letra branca">Destaque</button><button type="button" onclick="clearFormat()" title="Remover formatação">Limpar</button></div><div class="rich-editor" onpaste="pasteClean(event)" id="approval_notes" contenteditable="true">${p.approvalNotes||''}</div>`:`<div class="readonly-box">${p.approvalNotes||''}</div>`}
+      </div>
+      ${isAdmin?`<div class="actions"><button class="btn-green" onclick="releaseStage('approval')">Liberar aprovação final ao cliente</button></div>`:''}
+    `}
+  </div>`;
+}
+function collectProduction(p){let items=(p.production?.items||[]).map(item=>{let box=document.querySelector(`[data-item="${item.id}"]`);if(!box)return item;let fields={...item.fields};box.querySelectorAll('[data-field]').forEach(el=>{let k=el.getAttribute('data-field');if(k==='note') item.note=el.value; else if(k==='driveLink') item.driveLink=el.value; else if(k==='referenceLink') item.referenceLink=el.value; else if(k==='postDate') item.postDate=el.value; else if(k==='week') item.week=el.value; else if(k==='itemStatus') item.itemStatus=el.value; else if(k==='responsible') item.responsible=el.value; else fields[k]=(el.innerHTML!==undefined?el.innerHTML:el.value)});return{...item,fields,note:item.note||''}});return{...p.production,items,note:document.getElementById('production_note')?.value??p.production?.note??''}}
+function getForm(p){let g=id=>document.getElementById(id)?.value;return{strategic:{...p.strategic,macro:richValue('strategic_macro',p.strategic?.macro??''),editorial:richValue('strategic_editorial',p.strategic?.editorial??''),themes:richValue('strategic_themes',p.strategic?.themes??''),creative:richValue('strategic_creative',p.strategic?.creative??''),note:g('strategic_note')??p.strategic?.note??''},production:collectProduction(p),calendar:{...p.calendar,content:richValue('calendar_content',p.calendar?.content??''),note:g('calendar_note')??p.calendar?.note??''}}}
+async function saveProjectExtra(extra={}){
+  let p=currentProject();if(!p)return;
+  const approvalEl=document.getElementById('approval_notes');
+  const approvalNotes=approvalEl?approvalEl.innerHTML:(p.approvalNotes||'');
+  await updateDoc(doc(db,'hubProjects',p.id),{...getForm(p),approvalNotes,...extra,updatedAt:serverTimestamp()})
+}
+function addHistory(p,text){return[new Date().toLocaleString('pt-BR')+' • '+text,...(p.history||[])]}
+async function addContentItem(type){
+  let p=currentProject();
+  if(!p)return;
+
+  const newItem=newContentItem(type);
+  const state=captureUiState({pendingTargetItemId:newItem.id});
+
+  const developmentStage=document.querySelector('#workspace .content-actions')?.closest('.collapsible-card');
+  if(developmentStage?.dataset?.collapseKey){
+    state.panels[developmentStage.dataset.collapseKey]=false;
+  }
+  state.panels['item:'+newItem.id]=false;
+  persistUiState(state);
+
+  let form=getForm(p);
+  form.production.items=[...(form.production.items||[]),newItem];
+  form.history=addHistory(p,'Equipe Humaniza adicionou um '+(type==='roteiro'?'roteiro':type==='carrossel'?'carrossel':'estático')+'.');
+
+  await updateDoc(doc(db,'hubProjects',p.id),{
+    production:form.production,
+    history:form.history||p.history,
+    updatedAt:serverTimestamp()
+  });
+
+  await loadData();
+}
+async function removeContentItem(id){captureUiState();let p=currentProject();let form=getForm(p);form.production.items=(form.production.items||[]).filter(x=>x.id!==id);await updateDoc(doc(db,'hubProjects',p.id),{production:form.production,updatedAt:serverTimestamp()});await loadData()}
+async function toggleChecklist(id,index,checked){captureUiState();let p=currentProject();let form=getForm(p);let item=form.production.items.find(x=>x.id===id);if(item&&item.checklist[index])item.checklist[index].done=checked;await updateDoc(doc(db,'hubProjects',p.id),{production:form.production,updatedAt:serverTimestamp()});await loadData()}
+function send(c,msg){if(!c.responsiblePhone){alert('WhatsApp do responsável não cadastrado.');return}window.open(`https://wa.me/${c.responsiblePhone}?text=${encodeURIComponent(msg)}`,'_blank')}
+
+async function saveDraft(label='alterações'){
+  captureUiState();
+  const p=currentProject(); if(!p)return;
+  try{
+    await saveProjectExtra({history:addHistory(p,'Equipe Humaniza • Salvou '+label+'.')});
+    alert('Alterações salvas com sucesso.');
+    await loadData();
+  }catch(err){console.error(err);alert('Erro ao salvar: '+(err.message||err));}
+}
+async function updateClientControl(field,value){
+  captureUiState();
+  const c=currentClient(); if(!c)return;
+  try{
+    await updateDoc(doc(db,'hubClients',c.id),{[field]:value,updatedAt:serverTimestamp()});
+    alert('Cliente atualizado com sucesso.'); await loadData();
+  }catch(err){console.error(err);alert('Erro ao atualizar cliente: '+(err.message||err));}
+}
+async function updateProjectControl(field,value){
+  captureUiState();
+  const p=currentProject(); if(!p)return;
+  try{
+    await updateDoc(doc(db,'hubProjects',p.id),{
+      [field]:value,
+      history:addHistory(p,'Equipe Humaniza • Alterou '+field+' para '+value+'.'),
+      updatedAt:serverTimestamp()
+    });
+    alert('Projeto atualizado com sucesso.'); await loadData();
+  }catch(err){console.error(err);alert('Erro ao atualizar projeto: '+(err.message||err));}
+}
+async function updateStageControl(stage,value){
+  captureUiState();
+  const p=currentProject(); if(!p)return;
+  const fields={strategic:'strategicStatus',production:'productionStatus',calendar:'calendarStatus',approval:'approvalStatus'};
+  const field=fields[stage]; if(!field)return;
+  try{
+    await updateDoc(doc(db,'hubProjects',p.id),{
+      [field]:value,
+      history:addHistory(p,'Equipe Humaniza • Alterou '+stage+' para '+value+'.'),
+      updatedAt:serverTimestamp()
+    });
+    alert('Etapa atualizada com sucesso.'); await loadData();
+  }catch(err){console.error(err);alert('Erro ao atualizar etapa: '+(err.message||err));}
+}
+function controlSelect(label,value,onchange,options){
+  return `<label class="control-field"><span>${label}</span><select onchange="${onchange}">
+    ${options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}
+  </select></label>`;
+}
+function adminControls(c,p){
+  return `<div class="admin-control-panel">
+    <div class="control-head">
+      <h3>Controle de acesso e status</h3>
+      <p>Você decide o que o cliente pode visualizar.</p>
+    </div>
+    <div class="control-grid">
+      ${controlSelect('Status do cliente',c.status||'Ativo',`updateClientControl('status',this.value)`,['Ativo','Pausado','Finalizado'])}
+      ${controlSelect('Acesso do cliente',c.access||'Liberado',`updateClientControl('access',this.value)`,['Liberado','Bloqueado'])}
+      ${controlSelect('Projeto',p.projectState||'Em andamento',`updateProjectControl('projectState',this.value)`,['Rascunho','Em andamento','Aguardando cliente','Aprovado','Finalizado','Bloqueado'])}
+      ${controlSelect('Visibilidade do projeto',p.projectAccess||'Liberado',`updateProjectControl('projectAccess',this.value)`,['Liberado','Bloqueado'])}
+    </div>
+  </div>`;
+}
+function stageControl(stage,value){
+  const opts=['Preparando','Liberado ao cliente','Aguardando aprovação','Aprovado','Finalizado','Bloqueado'];
+  return `<div class="stage-control">${controlSelect('Status da etapa',value||'Preparando',`updateStageControl('${stage}',this.value)`,opts)}</div>`;
+}
+
+async function releaseStage(stage){
+  captureUiState();
+  let p=currentProject();
+  if(!p)return;
+  const map={
+    production:{field:'productionStatus',status:'Em desenvolvimento',text:'Desenvolvimento liberado ao cliente.'},
+    calendar:{field:'calendarStatus',status:'Em desenvolvimento',text:'Calendário liberado ao cliente.'},
+    approval:{field:'approvalStatus',status:'Em andamento',text:'Aprovação final liberada ao cliente.'}
+  };
+  const cfg=map[stage];
+  if(!cfg)return;
+  try{
+    await saveProjectExtra({[cfg.field]:cfg.status,history:addHistory(p,'Equipe Humaniza • '+cfg.text)});
+    alert(cfg.text);
+    await loadData();
+  }catch(err){
+    console.error(err);
+    alert('Erro ao liberar etapa: '+(err.message||err));
+  }
+}
+async function approveStrategic(){captureUiState();let c=currentClient(),p=currentProject();await saveProjectExtra({strategicStatus:'Aprovado',productionStatus:'Em desenvolvimento',history:addHistory(p,'Planejamento aprovado. Desenvolvimento liberado.')});send(c,`✅ PLANEJAMENTO APROVADO\n\nCliente: ${c.name}\nProjeto: ${p.period}\n\nA produção pode iniciar seguindo exatamente o planejamento aprovado.`);await loadData()}
+async function approveProduction(){captureUiState();let c=currentClient(),p=currentProject();await saveProjectExtra({productionStatus:'Aprovado',calendarStatus:'Em desenvolvimento',history:addHistory(p,'Desenvolvimento aprovado. Calendário liberado.')});send(c,`✅ DESENVOLVIMENTO APROVADO\n\nCliente: ${c.name}\nProjeto: ${p.period}\n\nCalendário Editorial liberado.`);await loadData()}
+async function approveCalendar(){captureUiState();let c=currentClient(),p=currentProject();await saveProjectExtra({calendarStatus:'Aprovado',approvalStatus:'Em andamento',history:addHistory(p,'Calendário aprovado. Próxima etapa: aprovação de artes e vídeos.')});send(c,`✅ CALENDÁRIO APROVADO\n\nCliente: ${c.name}\nProjeto: ${p.period}\n\nPróxima etapa: aprovação de artes e vídeos.`);await loadData()}
+async function requestAdjust(type){captureUiState();let c=currentClient(),p=currentProject(),map={strategic:['strategicStatus','Planejamento'],production:['productionStatus','Desenvolvimento'],calendar:['calendarStatus','Calendário']};await saveProjectExtra({[map[type][0]]:'Ajustes solicitados',history:addHistory(p,'Ajustes solicitados em '+map[type][1]+'.')});send(c,`⚠️ AJUSTES SOLICITADOS\n\nCliente: ${c.name}\nProjeto: ${p.period}\nEtapa: ${map[type][1]}`);await loadData()}
+async function deleteClient(id){if(!confirm('Excluir cliente e todos os projetos dele?'))return;for(let p of projects.filter(p=>p.clientId===id))await deleteDoc(doc(db,'hubProjects',p.id));await deleteDoc(doc(db,'hubClients',id));selectedClientId=null;selectedProjectId=null;await loadData()}
+function copyClientLink(){let c=currentClient();if(!c)return;let link=window.location.origin+'/cliente.html?id='+c.id;navigator.clipboard?.writeText(link);alert('Link do cliente copiado: '+link)}
+function render(){
+  if(document.querySelector('#workspace .collapsible-card[data-collapse-key]'))captureUiState();
+  renderDashboard();
+  renderClients();
+  renderWorkspace();
+  setTimeout(()=>{
+    document.querySelectorAll('textarea').forEach(t=>autoGrow(t));
+    enhanceCollapsibles();
+  },0);
+}
+startRealtime();
