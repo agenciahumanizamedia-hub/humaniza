@@ -627,7 +627,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <p>Entre para acessar o painel da agência ou a área do cliente.</p>
     <input id="loginEmail" type="email" placeholder="E-mail">
     <input id="loginPassword" type="password" placeholder="Senha">
-    <button style="width:100%" onclick="login()">Entrar</button>
+    <button id="loginSubmitBtn" type="button" style="width:100%">Entrar</button>
     <div class="notice" id="loginError" style="display:none"></div>
   </div>
 </section>
@@ -1250,14 +1250,37 @@ async function uploadSelectedFile(inputId, folder){
 }
 
 window.login = async function(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+  const emailEl = document.getElementById('loginEmail');
+  const passwordEl = document.getElementById('loginPassword');
   const error = document.getElementById('loginError');
-  error.style.display = 'none';
-  try { await signInWithEmailAndPassword(auth, email, password); }
-  catch(e) { error.textContent = 'Erro no login. Confira e-mail e senha.'; error.style.display = 'block'; }
+  const btn = document.getElementById('loginSubmitBtn');
+  const email = emailEl?.value.trim() || '';
+  const password = passwordEl?.value || '';
+  if(error) error.style.display = 'none';
+  if(!email || !password){
+    if(error){ error.textContent = 'Preencha e-mail e senha.'; error.style.display = 'block'; }
+    return;
+  }
+  if(btn){ btn.disabled = true; btn.textContent = 'Entrando...'; }
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch(e) {
+    console.error('Falha no login:', e);
+    if(error){ error.textContent = 'Erro no login. Confira e-mail e senha.'; error.style.display = 'block'; }
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Entrar'; }
+  }
 }
 window.logout = function(){ signOut(auth); }
+
+const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+if(loginSubmitBtn) loginSubmitBtn.addEventListener('click', () => window.login());
+['loginEmail','loginPassword'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); window.login(); }
+  });
+});
 
 onAuthStateChanged(auth, (user) => {
   if(publicQuoteToken) return;

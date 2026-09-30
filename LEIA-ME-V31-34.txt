@@ -1,0 +1,15 @@
+V31.34 — CORREÇÃO DE LOGIN
+
+Base: V31.33.
+Nenhuma funcionalidade de roteiro, orçamento, agenda, fotografia, referências ou Drive foi removida.
+
+Correção:
+- botão Entrar agora possui listener próprio;
+- resposta visual "Entrando...";
+- validação de e-mail/senha;
+- tecla Enter funciona nos campos;
+- mantém Firebase Authentication já utilizado pelo sistema.
+
+Publicação:
+Substitua somente index.html.
+roteiro.html não mudou.
