@@ -1,0 +1,9 @@
+HUMANIZA V31.25
+1. Substitua somente o index.html atual pelo index.html desta pasta.
+2. Adicione roteiro.html na raiz do mesmo repositório.
+3. Não é necessário substituir app.js, cliente.js, firebase.js ou style.css.
+4. Não há migração automática nem alteração dos dados antigos.
+5. Em Roteiros, os novos campos Briefing e Imagem/Foto são opcionais.
+6. 'Compartilhar roteiro' gera link de um conteúdo.
+7. 'Compartilhar captação' agrupa os roteiros do mesmo cliente com a mesma data de captação.
+8. O link externo não abre o sistema administrativo e não consulta o Firebase.
