@@ -651,15 +651,28 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
       return;
     }
     btn.disabled=true;btn.textContent='Entrando...';
+    const watchdog=setTimeout(()=>{
+      if(btn.textContent==='Entrando...'){
+        btn.disabled=false;btn.textContent='Entrar';
+        if(errorEl){errorEl.textContent='A autenticação demorou mais que o esperado. Tente novamente.';errorEl.style.display='block';}
+      }
+    },12000);
     try{
       const appMod=await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js');
       const authMod=await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js');
       const config={apiKey:"AIzaSyB2xU6wgDjswece50JVE-thiCb40wP-58M",authDomain:"humaniza-os.firebaseapp.com",projectId:"humaniza-os",storageBucket:"humaniza-os.firebasestorage.app",messagingSenderId:"416592042651",appId:"1:416592042651:web:66dd16c8e823e57d5b443e",measurementId:"G-YQMK274JER"};
       const app=appMod.getApps().length?appMod.getApp():appMod.initializeApp(config);
-      await authMod.signInWithEmailAndPassword(authMod.getAuth(app),email,password);
+      const auth=authMod.getAuth(app);
+      await authMod.signInWithEmailAndPassword(auth,email,password);
       btn.textContent='Acesso confirmado';
-      location.reload();
+      const loginPage=document.getElementById('loginPage');
+      const appPage=document.getElementById('appPage');
+      if(loginPage)loginPage.classList.add('hidden');
+      if(appPage)appPage.classList.remove('hidden');
+      clearTimeout(watchdog);
+      setTimeout(()=>location.reload(),900);
     }catch(e){
+      clearTimeout(watchdog);
       console.error('Login fallback:',e);
       if(errorEl){errorEl.textContent=e?.code==='auth/invalid-credential'?'E-mail ou senha incorretos.':'Não foi possível entrar. Tente novamente.';errorEl.style.display='block';}
       btn.disabled=false;btn.textContent='Entrar';
@@ -1096,7 +1109,7 @@ Card 3: ..."></textarea></div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, setDoc, getDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
@@ -1113,7 +1126,7 @@ const firebaseConfig = {
 const ADMIN_EMAIL = "agenciahumanizamedia@gmail.com";
 const GOOGLE_CALENDAR_CLIENT_ID = "416592042651-633cmcac2hllf6s9vm0po6fsbqu415jj.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 let quotes = [];
