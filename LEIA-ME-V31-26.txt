@@ -1,0 +1,1 @@
+Substitua somente index.html e roteiro.html. Esta versão mantém a V31.25 e troca o compartilhamento individual por uma página completa dos roteiros exibidos para um único cliente no período selecionado. Não altera Firebase nem dados existentes.
