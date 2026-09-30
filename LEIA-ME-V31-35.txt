@@ -1,0 +1,5 @@
+V31.35 — LOGIN FALLBACK INDEPENDENTE
+Substitua somente index.html.
+O botão Entrar agora possui uma camada independente do módulo principal: responde com Entrando..., autentica no mesmo Firebase e recarrega a sessão.
+As funções de fotografia, múltiplos links, clientes unificados, orçamento, agenda e roteiros foram preservadas.
+Nenhuma migração ou alteração automática de dados.

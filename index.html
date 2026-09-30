@@ -633,6 +633,45 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 </section>
 
 
+
+<script>
+(function(){
+  const btn=document.getElementById('loginSubmitBtn');
+  const emailEl=document.getElementById('loginEmail');
+  const passwordEl=document.getElementById('loginPassword');
+  const errorEl=document.getElementById('loginError');
+  if(!btn||!emailEl||!passwordEl)return;
+
+  async function humanizaLoginFallback(){
+    const email=String(emailEl.value||'').trim();
+    const password=String(passwordEl.value||'');
+    if(errorEl)errorEl.style.display='none';
+    if(!email||!password){
+      if(errorEl){errorEl.textContent='Preencha e-mail e senha.';errorEl.style.display='block';}
+      return;
+    }
+    btn.disabled=true;btn.textContent='Entrando...';
+    try{
+      const appMod=await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js');
+      const authMod=await import('https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js');
+      const config={apiKey:"AIzaSyB2xU6wgDjswece50JVE-thiCb40wP-58M",authDomain:"humaniza-os.firebaseapp.com",projectId:"humaniza-os",storageBucket:"humaniza-os.firebasestorage.app",messagingSenderId:"416592042651",appId:"1:416592042651:web:66dd16c8e823e57d5b443e",measurementId:"G-YQMK274JER"};
+      const app=appMod.getApps().length?appMod.getApp():appMod.initializeApp(config);
+      await authMod.signInWithEmailAndPassword(authMod.getAuth(app),email,password);
+      btn.textContent='Acesso confirmado';
+      location.reload();
+    }catch(e){
+      console.error('Login fallback:',e);
+      if(errorEl){errorEl.textContent=e?.code==='auth/invalid-credential'?'E-mail ou senha incorretos.':'Não foi possível entrar. Tente novamente.';errorEl.style.display='block';}
+      btn.disabled=false;btn.textContent='Entrar';
+    }
+  }
+  window.humanizaLoginFallback=humanizaLoginFallback;
+  btn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();humanizaLoginFallback();},true);
+  [emailEl,passwordEl].forEach(el=>el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();humanizaLoginFallback();}},true));
+})();
+</script>
+
+
 <section id="publicQuotePage" class="public-quote hidden">
   <div class="public-quote-inner">
     <div class="logo" style="color:#181818;margin-bottom:20px">Agência Humaniza</div>
