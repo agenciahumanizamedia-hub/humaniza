@@ -626,15 +626,19 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 #scriptClientOrigin{margin-top:7px;color:#9f9f9f;font-size:12px}
 .script-editor-card input,.script-editor-card textarea,.script-editor-card select{width:100%}
 
-/* V31.46 — Destaques Humaniza */
-.humaniza-formatbar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.humaniza-formatbar button{border:1px solid #d7d7dd;background:#fff;border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
-.humaniza-formatbar button:hover{transform:translateY(-1px)}
-.humaniza-formatbar .fmt-purple{background:#6d28d9;color:#fff;border-color:#6d28d9}
-.humaniza-formatbar .fmt-black{background:#111;color:#fff;border-color:#111}
-.humaniza-richtext{white-space:pre-wrap;line-height:1.55}
-.humaniza-richtext .hz-purple{background:#6d28d9;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
-.humaniza-richtext .hz-black{background:#111;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
+/* V31.47 — Editor rico Humaniza para campos de texto longo */
+.hz-rich-wrap{margin:6px 0 10px}
+.hz-rich-toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:6px;border:1px solid #e5e5ea;border-bottom:0;border-radius:9px 9px 0 0;background:#fafafa}
+.hz-rich-toolbar button{min-width:32px;border:1px solid #d7d7dd;background:#fff;border-radius:7px;padding:5px 8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.hz-rich-toolbar .hz-purple-btn{background:#6d28d9;color:#fff;border-color:#6d28d9}
+.hz-rich-toolbar .hz-black-btn{background:#111;color:#fff;border-color:#111}
+.hz-rich-editor{min-height:92px;width:100%;box-sizing:border-box;border:1px solid #e5e5ea;border-radius:0 0 9px 9px;padding:10px 12px;background:#fff;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.hz-rich-editor:focus{border-color:#6d28d9;box-shadow:0 0 0 2px rgba(109,40,217,.10)}
+.hz-rich-editor:empty:before{content:attr(data-placeholder);color:#999;pointer-events:none}
+.hz-rich-editor .hz-purple,.hz-rich-view .hz-purple{background:#6d28d9;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
+.hz-rich-editor .hz-black,.hz-rich-view .hz-black{background:#111;color:#fff;padding:1px 5px;border-radius:4px;font-weight:700}
+.hz-source-textarea{display:none!important}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
@@ -944,21 +948,21 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
 <div class="briefing-box full">
 <strong>Briefing do conteúdo</strong>
 <div class="field-help">Informações que ajudam a equipe e podem acompanhar o roteiro no link compartilhado.</div>
-${hzFormatBar('scriptBriefing')}<textarea id="scriptBriefing" rows="4" placeholder="Briefing: contexto, produto/serviço, público, pontos importantes, restrições..."></textarea>
+<textarea id="scriptBriefing" rows="4" placeholder="Briefing: contexto, produto/serviço, público, pontos importantes, restrições..."></textarea>
 </div>
 <input id="scriptImageLink" class="full" placeholder="Imagem / foto de referência (link)">
-${hzFormatBar('scriptGoal')}<textarea id="scriptGoal" class="full" rows="2" placeholder="Objetivo do conteúdo"></textarea>
-${hzFormatBar('scriptHook')}<textarea id="scriptHook" class="full" rows="2" placeholder="Gancho / chamada principal"></textarea>
-<div id="scriptVideoFields" class="full">${hzFormatBar('scriptScenes')}<textarea id="scriptScenes" rows="5" placeholder="Cenas, falas, takes e materiais necessários"></textarea></div>
-<div id="scriptCarouselFields" class="full hidden"><input id="scriptCardCount" type="number" min="2" max="20" placeholder="Quantidade de cards">${hzFormatBar('scriptCards')}<textarea id="scriptCards" rows="7" placeholder="Conteúdo por card. Ex:
+<textarea id="scriptGoal" class="full" rows="2" placeholder="Objetivo do conteúdo"></textarea>
+<textarea id="scriptHook" class="full" rows="2" placeholder="Gancho / chamada principal"></textarea>
+<div id="scriptVideoFields" class="full"><textarea id="scriptScenes" rows="5" placeholder="Cenas, falas, takes e materiais necessários"></textarea></div>
+<div id="scriptCarouselFields" class="full hidden"><input id="scriptCardCount" type="number" min="2" max="20" placeholder="Quantidade de cards"><textarea id="scriptCards" rows="7" placeholder="Conteúdo por card. Ex:
 Card 1: capa
 Card 2: ...
 Card 3: ..."></textarea></div>
-<div id="scriptStaticFields" class="full hidden">${hzFormatBar('scriptArtText')}<textarea id="scriptArtText" rows="4" placeholder="Texto principal da arte"></textarea>${hzFormatBar('scriptArtDirection')}<textarea id="scriptArtDirection" rows="3" placeholder="Direção visual / orientação para o designer"></textarea></div>
-${hzFormatBar('scriptCTA')}<textarea id="scriptCTA" class="full" rows="2" placeholder="CTA"></textarea>
+<div id="scriptStaticFields" class="full hidden"><textarea id="scriptArtText" rows="4" placeholder="Texto principal da arte"></textarea><textarea id="scriptArtDirection" rows="3" placeholder="Direção visual / orientação para o designer"></textarea></div>
+<textarea id="scriptCTA" class="full" rows="2" placeholder="CTA"></textarea>
 <input id="scriptApprovalLink" class="full" placeholder="Link do Drive / material para aprovação">
 <input id="scriptReferenceLink" class="full" placeholder="Referência / link interno (opcional)">
-${hzFormatBar('scriptClientNote')}<textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
+<textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
 <div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
 </div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" id="historyScriptBtn" onclick="openScriptHistory(editingScript)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
 <div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" id="historyCaptureBtn" onclick="openCaptureHistory(editingCapture)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
@@ -1106,6 +1110,106 @@ ${hzFormatBar('scriptClientNote')}<textarea id="scriptClientNote" class="full" r
 </div>
 
 <script type="module">
+
+/* V31.47 rich text */
+function hzSanitizeRichHtml(input){
+ const box=document.createElement('div'); box.innerHTML=String(input||'');
+ const allowed=new Set(['B','STRONG','I','EM','BR','DIV','P','SPAN']);
+ [...box.querySelectorAll('*')].forEach(el=>{
+   if(!allowed.has(el.tagName)){el.replaceWith(...el.childNodes);return}
+   [...el.attributes].forEach(a=>{
+     if(!(el.tagName==='SPAN' && a.name==='class' && (a.value==='hz-purple'||a.value==='hz-black'))) el.removeAttribute(a.name);
+   });
+ });
+ return box.innerHTML;
+}
+function hzLooksFormatted(v){return /<(strong|b|em|i|span|br|div|p)\b/i.test(String(v||''))}
+function hzInitialHtml(v){
+ v=String(v||'');
+ if(hzLooksFormatted(v)) return hzSanitizeRichHtml(v);
+ const d=document.createElement('div'); d.textContent=v; return d.innerHTML.replace(/\n/g,'<br>');
+}
+function hzRichToStored(editor){return hzSanitizeRichHtml(editor.innerHTML).replace(/<div><br><\/div>/gi,'<br>')}
+function hzSyncRich(editor){
+ const id=editor.dataset.sourceId, src=document.getElementById(id); if(!src)return;
+ src.value=hzRichToStored(editor);
+ src.dispatchEvent(new Event('input',{bubbles:true}));
+ src.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function hzExec(editor,cmd){
+ editor.focus();
+ if(cmd==='bold') document.execCommand('bold',false,null);
+ else if(cmd==='italic') document.execCommand('italic',false,null);
+ else if(cmd==='upper'){
+   const sel=window.getSelection(); if(sel&&sel.rangeCount&&!sel.isCollapsed){
+     const txt=sel.toString().toUpperCase(); document.execCommand('insertText',false,txt);
+   }
+ } else if(cmd==='clear'){
+   document.execCommand('removeFormat',false,null);
+ } else if(cmd==='purple'||cmd==='black'){
+   const sel=window.getSelection();
+   if(sel&&sel.rangeCount&&!sel.isCollapsed){
+     const range=sel.getRangeAt(0);
+     const span=document.createElement('span'); span.className=cmd==='purple'?'hz-purple':'hz-black';
+     try{range.surroundContents(span)}catch(e){
+       const frag=range.extractContents(); span.appendChild(frag); range.insertNode(span);
+     }
+     sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+   }
+ }
+ hzSyncRich(editor);
+}
+function hzToolbar(editor){
+ const bar=document.createElement('div'); bar.className='hz-rich-toolbar';
+ const defs=[
+  ['B','bold','Negrito',''],['I','italic','Itálico',''],['AA','upper','Caixa alta',''],
+  ['Roxo','purple','Destaque roxo Humaniza','hz-purple-btn'],
+  ['Preto','black','Destaque preto Humaniza','hz-black-btn'],
+  ['Limpar','clear','Limpar formatação','']
+ ];
+ defs.forEach(([label,cmd,title,cls])=>{
+   const b=document.createElement('button'); b.type='button'; b.innerHTML=label==='B'?'<b>B</b>':label==='I'?'<i>I</i>':label;
+   b.title=title; if(cls)b.className=cls;
+   b.addEventListener('mousedown',e=>{e.preventDefault();hzExec(editor,cmd)});
+   bar.appendChild(b);
+ });
+ return bar;
+}
+function hzShouldEnhanceTextarea(t){
+ if(!t || t.dataset.hzRich==='1' || t.disabled || t.readOnly) return false;
+ const rows=parseInt(t.getAttribute('rows')||'0',10);
+ const n=(t.id+' '+t.name+' '+t.className+' '+(t.placeholder||'')).toLowerCase();
+ const skip=/(url|link|email|e-mail|telefone|phone|whatsapp|cnpj|cpf|senha|password)/;
+ if(skip.test(n)) return false;
+ return rows>=2 || t.offsetHeight>=55 || /(roteiro|script|copy|legenda|brief|observ|descr|texto|conteudo|conteúdo|orient|objetivo|mensagem|hist|oferta|publico|público|referenc|nota|tarefa)/.test(n);
+}
+function hzEnhanceTextarea(t){
+ if(!hzShouldEnhanceTextarea(t))return;
+ if(!t.id)t.id='hzsrc_'+Math.random().toString(36).slice(2);
+ t.dataset.hzRich='1'; t.classList.add('hz-source-textarea');
+ const wrap=document.createElement('div'); wrap.className='hz-rich-wrap'; wrap.dataset.hzFor=t.id;
+ const ed=document.createElement('div'); ed.className='hz-rich-editor'; ed.contentEditable='true'; ed.dataset.sourceId=t.id;
+ ed.dataset.placeholder=t.placeholder||'Digite aqui...'; ed.innerHTML=hzInitialHtml(t.value);
+ ed.addEventListener('input',()=>hzSyncRich(ed));
+ ed.addEventListener('blur',()=>hzSyncRich(ed));
+ wrap.appendChild(hzToolbar(ed)); wrap.appendChild(ed);
+ t.insertAdjacentElement('afterend',wrap);
+}
+function hzRefreshRichEditors(root=document){
+ root.querySelectorAll('textarea').forEach(hzEnhanceTextarea);
+ root.querySelectorAll('.hz-rich-editor').forEach(ed=>{
+   const src=document.getElementById(ed.dataset.sourceId);
+   if(src && document.activeElement!==ed && hzRichToStored(ed)!==String(src.value||'')) ed.innerHTML=hzInitialHtml(src.value);
+ });
+}
+const hzObserver=new MutationObserver(()=>requestAnimationFrame(()=>hzRefreshRichEditors()));
+window.addEventListener('DOMContentLoaded',()=>{
+ hzRefreshRichEditors();
+ hzObserver.observe(document.body,{childList:true,subtree:true});
+ setInterval(()=>hzRefreshRichEditors(),1200);
+});
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, setDoc, getDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
@@ -1848,48 +1952,6 @@ window.saveScriptProject=async function(){
    alert('Projeto salvo no Firebase. Os roteiros permanecem no projeto e as datas de postagem foram sincronizadas com o calendário.');
  }catch(e){console.error(e);alert('Não foi possível salvar o projeto completo. Nada foi apagado automaticamente.');}
 }
-
-function hzEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function hzEncodePlain(v){return hzEsc(v).replace(/\n/g,'<br>')}
-function hzStrip(v){
- const d=document.createElement('div'); d.innerHTML=String(v||''); return d.textContent||'';
-}
-function hzApplyToTextarea(id,kind){
- const el=document.getElementById(id); if(!el)return;
- const a=el.selectionStart,b=el.selectionEnd;
- if(a===b){alert('Selecione uma palavra ou trecho primeiro.');return}
- const raw=el.value, selected=raw.slice(a,b);
- let replacement=selected;
- if(kind==='bold')replacement=`<strong>${selected}</strong>`;
- if(kind==='italic')replacement=`<em>${selected}</em>`;
- if(kind==='upper')replacement=selected.toUpperCase();
- if(kind==='purple')replacement=`<span class="hz-purple">${selected}</span>`;
- if(kind==='black')replacement=`<span class="hz-black">${selected}</span>`;
- if(kind==='clear')replacement=hzStrip(selected);
- el.value=raw.slice(0,a)+replacement+raw.slice(b);
- el.focus(); el.selectionStart=a; el.selectionEnd=a+replacement.length;
- el.dispatchEvent(new Event('input',{bubbles:true}));
-}
-function hzFormatBar(id){
- return `<div class="humaniza-formatbar">
-  <button type="button" onclick="hzApplyToTextarea('${id}','bold')" title="Negrito"><b>B</b></button>
-  <button type="button" onclick="hzApplyToTextarea('${id}','italic')" title="Itálico"><i>I</i></button>
-  <button type="button" onclick="hzApplyToTextarea('${id}','upper')" title="Caixa alta">AA</button>
-  <button type="button" class="fmt-purple" onclick="hzApplyToTextarea('${id}','purple')" title="Destaque roxo">Roxo</button>
-  <button type="button" class="fmt-black" onclick="hzApplyToTextarea('${id}','black')" title="Destaque preto">Preto</button>
-  <button type="button" onclick="hzApplyToTextarea('${id}','clear')" title="Limpar formatação">Limpar</button>
- </div>`;
-}
-window.hzApplyToTextarea=hzApplyToTextarea;
-
-function hzSafeRich(v){
- let s=hzEsc(v);
- s=s.replace(/&lt;strong&gt;/gi,'<strong>').replace(/&lt;\/strong&gt;/gi,'</strong>');
- s=s.replace(/&lt;em&gt;/gi,'<em>').replace(/&lt;\/em&gt;/gi,'</em>');
- s=s.replace(/&lt;span class=&quot;hz-purple&quot;&gt;/gi,'<span class="hz-purple">').replace(/&lt;span class=&quot;hz-black&quot;&gt;/gi,'<span class="hz-black">').replace(/&lt;\/span&gt;/gi,'</span>');
- return s.replace(/\n/g,'<br>');
-}
-
 window.renderScripts=function(){
  if(btnShareScriptsPage)btnShareScriptsPage.style.display=isAdmin?'inline-block':'none';
  if(btnNewScriptProject)btnNewScriptProject.style.display=isAdmin?'inline-block':'none';

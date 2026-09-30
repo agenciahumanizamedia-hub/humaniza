@@ -1,0 +1,22 @@
+HUMANIZA V31.47 — EDITOR RICO GLOBAL
+
+Base segura: V31.45.
+
+O que mudou:
+- Campos de texto longo do sistema recebem editor visual.
+- Negrito, itálico, caixa alta, destaque roxo Humaniza, destaque preto Humaniza e limpar formatação.
+- O resultado aparece visualmente durante a digitação; não é necessário editar tags HTML.
+- Campos pequenos/estruturados (nome, e-mail, telefone, links, datas, valores etc.) permanecem normais.
+- Textareas criadas dinamicamente, inclusive em Roteiros, são detectadas automaticamente.
+- O conteúdo continua sendo salvo pelo mesmo campo/fluxo já usado pelo sistema.
+
+Não alterado:
+- Login/autenticação
+- Firebase/configuração/coleções
+- Dados existentes
+- Filtros V31.45
+- Orçamentos e regra do cartão
+- Estrutura dos módulos
+
+Observação técnica:
+A formatação é armazenada no próprio valor textual usando somente marcações permitidas e sanitizadas.
