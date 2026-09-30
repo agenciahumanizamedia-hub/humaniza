@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Portal Agência Humaniza</title>
+<link rel="stylesheet" href="css/app.css">
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Humaniza V31.23: captação aprovada sincroniza com Calendário da Equipe -->
+</head>
+<body>
+
+<section id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="logo" id="loginBrandLogo">Agência Humaniza</div>
+    <p>Entre para acessar o painel da agência ou a área do cliente.</p>
+    <input id="loginEmail" type="email" placeholder="E-mail">
+    <input id="loginPassword" type="password" placeholder="Senha">
+    <button style="width:100%" onclick="login()">Entrar</button>
+    <div class="notice" id="loginError" style="display:none"></div>
+  </div>
+</section>
+
+
+<section id="publicQuotePage" class="public-quote hidden">
+  <div class="public-quote-inner">
+    <div class="logo" style="color:#181818;margin-bottom:20px">Agência Humaniza</div>
+    <div id="publicQuoteContent"></div>
+  </div>
+</section>
+
+<section id="appPage" class="hidden">
+<header>
+  <div class="logo" id="appBrandLogo">Agência Humaniza <small style="font-size:9px;color:#777">V31.22</small></div>
+  <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+  <div class="actions">
+    <button id="notificationBell" class="btn-dark" onclick="openNotifications()">🔔 <span id="notificationCount">0</span></button>
+    <button onclick="openClientModal()">+ Cliente</button>
+    <button onclick="openDemandModal()" class="btn-blue">+ Demanda</button>
+    <button onclick="openTeamModal()" class="btn-green">+ Funcionário</button>
+    <button id="btnInternal" onclick="openInternalModal()" class="btn-gold">+ Tarefa interna</button>
+    <button onclick="openSettingsModal()" class="btn-dark">Configurações</button>
+    <div id="accessIdentity" class="access-identity"></div>
+      <button onclick="logout()" class="btn-dark">Sair</button>
+  </div>
+</header>
+
+<div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileMenu()"></div>
+<aside id="mobileSidebar" class="mobile-sidebar">
+  <div class="mobile-sidebar-head">
+    <strong>Agência Humaniza</strong>
+    <button onclick="closeMobileMenu()" class="mobile-close">×</button>
+  </div>
+  <div id="mobileMenuItems"></div>
+</aside>
+
+<main class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="showView('dashboard', this)">📊 Visão geral</div>
+    <div class="tab" onclick="showView('macro', this)">📈 Macro</div>
+    <div class="tab" onclick="showView('calendar', this)">🗓️ Calendário</div>
+    <div class="tab" onclick="showView('briefings', this)">📋 Briefings</div>
+    <div class="tab" onclick="showView('scripts', this)">🎬 Roteiros</div>
+    <div class="tab" onclick="showView('captures', this)">📹 Captação</div>
+    <div class="tab" onclick="showView('library', this)">📚 Biblioteca</div>
+    <div class="tab" onclick="showView('internal', this)">📋 Agência</div>
+    <div class="tab" onclick="showView('team', this)">👨‍💻 Equipe</div>
+    <div class="tab" onclick="showView('clients', this)">👥 Clientes</div>
+    <div class="tab" onclick="showView('demands', this)">🗂️ Demandas clientes</div>
+    <div class="tab" id="trashTabBtn" onclick="openTrash(this)">🗑️ Lixeira</div>
+    <div class="tab" onclick="showView('clientPanel', this)">🖥️ Tela do cliente</div>
+    <div class="tab" id="agencyAgendaTab" onclick="showView('agencyAgenda', this)">📅 Calendário da Equipe</div>
+    <div class="tab" id="quotesTab" onclick="showView('quotes', this)">💼 Orçamentos</div>
+  </div>
+
+  <section id="dashboardView"></section>
+<div class="modal" id="attentionModal"><div class="modal-card" style="max-width:900px"><div class="top"><h2 id="attentionTitle">Itens</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="attentionList"></div></div></div>
+<div class="modal" id="notificationsModal"><div class="modal-card" style="max-width:760px"><div class="top"><h2>Notificações</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="notificationsList"></div></div></div>
+
+
+  <section id="macroView" class="hidden">
+    <div class="top"><h2>Planejamento Macro</h2><button id="btnMacroNew" onclick="openMacroModal()">+ Planejamento</button></div>
+    <div class="workflow-line"><div class="workflow-step active"><strong>1. Campanha Macro</strong><p>Estratégia, datas e direção do mês.</p></div><div class="workflow-step"><strong>2. Aprovação</strong><p>Cliente aprova ou comenta ajustes.</p></div><div class="workflow-step"><strong>3. Calendário</strong><p>Liberação dos temas do mês.</p></div><div class="workflow-step"><strong>4. Produção</strong><p>Roteiros, captação e demandas.</p></div></div>
+    <div class="planning-grid" id="macroGrid"></div>
+  </section>
+  <section id="calendarView" class="hidden">
+    <div class="top"><h2>Calendário Editorial</h2><div class="calendar-toolbar"><select id="calendarClientFilter" onchange="renderCalendar()"></select><input id="calendarMonthFilter" type="month" onchange="renderCalendar()"><button id="btnCalendarNew" onclick="openCalendarModal()">+ Item</button></div></div>
+    <div class="calendar-scroll"><div class="calendar-real" id="calendarGrid"></div></div>
+  </section>
+  <section id="briefingsView" class="hidden">
+  <div class="top"><div><h2>Briefings</h2><p style="color:#A6A6A6">Etapa anterior aos roteiros. Use para clientes da agência e projetos avulsos.</p></div></div>
+  <div class="script-builder">
+    <div class="script-builder-row">
+      <div class="wide"><label class="field-label">Cliente / projeto</label><select id="briefingProjectFilter" onchange="changeBriefingProject()"><option value="">Selecione cliente / projeto</option></select></div>
+      <div class="wide"><label class="field-label">Tipo</label><select id="briefClientType" onchange="briefTypeChanged()"><option value="agency">Cliente da Agência</option><option value="avulso">Cliente Avulso</option></select></div>
+    </div>
+    <div id="briefingFormBox" style="display:none;margin-top:16px">
+      <div class="script-editor-grid">
+        <div><label class="field-label">Nome do responsável</label><input id="briefResponsible" placeholder="Nome completo"></div>
+        <div><label class="field-label">E-mail</label><input id="briefEmail" type="email" placeholder="email@empresa.com"></div>
+        <div><label class="field-label">Nome da empresa / marca</label><input id="briefCompany" placeholder="Nome da empresa"></div>
+        <div><label class="field-label">CNPJ</label><input id="briefCnpj" placeholder="CNPJ ou Não possuo"></div>
+        <div class="full"><label class="field-label">Conte um pouco da história da empresa</label><textarea class="compact" id="briefHistory"></textarea></div>
+        <div class="full"><label class="field-label">O que a empresa oferece hoje?</label><textarea class="compact" id="briefOffer"></textarea></div>
+        <div class="full"><label class="field-label">Quem é o principal público que vocês querem atingir?</label><textarea class="compact" id="briefAudience"></textarea></div>
+        <div class="full"><label class="field-label">Qual é o principal objetivo do marketing neste momento?</label><select id="briefMarketingGoal"><option value="">Selecione</option><option>Vender mais</option><option>Gerar contatos / leads</option><option>Fortalecer a marca</option><option>Divulgar um produto ou serviço</option><option>Aumentar presença nas redes sociais</option><option>Outro</option></select></div>
+        <div class="full" id="briefAgencyImportant"><label class="field-label">Existe alguma informação importante que precisamos saber antes de produzir os conteúdos? <span class="muted">(opcional)</span></label><textarea class="compact" id="briefImportant"></textarea></div>
+        <div class="full brief-avulso-only" style="display:none"><label class="field-label">O que será produzido neste projeto?</label><textarea class="compact" id="briefProduction" placeholder="Ex.: 3 vídeos, fotos, cobertura..."></textarea></div>
+        <div class="full brief-avulso-only" style="display:none"><label class="field-label">Qual é a intenção principal dos vídeos, fotos ou conteúdos?</label><textarea class="compact" id="briefContentIntent" placeholder="Ex.: apresentar o serviço, gerar vendas, autoridade, lançamento..."></textarea></div>
+        <div class="full brief-avulso-only" style="display:none"><label class="field-label">Qual mensagem principal você quer transmitir?</label><textarea class="compact" id="briefMainMessage"></textarea></div>
+        <div class="full brief-avulso-only" style="display:none"><label class="field-label">Tem alguma referência ou estilo que você gosta?</label><textarea class="compact" id="briefReferences" placeholder="Pode colar links ou descrever"></textarea></div>
+      </div>
+      <div class="full" style="margin-top:18px"><div class="top" style="margin-bottom:8px"><div><label class="field-label">Perguntas adicionais</label><div class="field-help">Use apenas quando este projeto precisar de uma pergunta específica.</div></div><button type="button" class="btn-dark" onclick="addBriefCustomQuestion()">+ Adicionar pergunta</button></div><div id="briefCustomQuestions"></div></div>
+      <div class="actions" style="margin-top:14px"><button onclick="saveIndependentBriefing()">Salvar briefing</button><button class="btn-blue" onclick="shareIndependentBriefing()">Compartilhar briefing</button><button id="briefCreateAgencyBtn" class="btn-green" style="display:none" onclick="prepareAgencyClientFromBriefing()">Criar cliente na Agência</button><span id="briefingStatus" class="pill"></span></div>
+    </div>
+  </div>
+</section>
+
+<section id="scriptsView" class="hidden">
+  <div class="top">
+    <div>
+      <h2>Roteiros</h2>
+      <p style="color:#A6A6A6">Um projeto por cliente. Monte todos os Reels, Carrosséis, Estáticos e Sessões de fotos na mesma tela.</p>
+    </div>
+    <div class="actions">
+      <button id="btnShareScriptsPage" class="share-script-btn" onclick="shareCurrentScriptsPage()">Compartilhar com cliente</button>
+      <button id="btnNewScriptProject" onclick="startNewScriptProject()">+ Novo projeto de roteiros</button>
+    </div>
+  </div>
+
+  <div class="script-builder">
+    <div class="script-builder-row">
+      <div class="wide">
+        <label class="field-label">Cliente / projeto</label>
+        <select id="scriptsClientFilter" onchange="renderScripts()"><option value="">Selecione</option></select>
+        <div id="scriptClientOrigin" class="field-help"></div>
+      </div>
+      <div><label class="field-label">Reels</label><input id="builderReels" type="number" min="0" value="0"></div>
+      <div><label class="field-label">Carrosséis</label><input id="builderCarousels" type="number" min="0" value="0"></div>
+      <div><label class="field-label">Estáticos</label><input id="builderStatics" type="number" min="0" value="0"></div>\n      <div><label class="field-label">Sessões de fotos</label><input id="builderPhotos" type="number" min="0" value="0"></div>
+      <button onclick="buildScriptTemplates()">Criar estrutura</button>
+    </div>
+
+    <div class="monthly-filter" style="margin-top:14px">
+
+      <div><label class="field-label">Data da captação</label><input id="builderCaptureDate" type="date"></div>
+    </div>
+
+    <div class="actions">
+      <button id="saveScriptProjectBtn" onclick="saveScriptProject()">Salvar projeto completo</button>
+    </div>
+  </div>
+
+
+  <div id="scriptEditorList" class="script-editor-list"></div>
+  <div id="scriptsGrid" style="display:none"></div>
+</section>
+<section id="capturesView" class="hidden"><div class="top"><h2>Captação</h2><button id="btnCaptureNew" onclick="openCaptureModal()">+ Captação</button></div>
+<div class="monthly-filter"><div><label class="field-label">Mês</label><select id="capturesMonthFilter" onchange="renderCaptures()"></select></div><div><label class="field-label">Ano</label><select id="capturesYearFilter" onchange="renderCaptures()"></select></div></div>
+<div class="planning-grid" id="capturesGrid"></div></section>
+  <section id="libraryView" class="hidden"><div class="top"><h2>Biblioteca da Marca</h2><button id="btnLibraryEdit" onclick="openClientModal()">Editar cliente</button></div><div id="libraryContent"></div></section>
+  <section id="internalView" class="hidden">
+    <div class="top"><h2 id="internalViewTitle">Painel interno da agência</h2><input class="search" id="internalSearch" placeholder="Buscar tarefa..." oninput="renderInternal()"></div>
+    <div id="teamWorkSummary" class="team-work-summary" style="display:none"></div>
+<div id="unifiedWorkArea" style="display:none"><div id="workTabs" class="work-tabs"></div><div id="workList" class="work-list"></div></div>
+    <div class="team-work-section"><div class="board-wrap"><div class="board" id="internalBoard"></div></div></div>
+    <div id="teamClientDemandSection" class="team-work-section" style="display:none"><h3>Demandas de clientes atribuídas a mim</h3><div class="board-wrap"><div class="board" id="teamClientDemandBoard"></div></div></div>
+  </section>
+
+  <section id="teamView" class="hidden">
+    <div class="top">
+      <h2>Equipe</h2>
+      <input class="search" id="teamSearch" placeholder="Buscar funcionário..." oninput="renderTeam()">
+    </div>
+    <div id="teamSummary" class="team-summary"></div>
+    <div class="grid" id="teamGrid"></div>
+  </section>
+
+  <section id="clientsView" class="hidden">
+    <div class="top"><h2>Clientes cadastrados</h2><input class="search" id="clientSearch" placeholder="Buscar cliente..." oninput="renderClients()"></div>
+    <div class="grid" id="clientsGrid"></div>
+  </section>
+
+  <section id="demandsView" class="hidden">
+    <div class="top"><h2>Todas as demandas dos clientes</h2><div class="calendar-toolbar"><select style="max-width:320px" id="agencyClientFilter" onchange="demandFilterChanged()"></select><button id="selectVisibleBtn" class="btn-dark" onclick="selectVisibleDemands()">Selecionar visíveis</button></div></div>
+    <div id="demandBulkBar" class="bulkbar"><strong id="demandBulkCount">0 selecionadas</strong><select id="bulkStatus" style="max-width:220px"></select><button class="btn-dark" onclick="bulkStatusApply()">Alterar status</button><select id="bulkResponsible" style="max-width:260px"></select><button class="btn-dark" onclick="bulkResponsibleApply()">Responsável</button><button class="btn-green" onclick="bulkApproval()">Enviar aprovação</button><button class="btn-blue" onclick="bulkNotify()">Notificar</button><button class="btn-danger" onclick="bulkDeleteDemands()">Excluir selecionadas</button><button class="btn-dark" onclick="clearDemandSelection()">Limpar</button></div>
+    <div class="board-wrap"><div class="board" id="demandsBoard"></div></div>
+  </section>
+
+  <section id="trashView" class="hidden">
+    <div class="top"><div><h2>Lixeira</h2><p style="color:#A6A6A6">Demandas excluídas organizadas por cliente. Você pode restaurar ou excluir definitivamente.</p></div>
+      <button class="btn-danger" onclick="emptyTrash()">Esvaziar lixeira</button>
+    </div>
+    <label class="field-label">Cliente</label>
+    <select id="trashClientFilter" onchange="renderTrash()"><option value="">Todos os clientes</option></select>
+    <div id="trashList"></div>
+  </section>
+
+  <section id="clientPanelView" class="hidden">
+    <div id="clientPanelContent"></div>
+  </section>
+
+
+  <section id="agencyAgendaView" class="hidden">
+    <div class="top"><div><h2>Calendário da Equipe</h2><p style="color:#A6A6A6">Agenda operacional compartilhada da Humaniza, separada do calendário editorial dos clientes.</p></div><div class="agenda-toolbar"><span id="googleAgendaStatus" class="agenda-status">Google Agenda desconectado</span><button class="btn-dark" id="googleConnectBtn" onclick="connectGoogleAgenda()">Conectar Google Agenda</button><button class="btn-dark" id="googleImportBtn" onclick="importGoogleAgenda()" style="display:none">Atualizar do Google</button><button onclick="openAgencyAgendaModal()">+ Compromisso</button></div></div>
+    <div class="agenda-filters"><button class="btn-dark" onclick="shiftAgencyAgendaMonth(-1)">‹ Mês anterior</button><input id="agencyAgendaMonth" type="month" onchange="renderAgencyAgenda()"><button class="btn-dark" onclick="shiftAgencyAgendaMonth(1)">Próximo mês ›</button><select id="agencyAgendaProjectFilter" onchange="renderAgencyAgenda()"><option value="">Todos os clientes / projetos</option></select><select id="agencyAgendaTypeFilter" onchange="renderAgencyAgenda()"><option value="">Todos os tipos</option><option>Captação</option><option>Reunião</option><option>Retorno de orçamento</option><option>Contato com cliente/prospect</option><option>Visita/Evento</option><option>Outro</option></select><select id="agencyAgendaResponsibleFilter" onchange="renderAgencyAgenda()"><option value="">Toda a equipe</option></select><select id="agencyAgendaAudienceFilter" onchange="renderAgencyAgenda()"><option value="">Todas as agendas</option><option value="all">Toda a equipe</option><option value="capture">Equipe de captação</option><option value="selected">Pessoas selecionadas</option></select></div>
+    <div id="agencyAgendaList" class="agenda-grid"></div>
+  </section>
+
+  <section id="quotesView" class="hidden">
+    <div class="top"><div><h2>Orçamentos Humaniza</h2><p style="color:#A6A6A6">Propostas de Vídeo, Foto ou Vídeo + Foto.</p></div><div class="actions"><button class="btn-dark" onclick="openQuoteSettings()">Tabela comercial</button><button onclick="openQuoteModal()">+ Novo orçamento</button></div></div>
+    <div id="quoteSummary" class="quote-summary"></div>
+    <div id="quotesList" class="grid"></div>
+  </section>
+</main>
+</section>
+
+
+
+
+
+<div class="modal" id="agencyAgendaModal"><div class="modal-card" style="max-width:780px"><div class="top"><h2 id="agencyAgendaModalTitle">Novo compromisso</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div class="form">
+<select id="agencyAgendaType"><option>Captação</option><option>Reunião</option><option>Retorno de orçamento</option><option>Contato com cliente/prospect</option><option>Visita/Evento</option><option>Outro</option></select><input id="agencyAgendaTitle" placeholder="Título do compromisso">
+<input id="agencyAgendaDate" type="date"><input id="agencyAgendaStart" type="time"><input id="agencyAgendaEnd" type="time"><div><input id="agencyAgendaClient" list="agencyAgendaClientList" placeholder="Cliente / prospect"><datalist id="agencyAgendaClientList"></datalist></div>
+<select id="agencyAgendaAudience"><option value="all">Toda a equipe</option><option value="capture">Equipe de captação</option><option value="selected">Somente pessoas selecionadas</option></select>
+<select id="agencyAgendaResponsible"><option value="">A definir</option></select><div class="participant-box full"><strong>Participantes</strong><div id="agencyAgendaParticipants" class="participant-options"></div></div>
+<input id="agencyAgendaLocation" class="full" placeholder="Local ou link"><textarea id="agencyAgendaNotes" class="full" rows="4" placeholder="Observações"></textarea>
+<div class="full notice">Ao salvar, o compromisso fica no Calendário da Equipe. Se o Google Agenda estiver conectado, ele também será criado/atualizado na agenda da agência.</div></div><div class="actions"><button class="btn-danger" id="deleteAgencyAgendaBtn" onclick="deleteAgencyAgendaItem()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveAgencyAgendaItem()">Salvar</button></div></div></div>
+
+<div class="modal" id="quoteModal"><div class="modal-card" style="max-width:920px">
+  <div class="top"><h2 id="quoteModalTitle">Novo orçamento</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div>
+  <div class="form">
+    <input id="quoteProspectName" class="full" placeholder="Empresa / prospect">
+    <div><label class="field-label">E-mail</label><input id="quoteEmail" type="email" placeholder="contato@empresa.com"><small class="quote-help">Contato do cliente. Não aparece como conteúdo da proposta.</small></div>
+    <div><label class="field-label">WhatsApp</label><input id="quoteWhatsapp" placeholder="(43) 99999-9999"><small class="quote-help">Contato para acompanhamento comercial.</small></div>
+    <input id="quoteSegment" class="full" placeholder="Segmento">
+    <textarea id="quoteMacro" class="full" rows="4" placeholder="Visão macro / oportunidade identificada"></textarea>
+    <div class="quote-guide"><h3>2. Objetivo do projeto</h3><p>Resuma o que o cliente precisa e o que esta produção pretende resolver.</p></div><div class="full"><label class="field-label">Objetivo do projeto</label><textarea id="quoteObjective" rows="3" placeholder="Ex.: Produzir conteúdo para fortalecer a presença da clínica nas redes sociais."></textarea><small class="quote-help quote-client-sees">Este conteúdo poderá compor a proposta apresentada ao cliente.</small></div>
+    <div class="quote-guide"><h3>4. Produção e valores</h3><p>Escolha Vídeo, Ensaio Fotográfico ou os dois. Quantidade, carga horária e valores alimentam a calculadora automaticamente.</p></div><div class="full"><label class="field-label">Tipo de produção</label><div class="quote-type-switch">
+      <button type="button" id="quoteTypeVideo" onclick="setQuoteService('Vídeo')">🎬 Vídeo</button>
+      <button type="button" id="quoteTypePhoto" onclick="setQuoteService('Foto')">📷 Foto</button>
+      <button type="button" id="quoteTypeBoth" onclick="setQuoteService('Vídeo + Foto')">🎬 + 📷 Vídeo + Foto</button>
+    </div><input id="quoteService" type="hidden" value="Vídeo"></div>
+    <div id="quoteVideoBlock" class="quote-service-block"><h3>🎬 Vídeo</h3>
+<div class="form">
+  <div><label class="field-label">Quantidade de vídeos</label><input id="quoteVideoQuantity" type="number" min="0" value="1" placeholder="Ex.: 4" oninput="recalcQuote()"><small class="quote-help">Quantos vídeos serão produzidos neste orçamento.</small></div>
+  <div><label class="field-label">Carga horária da captação</label><input id="quoteVideoHours" type="number" min="0.5" step="0.5" value="2" placeholder="2" oninput="recalcQuote()"><small class="quote-help">Tempo previsto de captação, em horas.</small></div>
+  <div><label class="field-label">Valor base da produção</label><input id="quoteVideoUnitPrice" type="number" min="0" step="0.01" placeholder="R$ 600,00" oninput="recalcQuote()"><small class="quote-help">Valor-base referente a até 2h. Pode ser alterado.</small></div>
+</div></div>
+    <div id="quotePhotoBlock" class="quote-service-block hidden"><h3>📷 Ensaio fotográfico</h3>
+<div class="form">
+  <div><label class="field-label">Quantidade de ensaios</label><input id="quotePhotoQuantity" type="number" min="0" value="0" placeholder="Ex.: 1" oninput="recalcQuote()"><small class="quote-help">Quantos ensaios fotográficos entram nesta proposta.</small></div>
+  <div><label class="field-label">Carga horária do ensaio</label><input id="quotePhotoHours" type="number" min="0.5" step="0.5" value="2" placeholder="2" oninput="recalcQuote()"><small class="quote-help">Tempo previsto do ensaio, em horas.</small></div>
+  <div><label class="field-label">Valor base do ensaio</label><input id="quotePhotoUnitPrice" type="number" min="0" step="0.01" placeholder="R$ 350,00" oninput="recalcQuote()"><small class="quote-help">Valor-base referente a até 2h. Pode ser alterado.</small></div>
+</div></div>
+    <div id="quoteComboBox" class="full quote-combo-note hidden">Produção integrada Humaniza: foto e vídeo são planejados na mesma operação, permitindo uma condição comercial específica para o combo.</div>
+    <div class="quote-guide"><h3>5. O que o cliente receberá</h3><p>Descreva o que está incluso: captação, direção, edição, tratamento, formatos de entrega etc.</p></div><div class="full"><label class="field-label">O que está incluso</label><textarea id="quoteDeliverables" rows="4" placeholder="Ex.: Captação de até 2h, direção durante a gravação, edição e entrega digital."></textarea><small class="quote-help quote-client-sees">O cliente verá este conteúdo.</small></div>
+    <div class="quote-guide"><h3>6. Adicionais</h3><p>Use somente para itens cobrados à parte, como deslocamento, hora adicional, profissional extra ou entrega adicional.</p></div><div class="full"><strong>Adicionais</strong><small class="quote-help">Cada item recebe uma descrição e um valor em R$.</small><div id="quoteExtras"></div><button type="button" class="btn-dark" onclick="addQuoteExtra()">+ Adicional</button></div>
+    <div class="quote-guide"><h3>7. Condição comercial</h3><p>O sistema calcula automaticamente. Você ainda pode substituir o percentual ou definir um valor comercial final.</p></div><div><label class="field-label">Desconto manual (%)</label><input id="quoteManualDiscount" type="number" min="0" max="100" step="0.1" placeholder="Ex.: 30 = 30%" oninput="recalcQuote()"></div>
+    <div><label class="field-label">Desconto automático</label><input id="quoteAutoDiscount" readonly placeholder="Calculado automaticamente"></div>
+    <div class="full quote-combo-note"><label style="display:flex;gap:8px;align-items:center"><input id="quoteManualFinalEnabled" type="checkbox" onchange="toggleManualQuoteFinal()"> Ajustar valor final manualmente</label><div id="quoteManualFinalBox" class="hidden" style="margin-top:10px"><label class="field-label">Valor comercial final (R$)</label><input id="quoteManualFinal" type="number" min="0" step="0.01" placeholder="Ex.: 1350,00" oninput="recalcQuote()"></div></div>
+    <div class="full"><label class="field-label">Como explicar a condição comercial</label><textarea id="quoteDiscountExplanation" rows="3" placeholder="Ex.: O pacote permite otimizar a mesma estrutura de produção e, por isso, recebe uma condição diferenciada."></textarea><small class="quote-help quote-client-sees">O cliente verá esta justificativa.</small></div>
+    <div><label class="field-label">Validade da proposta</label><input id="quoteValidity" type="date"><small class="quote-help quote-client-sees">Data limite desta condição comercial.</small></div>
+    <div class="full quote-combo-note"><strong>Agendamento da captação</strong><div class="form" style="margin-top:10px"><div><label class="field-label">Data prevista da captação</label><input id="quoteCaptureDate" type="date"><small class="quote-help">Se o orçamento for aprovado, esta data entra automaticamente no Calendário da Equipe.</small></div><div><label class="field-label">Horário</label><input id="quoteCaptureTime" type="time"><small class="quote-help">Opcional. Você poderá ajustar depois no calendário.</small></div></div></div>
+    <div class="quote-guide"><h3>8. Informações finais</h3><p>Finalize com validade, formas de pagamento e observações. Você escolhe as opções e o sistema monta a apresentação para o cliente.</p></div><div class="full"><label class="field-label">Formas de pagamento</label><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px"><label style="display:flex;gap:7px;align-items:center"><input id="quotePayPix" type="checkbox"> Pix</label><label style="display:flex;gap:7px;align-items:center"><input id="quotePayCard" type="checkbox" onchange="document.getElementById('quoteCardFeeBox').classList.toggle('hidden',!this.checked)"> Cartão de crédito</label></div><div id="quoteCardFeeBox" class="hidden" style="margin-top:10px"><label style="display:flex;gap:7px;align-items:center"><input id="quoteCardFeeCustomer" type="checkbox"> Parcelamento disponível, com os juros da maquininha</label></div><label style="display:flex;gap:7px;align-items:center;margin-top:10px"><input id="quoteNoDeposit" type="checkbox"> Sem necessidade de entrada para reserva da data</label><small class="quote-help quote-client-sees">O cliente verá somente as opções marcadas.</small></div><div class="full"><label class="field-label">Observação da forma de pagamento</label><textarea id="quotePayment" rows="2" placeholder="Ex.: Parcelamento em até 3x ou condição específica deste cliente."></textarea><small class="quote-help quote-client-sees">Opcional. Use apenas quando precisar complementar as opções acima.</small></div><div class="full"><label class="field-label">Observações da proposta</label><textarea id="quoteNotes" rows="3" placeholder="Ex.: Datas sujeitas à disponibilidade de agenda."></textarea><small class="quote-help quote-client-sees">Estas observações aparecem no link público.</small></div>
+    <div id="quoteCalc" class="full"></div>
+  </div>
+  <div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuote()">Salvar orçamento</button></div>
+</div></div>
+
+<div class="modal" id="quoteSettingsModal"><div class="modal-card" style="max-width:850px">
+  <div class="top"><h2>Tabela comercial</h2><button class="btn-dark" onclick="closeModals()">Fechar</button></div>
+  <p style="color:#A6A6A6">Nada é gravado ao abrir. Só salva quando você clicar em Salvar tabela.</p>
+  <div class="form">
+    <input id="quoteBusinessName" class="full" placeholder="Nome exibido na proposta">
+    <input id="quoteDefaultVideoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por vídeo (R$ 600 / 2h)">
+    <input id="quoteDefaultPhotoPrice" type="number" min="0" step="0.01" placeholder="Valor padrão por ensaio (R$ 350 / 2h)">
+    <div><label class="field-label">Carga horária base do vídeo</label><input id="quoteDefaultVideoHours" type="number" min="0.5" step="0.5" value="2"></div>
+    <div><label class="field-label">Carga horária base do ensaio</label><input id="quoteDefaultPhotoHours" type="number" min="0.5" step="0.5" value="2"></div>
+    <div class="full notice">Base: vídeo R$ 600 por 2h • ensaio fotográfico R$ 350 por 2h. Ao mudar a carga horária, o valor é recalculado automaticamente.</div>
+    <input id="quoteComboDiscount" type="number" min="0" max="100" step="0.1" placeholder="Desconto adicional Vídeo + Foto (%)">
+    <textarea id="quoteDefaultExplanation" class="full" rows="4" placeholder="Explicação padrão do desconto"></textarea>
+    <div class="full"><strong>Desconto por quantidade</strong><div id="quoteTiers"></div><button type="button" class="btn-dark" onclick="addQuoteTier()">+ Faixa</button></div>
+  </div>
+  <div class="actions"><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveQuoteSettings()">Salvar tabela</button></div>
+</div></div>
+
+<div class="modal" id="macroModal"><div class="modal-card"><h2 id="macroModalTitle">Novo planejamento macro</h2><div class="form"><select id="macroClient" class="full"></select><input id="macroTitle" class="full" placeholder="Nome da campanha"><input id="macroMonth" type="month"><select id="macroStatus"><option>Em elaboração</option><option>Enviado para aprovação</option><option>Aprovado</option><option>Ajustes solicitados</option></select><textarea id="macroGoal" class="full" rows="3" placeholder="Objetivo da campanha"></textarea><textarea id="macroDates" class="full" rows="3" placeholder="Datas sazonais"></textarea><textarea id="macroStrategy" class="full" rows="5" placeholder="Estratégia macro"></textarea><textarea id="macroClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteMacroBtn" onclick="deleteMacro()" style="display:none">Excluir</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveMacro()">Salvar</button></div></div></div>
+<div class="modal" id="calendarModal"><div class="modal-card"><h2 id="calendarModalTitle">Novo item no calendário</h2><div class="form">
+<select id="calendarClient" class="full"></select>
+<select id="calendarEventType"><option>Conteúdo</option><option>Captação</option><option>Reunião</option><option>Entrega</option><option>Evento</option><option>Outro compromisso</option></select>
+<select id="calendarFormat"><option>Reels</option><option>Carrossel</option><option>Post Estático</option><option>Stories</option><option>Vídeo</option><option>Foto</option><option>Reunião</option><option>Outro</option></select>
+<input id="calendarTheme" class="full" placeholder="Título / tema do compromisso">
+<input id="calendarDate" type="date"><input id="calendarStartTime" type="time" title="Horário inicial">
+<input id="calendarEndTime" type="time" title="Horário final"><input id="calendarLocation" placeholder="Local ou link da reunião (opcional)">
+<select id="calendarStatus"><option>Ideia</option><option>Agendado</option><option>Em roteiro</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Concluído</option><option>Publicado</option></select>
+<select id="calendarVisibility"><option>Visível para cliente</option><option>Apenas equipe</option><option>Apenas admin</option></select>
+<select id="calendarResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+<div class="participant-box full"><strong>Participantes da equipe</strong><div class="field-help">Opcional. Marque quem também participa deste compromisso.</div><div id="calendarParticipants" class="participant-options"></div></div>
+<textarea id="calendarTeamNote" class="full" rows="3" placeholder="Observação da equipe"></textarea><textarea id="calendarClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
+<div class="full notice">Google Agenda: depois de salvar, abra este item e use “Adicionar ao Google Agenda”. O evento será preparado com data, horário, cliente, responsável, participantes, local e observações. Esta opção é gratuita e não exige Firebase Blaze.</div>
+</div><div class="actions"><button class="btn-danger" id="deleteCalendarBtn" onclick="deleteCalendarItem()" style="display:none">Excluir</button><button class="btn-dark" id="googleCalendarBtn" onclick="addCalendarItemToGoogle()" style="display:none">Adicionar ao Google Agenda</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCalendarItem()">Salvar</button></div></div></div>
+<div class="modal" id="scriptModal"><div class="modal-card"><h2 id="scriptModalTitle">Novo roteiro</h2><div class="form">
+<select id="scriptClient" class="full"></select>
+<input id="scriptTitle" class="full" placeholder="Título / tema do conteúdo">
+<select id="scriptFormat" onchange="updateScriptFormatFields()"><option value="Vídeo / Reel">Vídeo / Reel</option><option value="Carrossel">Carrossel</option><option value="Estático">Estático</option></select>
+<select id="scriptStatus"><option>Escrevendo</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Gravar</option><option>Editando</option><option>Finalizado</option></select>
+<select id="scriptResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div class="field-help">Opcional. Você pode selecionar uma ou mais pessoas da equipe.</div><div id="scriptParticipants" class="participant-options"></div></div>
+<select id="scriptScheduleMode" onchange="updateScriptScheduleFields()"><option value="defined">Data definida</option><option value="tbd">Data a definir</option><option value="not-published">Não será publicado</option></select>
+<div id="scriptPublishDateWrap"><input id="scriptPublishDate" type="date" onchange="onScriptPublishDateChange()"></div>
+<div id="scriptPublishTimeWrap"><input id="scriptPublishTime" type="time" placeholder="Horário (opcional)"></div>
+<input id="scriptCaptureDate" type="date" placeholder="Data da captação (opcional)">
+<div class="briefing-box full">
+<strong>Briefing do conteúdo</strong>
+<div class="field-help">Informações que ajudam a equipe e podem acompanhar o roteiro no link compartilhado.</div>
+<textarea id="scriptBriefing" rows="4" placeholder="Briefing: contexto, produto/serviço, público, pontos importantes, restrições..."></textarea>
+</div>
+<input id="scriptImageLink" class="full" placeholder="Imagem / foto de referência (link)">
+<textarea id="scriptGoal" class="full" rows="2" placeholder="Objetivo do conteúdo"></textarea>
+<textarea id="scriptHook" class="full" rows="2" placeholder="Gancho / chamada principal"></textarea>
+<div id="scriptVideoFields" class="full"><textarea id="scriptScenes" rows="5" placeholder="Cenas, falas, takes e materiais necessários"></textarea></div>
+<div id="scriptCarouselFields" class="full hidden"><input id="scriptCardCount" type="number" min="2" max="20" placeholder="Quantidade de cards"><textarea id="scriptCards" rows="7" placeholder="Conteúdo por card. Ex:
+Card 1: capa
+Card 2: ...
+Card 3: ..."></textarea></div>
+<div id="scriptStaticFields" class="full hidden"><textarea id="scriptArtText" rows="4" placeholder="Texto principal da arte"></textarea><textarea id="scriptArtDirection" rows="3" placeholder="Direção visual / orientação para o designer"></textarea></div>
+<textarea id="scriptCTA" class="full" rows="2" placeholder="CTA"></textarea>
+<input id="scriptApprovalLink" class="full" placeholder="Link do Drive / material para aprovação">
+<input id="scriptReferenceLink" class="full" placeholder="Referência / link interno (opcional)">
+<textarea id="scriptClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea>
+<div class="notify-box"><strong>🔔 Notificar sobre esta atualização</strong><div class="notify-options"><label><input id="scriptNotifyClient" type="checkbox"> Cliente</label><label><input id="scriptNotifyResponsible" type="checkbox" checked> Responsável</label><label><input id="scriptNotifyTeam" type="checkbox"> Toda equipe</label><label><input id="scriptNotifyAdmin" type="checkbox"> Admin</label></div><p class="notify-hint">Se houver responsável definido, o conteúdo também fica vinculado ao trabalho dessa pessoa.</p></div>
+</div><div class="actions"><button class="btn-danger" id="deleteScriptBtn" onclick="deleteScript()" style="display:none">Excluir</button><button class="btn-dark" id="historyScriptBtn" onclick="openScriptHistory(editingScript)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveScript()">Salvar</button></div></div></div>
+<div class="modal" id="captureModal"><div class="modal-card"><h2 id="captureModalTitle">Nova captação</h2><div class="form"><select id="captureClient" class="full"></select><input id="captureTitle" class="full" placeholder="Nome da captação"><input id="captureDate" type="date"><select id="captureResponsible"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select><div class="participant-box full"><strong>Participantes</strong><div id="captureParticipants" class="participant-options"></div></div><select id="captureStatus"><option>Planejada</option><option>Confirmada</option><option>Em captação</option><option>Finalizada</option><option>Reagendar</option></select><textarea id="captureChecklist" class="full" rows="6" placeholder="Checklist da captação"></textarea><textarea id="captureNotes" class="full" rows="3" placeholder="Observações internas"></textarea><input id="captureApprovalLink" class="full" placeholder="Link do Drive / material para aprovação"><textarea id="captureClientNote" class="full" rows="3" placeholder="Observação do cliente"></textarea></div><div class="actions"><button class="btn-danger" id="deleteCaptureBtn" onclick="deleteCapture()" style="display:none">Excluir</button><button class="btn-dark" id="historyCaptureBtn" onclick="openCaptureHistory(editingCapture)" style="display:none">Ver histórico</button><button class="btn-dark" onclick="closeModals()">Cancelar</button><button onclick="saveCapture()">Salvar</button></div></div></div>
+<div class="modal" id="settingsModal">
+  <div class="modal-card">
+    <h2>Configurações da Agência</h2>
+    <div class="identity-preview" id="agencyLogoPreview">
+      <div class="brand-logo-box"></div>
+      <div>
+        <strong>Agência Humaniza</strong>
+        <p style="margin:4px 0 0;color:#A6A6A6">Carregue a logo oficial para aparecer no login e no topo do sistema.</p>
+      </div>
+    </div>
+    <div class="form">
+      <input id="agencyLogoFile" type="file" style="display:none">
+      <input id="agencyLogoLink" class="full" placeholder="Cole aqui o link direto da logo da Agência Humaniza">
+    </div>
+    <div class="actions">
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveSettings()">Salvar configurações</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="teamModal">
+  <div class="modal-card">
+    <h2 id="teamModalTitle">Novo funcionário</h2>
+    <div class="form">
+      <input id="teamName" placeholder="Nome do funcionário" class="full">
+      <input id="teamEmail" placeholder="E-mail de login do funcionário">
+      <input id="teamPhotoFile" type="file" style="display:none">
+      <input id="teamPhotoLink" class="full" placeholder="Cole aqui o link direto da foto do funcionário">
+      <input id="teamRole" placeholder="Função. Ex: Editor, Designer, Social Media">
+      <select id="teamPermission">
+        <option>Operacional</option>
+        <option>Líder</option>
+        <option>Gestor</option>
+      </select>
+      <select id="teamStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
+      <textarea id="teamObs" class="full" rows="4" placeholder="Observações internas"></textarea>
+    </div>
+    <div class="access-create-box" id="teamAccessBox"><h4>Acesso ao sistema</h4><p>Opcional para novo funcionário. Login pelo e-mail acima. A senha não é salva no banco.</p><label><input type="checkbox" id="teamCreateAccess"> Criar acesso no Firebase ao salvar</label><div class="form"><input id="teamTempPassword" type="text" placeholder="Senha temporária"><input id="teamTempPassword2" type="text" placeholder="Confirmar senha"></div><button type="button" class="btn-dark" onclick="fillGeneratedPassword('teamTempPassword','teamTempPassword2')">Gerar senha</button></div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteTeamBtn" onclick="deleteTeamMember()" style="display:none">Excluir</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveTeamMember()">Salvar funcionário</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="memberPanelModal"><div class="modal-card" style="max-width:1050px"><div class="top"><div><h2 id="memberPanelTitle">Painel do funcionário</h2><p id="memberPanelSubtitle" style="color:#A6A6A6;margin:4px 0 0"></p></div><button class="btn-dark" onclick="closeModals()">Fechar</button></div><div id="memberPanelContent"></div></div></div>
+
+<div class="modal" id="clientModal">
+  <div class="modal-card">
+    <h2 id="clientModalTitle">Novo cliente</h2>
+    <div class="form">
+      <input id="clientName" placeholder="Nome do cliente" class="full">
+      <input id="clientEmail" placeholder="E-mail de login do cliente">
+      <input id="clientLogoLink" class="full" placeholder="Link da logo do cliente no Drive, site ou imagem online">
+      <input id="clientLogoFile" type="file" style="display:none">
+      <input id="clientWhatsapp" placeholder="WhatsApp. Ex: 43999999999">
+      <input id="clientDrive" placeholder="Link da pasta do Drive">
+      <input id="clientInstagram" placeholder="Instagram do cliente">
+      <select id="clientStatus"><option>Ativo</option><option>Pausado</option><option>Finalizado</option></select>
+      <textarea id="clientObs" class="full" rows="4" placeholder="Observações"></textarea>
+<div class="default-team-box full"><strong>Equipe padrão do cliente</strong><p style="color:#A6A6A6">Defina quem normalmente cuida de cada área. Isso só será usado como sugestão ao criar novos conteúdos. <b>Para adicionar uma nova pessoa ao sistema, use + Funcionário.</b> Aqui você apenas escolhe, entre as pessoas já cadastradas na Equipe, quem atende este cliente.</p>
+<label class="default-team-label">Social Media</label>
+          <select id="clientDefaultSocial"></select><label class="default-team-label">Designer</label>
+          <select id="clientDefaultDesigner"></select><label class="default-team-label">Videomaker</label>
+          <select id="clientDefaultVideo"></select><label class="default-team-label">Gestor de Tráfego</label>
+          <select id="clientDefaultTraffic"></select><label class="default-team-label">Líder / Gestor da conta</label>
+          <select id="clientDefaultLeader"></select></div>
+    </div>
+    <div class="access-create-box" id="clientAccessBox"><h4>Acesso ao sistema</h4><p>Opcional para novo cliente. Login pelo e-mail acima. A senha não é salva no banco.</p><label><input type="checkbox" id="clientCreateAccess"> Criar acesso no Firebase ao salvar</label><div class="form"><input id="clientTempPassword" type="text" placeholder="Senha temporária"><input id="clientTempPassword2" type="text" placeholder="Confirmar senha"></div><button type="button" class="btn-dark" onclick="fillGeneratedPassword('clientTempPassword','clientTempPassword2')">Gerar senha</button></div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveClient()">Salvar cliente</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="demandModal">
+  <div class="modal-card">
+    <h2 id="demandModalTitle">Nova demanda</h2>
+    <div class="form">
+      <label class="field-label">Cliente</label>
+          <select id="demandClient" class="full"></select>
+      <label class="field-label">Nome da demanda</label>
+          <input id="demandTitle" placeholder="Nome da demanda" class="full">
+      <select id="demandType"><option>Estratégia</option><option>Aprovação de post</option><option>Aprovação de vídeo</option><option>Roteiro</option><option>Calendário</option><option>Aguardando cliente</option><option>Material pendente</option><option>Financeiro</option></select>
+      <label class="field-label">Status da demanda</label>
+          <select id="demandStatus"><option>Estratégia</option><option>Em produção</option><option>Aguardando aprovação</option><option>Aguardando você</option><option>Ajustes solicitados</option><option>Aprovado</option><option>Publicado</option></select>
+      <input id="demandDate" type="date">
+      <label class="field-label">Prioridade</label>
+          <select id="demandPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+      <label class="field-label">Responsável principal</label>
+      <select id="demandAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+      <div class="participant-box full"><strong>Participantes da equipe</strong><div class="field-help">Opcional. O responsável principal continua sendo o dono da entrega. Marque uma ou mais pessoas que também precisam acompanhar ou atuar nesta demanda.</div><div id="demandParticipants" class="participant-options"></div></div>
+      <label class="field-label">Material / link do Drive para aprovação</label>
+          <input id="demandLink" class="full" placeholder="Link do Drive / material para aprovação">
+      <input id="demandImageFile" type="file" style="display:none">
+      <input id="demandImageLink" class="full" placeholder="Link da imagem para aprovação. Ex: Drive, Canva, Dropbox ou link direto">
+      <textarea id="demandDesc" class="full" rows="4" placeholder="Descrição da demanda"></textarea>
+      <textarea id="demandComment" class="full" rows="3" placeholder="Comentário do cliente ou ajuste solicitado"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteDemandBtn" onclick="deleteDemand()" style="display:none">Excluir</button>
+      <button class="btn-dark" id="historyDemandBtn" onclick="openDemandHistory(editingDemand)" style="display:none">Ver histórico</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveDemand()">Salvar demanda</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="historyModal">
+  <div class="modal-card">
+    <h2 id="historyModalTitle">Histórico</h2>
+    <div id="historyList"></div>
+    <div class="actions"><button class="btn-dark" onclick="document.getElementById('historyModal').classList.remove('active')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal" id="internalModal">
+  <div class="modal-card">
+    <h2 id="internalModalTitle">Nova tarefa interna</h2>
+    <div class="form">
+      <input id="internalTitle" placeholder="Nome da tarefa" class="full">
+      <input id="internalClient" placeholder="Cliente relacionado">
+      <input id="internalValue" placeholder="Valor. Ex: R$ 1.100">
+      <select id="internalType"><option>Edição de Vídeo</option><option>Cliente</option><option>Redes Sociais</option><option>Reunião</option><option>Interno</option><option>Financeiro</option></select>
+      <select id="internalPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+      <select id="internalAssigned"><option value="">Selecionar responsável</option><option value="__HUMANIZA_OUT_OF_SCOPE__">Humaniza não cuida desta frente</option></select>
+      <select id="internalStatus"></select>
+      <input id="internalDate" type="date">
+      <textarea id="internalDesc" class="full" rows="4" placeholder="Descrição"></textarea>
+      <textarea id="internalComment" class="full" rows="3" placeholder="Comentário interno. Ex: ajustar música, revisar legenda, enviar para aprovação"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn-danger" id="deleteInternalBtn" onclick="deleteInternal()" style="display:none">Excluir</button><button class="btn-dark" id="historyInternalBtn" onclick="openInternalHistory(editingInternal)" style="display:none">Ver histórico</button>
+      <button class="btn-dark" onclick="closeModals()">Cancelar</button>
+      <button onclick="saveInternal()">Salvar tarefa</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
