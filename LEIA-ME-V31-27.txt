@@ -1,0 +1,14 @@
+V31.27
+Baseada diretamente na V31.26 confirmada como funcionando.
+Mudanças:
+- Roteiros agora têm filtro Cliente/Projeto.
+- Compartilhamento exige escolher um cliente e compartilha somente os roteiros dele no mês/ano exibido.
+- O botão tenta abrir o compartilhamento nativo do aparelho; no desktop sem suporte, copia o link em um clique.
+- URL recebe um nome legível como ?projeto=roteiro-nome-do-cliente (os dados continuam após # para não alterar Firebase).
+- Calendário da Equipe: filtro de tipo corrigido/normalizado.
+- Novo filtro por responsável/participante.
+- Novo filtro de alcance: toda equipe, equipe de captação, pessoas selecionadas.
+- Novo compromisso permite escolher o alcance e sugere clientes já cadastrados, sem impedir prospect/avulso digitado manualmente.
+- Equipe cadastrada continua alimentando responsável e participantes.
+Não há migração nem exclusão de dados.
+Publicação: substituir somente index.html e roteiro.html.
