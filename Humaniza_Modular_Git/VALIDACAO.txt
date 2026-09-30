@@ -1,5 +1,0 @@
-OK - estrutura modular criada
-OK - login/autenticação continuam presentes em js/app.js
-OK - módulos Briefings, Roteiros e Equipe continuam presentes
-OK - páginas públicas permanecem na raiz
-OK - nenhum dado Firebase foi migrado ou apagado durante a reorganização
