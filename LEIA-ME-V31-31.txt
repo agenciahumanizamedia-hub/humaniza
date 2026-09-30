@@ -1,0 +1,27 @@
+HUMANIZA V31.31 — CLIENTE/PROJETO UNIFICADO
+
+Objetivo: qualquer pessoa/projeto conhecido pelo sistema passa a fazer sentido em conjunto.
+
+Registro unificado considera:
+- clientes ativos da agência;
+- orçamentos aprovados;
+- clientes/prospects da Agenda da Equipe;
+- projetos presentes no Calendário Editorial;
+- projetos já presentes em Roteiros.
+
+Aplicado em:
+- filtro Cliente/Projeto de Roteiros;
+- filtro Cliente/Projeto do Calendário da Equipe;
+- sugestões Cliente/Prospect ao criar compromisso;
+- Calendário Editorial continua preservado e recebe a lista unificada quando usa o seletor padrão.
+
+Regras:
+- cliente da agência tem prioridade quando o nome coincide;
+- orçamento aprovado que não é cliente da agência aparece como avulso;
+- não cria cliente mensal automaticamente;
+- não migra nem apaga dados antigos;
+- tudo é resolvido dinamicamente a partir das informações que já existem.
+
+PUBLICAÇÃO:
+Substitua somente index.html.
+roteiro.html está incluído, mas não sofreu mudança funcional nesta versão.
