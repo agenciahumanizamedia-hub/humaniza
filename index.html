@@ -680,6 +680,7 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="tab active" onclick="showView('dashboard', this)">📊 Visão geral</div>
     <div class="tab" onclick="showView('macro', this)">📈 Macro</div>
     <div class="tab" onclick="showView('calendar', this)">🗓️ Calendário</div>
+    <div class="tab" onclick="showView('briefings', this)">📋 Briefings</div>
     <div class="tab" onclick="showView('scripts', this)">🎬 Roteiros</div>
     <div class="tab" onclick="showView('captures', this)">📹 Captação</div>
     <div class="tab" onclick="showView('library', this)">📚 Biblioteca</div>
@@ -707,7 +708,31 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     <div class="top"><h2>Calendário Editorial</h2><div class="calendar-toolbar"><select id="calendarClientFilter" onchange="renderCalendar()"></select><input id="calendarMonthFilter" type="month" onchange="renderCalendar()"><button id="btnCalendarNew" onclick="openCalendarModal()">+ Item</button></div></div>
     <div class="calendar-scroll"><div class="calendar-real" id="calendarGrid"></div></div>
   </section>
-  <section id="scriptsView" class="hidden">
+  <section id="briefingsView" class="hidden">
+  <div class="top"><div><h2>Briefings</h2><p style="color:#A6A6A6">Etapa anterior aos roteiros. Use para clientes da agência e projetos avulsos.</p></div></div>
+  <div class="script-builder">
+    <div class="script-builder-row">
+      <div class="wide"><label class="field-label">Cliente / projeto</label><select id="briefingProjectFilter" onchange="renderBriefings()"><option value="">Selecione cliente / projeto</option></select></div>
+      <div class="wide"><label class="field-label">Tipo</label><select id="briefClientType" onchange="briefTypeChanged()"><option value="agency">Cliente da Agência</option><option value="avulso">Cliente Avulso</option></select></div>
+    </div>
+    <div id="briefingFormBox" style="display:none;margin-top:16px">
+      <div class="script-editor-grid">
+        <div><label class="field-label">Nome do responsável</label><input id="briefResponsible" placeholder="Nome completo"></div>
+        <div><label class="field-label">E-mail</label><input id="briefEmail" type="email" placeholder="email@empresa.com"></div>
+        <div><label class="field-label">Nome da empresa / marca</label><input id="briefCompany" placeholder="Nome da empresa"></div>
+        <div><label class="field-label">CNPJ</label><input id="briefCnpj" placeholder="CNPJ ou Não possuo"></div>
+        <div class="full"><label class="field-label">Conte um pouco da história da empresa</label><textarea class="compact" id="briefHistory"></textarea></div>
+        <div class="full"><label class="field-label">O que a empresa oferece hoje?</label><textarea class="compact" id="briefOffer"></textarea></div>
+        <div class="full"><label class="field-label">Quem é o principal público que vocês querem atingir?</label><textarea class="compact" id="briefAudience"></textarea></div>
+        <div class="full"><label class="field-label">Qual é o principal objetivo do marketing neste momento?</label><select id="briefMarketingGoal"><option value="">Selecione</option><option>Vender mais</option><option>Gerar contatos / leads</option><option>Fortalecer a marca</option><option>Divulgar um produto ou serviço</option><option>Aumentar presença nas redes sociais</option><option>Outro</option></select></div>
+        <div class="full"><label class="field-label">Existe alguma informação importante que precisamos saber antes de produzir os conteúdos? <span class="muted">(opcional)</span></label><textarea class="compact" id="briefImportant"></textarea></div>
+      </div>
+      <div class="actions" style="margin-top:14px"><button onclick="saveIndependentBriefing()">Salvar briefing</button><button id="briefCreateAgencyBtn" class="btn-green" style="display:none" onclick="prepareAgencyClientFromBriefing()">Criar cliente na Agência</button><span id="briefingStatus" class="pill"></span></div>
+    </div>
+  </div>
+</section>
+
+<section id="scriptsView" class="hidden">
   <div class="top">
     <div>
       <h2>Roteiros</h2>
@@ -742,27 +767,6 @@ button{box-shadow:0 8px 24px rgba(91,86,255,.14)}
     </div>
   </div>
 
-  <div id="scriptProjectBriefingBox" class="script-project-briefing" style="display:none">
-    <div class="script-editor-head">
-      <div><span class="pill">Etapa 1</span><strong style="margin-left:8px">Briefing do projeto</strong></div>
-      <button class="btn-dark" type="button" onclick="toggleProjectBriefing()">Recolher / expandir</button>
-    </div>
-    <p class="field-help">O briefing vem antes dos roteiros e vale para o projeto inteiro. Use este espaço para perguntas, respostas, direcionamentos e informações do cliente.</p>
-    <div id="scriptProjectBriefingBody">
-      <div class="script-editor-grid" id="scriptBriefingFields">
-<div><label class="field-label">Nome do responsável</label><input id="briefResponsible" placeholder="Nome completo"></div>
-<div><label class="field-label">E-mail</label><input id="briefEmail" type="email" placeholder="email@empresa.com"></div>
-<div><label class="field-label">Nome da empresa / marca</label><input id="briefCompany" placeholder="Nome da empresa"></div>
-<div><label class="field-label">CNPJ</label><input id="briefCnpj" placeholder="CNPJ ou Não possuo"></div>
-<div class="full"><label class="field-label">Conte um pouco da história da empresa</label><textarea class="compact" id="briefHistory"></textarea></div>
-<div class="full"><label class="field-label">O que a empresa oferece hoje?</label><textarea class="compact" id="briefOffer" placeholder="Principais produtos ou serviços"></textarea></div>
-<div class="full"><label class="field-label">Quem é o principal público que vocês querem atingir?</label><textarea class="compact" id="briefAudience"></textarea></div>
-<div class="full"><label class="field-label">Qual é o principal objetivo do marketing neste momento?</label><select id="briefMarketingGoal"><option value="">Selecione</option><option>Vender mais</option><option>Gerar contatos / leads</option><option>Fortalecer a marca</option><option>Divulgar um produto ou serviço</option><option>Aumentar presença nas redes sociais</option><option>Outro</option></select></div>
-<div class="full"><label class="field-label">Existe alguma informação importante que precisamos saber antes de produzir os conteúdos? <span class="muted">(opcional)</span></label><textarea class="compact" id="briefImportant"></textarea></div>
-</div>
-    </div>
-    <div id="scriptProjectProgress" class="script-progress"></div>
-  </div>
 
   <div id="scriptEditorList" class="script-editor-list"></div>
   <div id="scriptsGrid" style="display:none"></div>
@@ -1415,6 +1419,7 @@ function startListeners(){
 }
 
 window.showView = function(view, el){
+  if(view==='briefings')loadProjectBriefings().then(()=>renderBriefings());
   if(!isAdmin && !isTeamMember && !['macro','calendar','scripts','captures','library','clientPanel','agencyAgenda'].includes(view)) return;
   if(isTeamMember && !isAdmin && !['calendar','scripts','captures','library','internal','demands','agencyAgenda'].includes(view)) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1649,15 +1654,46 @@ function editorFormatFields(s,i){
 }
 
 function emptyProjectBriefing(){return {responsible:'',email:'',company:'',cnpj:'',history:'',offer:'',audience:'',marketingGoal:'',important:''}}
-function projectBriefingFromScripts(data){
- const structured=(data||[]).map(x=>x.projectBriefingData).find(x=>x&&typeof x==='object');
- if(structured)return {...emptyProjectBriefing(),...structured};
- const legacy=(data||[]).map(x=>typeof x.projectBriefing==='string'?x.projectBriefing:(x.briefing||'')).find(Boolean)||'';
- return {...emptyProjectBriefing(),history:legacy};
-}
 function currentProjectBriefingData(){const v=id=>document.getElementById(id)?.value?.trim?.()||'';return {responsible:v('briefResponsible'),email:v('briefEmail'),company:v('briefCompany'),cnpj:v('briefCnpj'),history:v('briefHistory'),offer:v('briefOffer'),audience:v('briefAudience'),marketingGoal:v('briefMarketingGoal'),important:v('briefImportant')}}
 function projectBriefingText(b){return [['Responsável',b.responsible],['E-mail',b.email],['Empresa / marca',b.company],['CNPJ',b.cnpj],['História',b.history],['Produtos / serviços',b.offer],['Público',b.audience],['Objetivo do marketing',b.marketingGoal],['Informação importante',b.important]].filter(x=>x[1]).map(x=>`${x[0]}: ${x[1]}`).join('\n')}
-function fillProjectBriefing(b,p){b={...emptyProjectBriefing(),...(b||{})};const q=selectedProjectQuote(p)||{};const put=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||''};put('briefResponsible',b.responsible||q.contactName||q.responsibleName||q.prospectName||'');put('briefEmail',b.email||q.email||q.prospectEmail||q.clientEmail||'');put('briefCompany',b.company||q.companyName||q.businessName||q.prospectName||p?.name||'');put('briefCnpj',b.cnpj||q.cnpj||'');put('briefHistory',b.history);put('briefOffer',b.offer);put('briefAudience',b.audience);put('briefMarketingGoal',b.marketingGoal);put('briefImportant',b.important)}
+let projectBriefings=[];
+function briefingDocId(p){return 'brief_'+normalizeProjectName(scriptStorageClientId(p)||p?.name||'projeto').replace(/[^a-z0-9]+/g,'_').slice(0,80)}
+function briefingForProject(p){if(!p)return null;return projectBriefings.find(b=>b.projectKey===scriptStorageClientId(p)||normalizeProjectName(b.clientName)===normalizeProjectName(p.name))||null}
+async function loadProjectBriefings(){
+ try{const snap=await getDocs(collection(db,'projectBriefings'));projectBriefings=snap.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.warn('Briefings:',e);projectBriefings=[]}
+}
+function fillProjectBriefing(b,p){
+ b={...emptyProjectBriefing(),...(b?.answers||b?.projectBriefingData||{})};const q=selectedProjectQuote(p)||{};const put=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||''};
+ put('briefResponsible',b.responsible||q.contactName||q.responsibleName||q.prospectName||'');put('briefEmail',b.email||q.email||q.prospectEmail||q.clientEmail||'');put('briefCompany',b.company||q.companyName||q.businessName||q.prospectName||p?.name||'');put('briefCnpj',b.cnpj||q.cnpj||'');put('briefHistory',b.history);put('briefOffer',b.offer);put('briefAudience',b.audience);put('briefMarketingGoal',b.marketingGoal);put('briefImportant',b.important)
+}
+window.renderBriefings=function(){
+ const sel=document.getElementById('briefingProjectFilter');if(!sel)return;
+ const projects=scriptUnifiedProjects(),keep=sel.value;sel.innerHTML='<option value="">Selecione cliente / projeto</option>'+projects.map(p=>`<option value="${h(p.id)}">${h(scriptProjectLabel(p))}</option>`).join('');sel.value=projects.some(p=>p.id===keep)?keep:'';
+ const p=projects.find(x=>x.id===sel.value),box=document.getElementById('briefingFormBox');if(!p){box.style.display='none';return}
+ box.style.display='block';const b=briefingForProject(p);fillProjectBriefing(b,p);
+ const type=document.getElementById('briefClientType');type.value=b?.clientType||(p.origin==='agency'?'agency':'avulso');briefTypeChanged();
+ const st=document.getElementById('briefingStatus');st.textContent=b?.status==='completed'?'Briefing concluído':'Briefing pendente';
+}
+window.briefTypeChanged=function(){
+ const p=scriptUnifiedProjects().find(x=>x.id===document.getElementById('briefingProjectFilter')?.value);
+ const isAgency=document.getElementById('briefClientType')?.value==='agency';
+ const exists=p&&p.origin==='agency';
+ const btn=document.getElementById('briefCreateAgencyBtn');if(btn)btn.style.display=isAgency&&!exists?'inline-block':'none';
+}
+window.saveIndependentBriefing=async function(){
+ const p=scriptUnifiedProjects().find(x=>x.id===document.getElementById('briefingProjectFilter')?.value);if(!p)return alert('Selecione o cliente/projeto.');
+ const answers=currentProjectBriefingData(),clientType=document.getElementById('briefClientType')?.value||'avulso',id=briefingDocId(p);
+ try{
+   await setDoc(doc(db,'projectBriefings',id),{projectKey:scriptStorageClientId(p),clientName:p.name,clientType,sourceQuoteId:p.quoteId||'',sourceAgendaId:p.agendaId||'',answers,briefingText:projectBriefingText(answers),status:'completed',updatedAt:serverTimestamp(),updatedBy:ne(currentUser?.email),createdAt:briefingForProject(p)?.createdAt||serverTimestamp()},{merge:true});
+   const local={id,projectKey:scriptStorageClientId(p),clientName:p.name,clientType,answers,status:'completed'};const pos=projectBriefings.findIndex(x=>x.id===id);if(pos>=0)projectBriefings[pos]=local;else projectBriefings.push(local);
+   renderBriefings();renderScripts();alert('Briefing salvo. Agora ele fica disponível para este projeto antes da etapa de Roteiros.');
+ }catch(e){console.error(e);alert('Não foi possível salvar o briefing. Nenhum dado existente foi apagado.')}
+}
+window.prepareAgencyClientFromBriefing=function(){
+ const p=scriptUnifiedProjects().find(x=>x.id===document.getElementById('briefingProjectFilter')?.value);if(!p)return;
+ const b=currentProjectBriefingData();openClientModal();
+ setTimeout(()=>{if(document.getElementById('clientName'))clientName.value=b.company||p.name||'';if(document.getElementById('clientEmail'))clientEmail.value=b.email||'';if(document.getElementById('clientObs'))clientObs.value=`Responsável: ${b.responsible||''}${b.cnpj?'\nCNPJ: '+b.cnpj:''}`},50);
+}
 window.toggleProjectBriefing=function(){
   const b=document.getElementById('scriptProjectBriefingBody');if(b)b.style.display=b.style.display==='none'?'block':'none';
 }
@@ -1722,7 +1758,7 @@ window.saveScriptProject=async function(){
  const project=selectedUnifiedProject();if(!project)return alert('Selecione o cliente/projeto.');
  const clientId=scriptStorageClientId(project),items=currentScriptEditorData();
  if(!items.length)return alert('Crie os conteúdos antes de salvar.');
- const projectBriefingData=currentProjectBriefingData(),projectBriefing=projectBriefingText(projectBriefingData);
+ const savedBrief=briefingForProject(project),projectBriefingData=savedBrief?.answers||{},projectBriefing=savedBrief?.briefingText||projectBriefingText(projectBriefingData);
  const selectedProjectId=document.getElementById('scriptsClientFilter')?.value||'';
  try{
    for(const x of items){
@@ -1752,15 +1788,15 @@ window.renderScripts=function(){
    cf.innerHTML='<option value="">Selecione cliente / projeto</option>'+projects.map(p=>`<option value="${h(p.id)}">${h(scriptProjectLabel(p))}</option>`).join('');
    cf.value=projects.some(p=>p.id===keep)?keep:'';
  }
- const p=selectedUnifiedProject(),origin=document.getElementById('scriptClientOrigin'),briefBox=document.getElementById('scriptProjectBriefingBox');
+ const p=selectedUnifiedProject(),origin=document.getElementById('scriptClientOrigin');
  if(origin)origin.textContent=!p?'':(p.origin==='agency'?'Cliente já cadastrado na agência.':p.origin==='quote'?'Cliente avulso vindo de orçamento aprovado.':p.origin==='agenda'?'Cliente/prospect avulso encontrado na agenda.':'Projeto já existente em Roteiros.');
  if(p?.captureDate&&document.getElementById('builderCaptureDate')&&!builderCaptureDate.value)builderCaptureDate.value=p.captureDate;
- if(!p){if(briefBox)briefBox.style.display='none';scriptEditorList.innerHTML='<div class="empty">Selecione um cliente da agência ou um cliente avulso para abrir o projeto.</div>';return;}
+ if(!p){scriptEditorList.innerHTML='<div class="empty">Selecione um cliente da agência ou um cliente avulso para abrir o projeto.</div>';return;}
  const storageId=scriptStorageClientId(p);
  const data=(scripts||[]).filter(s=>s.clientId===storageId||normalizeProjectName(s.clientName||s.projectName)===normalizeProjectName(p.name)).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
- if(briefBox)briefBox.style.display='block';
- fillProjectBriefing(projectBriefingFromScripts(data),p);
- scriptEditorList.innerHTML=data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum conteúdo criado ainda. Preencha o briefing, informe as quantidades e clique em “Criar estrutura”.</div>';
+ const brief=briefingForProject(p);
+ const briefStatus=brief?.status==='completed'?'<div class="briefing-box"><strong>Briefing concluído ✓</strong><p>As informações deste projeto estão salvas na área Briefings.</p></div>':'<div class="briefing-box"><strong>Briefing pendente</strong><p>Preencha a área Briefings antes de iniciar a produção.</p></div>';
+ scriptEditorList.innerHTML=briefStatus+(data.length?data.map(renderScriptEditorCard).join(''):'<div class="empty">Nenhum conteúdo criado ainda. Informe as quantidades e clique em “Criar estrutura”.</div>');
  updateScriptProjectProgress();
 }
 window.renderCaptures=function(){ if(btnCaptureNew) btnCaptureNew.style.display=isAdmin?'inline-block':'none'; const data=filterByCompetence(scopeByClient(captures),'capturesMonthFilter','capturesYearFilter'); capturesGrid.innerHTML=data.length?data.map(ca=>{const c=clientById(ca.clientId); return `<div class="planning-card"><h3>${ca.title}</h3><div class="meta"><span class="pill">${c?.name||'Cliente'}</span><span class="pill">${ca.status||''}</span><span class="pill">${responsibilityLabel(ca)}</span>${ca.date?`<span class="pill">${formatDate(ca.date)}</span>`:''}</div><div class="script-block"><b>Checklist</b><p>${ca.checklist||''}</p></div>${isAdmin?`<div class="script-block"><b>Observações internas</b><p>${ca.notes||''}</p></div>`:''}${ca.clientNote?`<div class="comment-box"><b>Observação do cliente:</b><br>${ca.clientNote}</div>`:''}<div class="actions">${isAdmin?`<button class="btn-dark" onclick="editCapture('${ca.id}')">Editar</button>`:`<button class="btn-dark" onclick="commentCapture('${ca.id}')">Comentar</button>`}</div></div>`}).join(''):'<div class="empty">Nenhuma captação cadastrada.</div>'; }
