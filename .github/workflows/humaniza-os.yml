@@ -40,6 +40,9 @@ jobs:
           if [ -z "$WIX_API_KEY" ]; then echo "Falta o segredo HUMANIZA (chave de API do Wix) no repositório." >&2; exit 1; fi
           npx wix login --api-key "$WIX_API_KEY"
 
+      - name: Ligar o site à hospedagem do Wix (idempotente)
+        run: node scripts/wix-attach.mjs
+
       - name: Baixar variáveis do site
         run: npx wix env pull
 
