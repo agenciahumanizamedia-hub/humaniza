@@ -99,11 +99,11 @@ export function ProjectPage({ me, id, go }: { me: Me; id: string; go: (p: string
     <div className="grid gap-6">
       <button onClick={() => go(staff ? `cliente/${c._id}` : "")} className="no-print w-fit text-sm text-muted-foreground hover:text-foreground">← {staff ? c.name : "Início"}</button>
       <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="flex flex-wrap items-center gap-4 p-5" style={{ background: `linear-gradient(110deg, ${color}40, transparent 60%)` }}>
+        <div className="flex flex-wrap items-center gap-3 p-4 sm:gap-4 sm:p-5" style={{ background: `linear-gradient(110deg, ${color}40, transparent 60%)` }}>
           <Logo name={c.name} url={c.logoUrl} color={color} size={56} />
           <div className="min-w-0 flex-1">
             <p className="eyebrow">{c.name}</p>
-            <h1 className="text-3xl font-extrabold">Projeto {p.period}</h1>
+            <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl">Projeto {p.period}</h1>
           </div>
           <div className="no-print flex flex-wrap gap-2">
             <Button variant="ghost" small onClick={() => window.print()}>Imprimir / PDF</Button>
@@ -259,11 +259,11 @@ function Production({ me, p, contents, brandColor, onChange, onLocal }: {
       </div>
       {locked ? <Locked text="Os roteiros aparecem aqui depois que o planejamento for aprovado e a Humaniza liberar." /> : (
         <>
-          <div className="no-print mt-4 flex flex-wrap items-end gap-2">
+          <div className="no-print mt-4 grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap">
             <Select label="Formato" value={type} onChange={setType} options={[{ value: "Todos", label: "Todos" }, { value: "roteiro", label: "Reels / Roteiro" }, { value: "carrossel", label: "Carrossel" }, { value: "estatico", label: "Estático" }]} />
             <Select label="Status" value={status} onChange={setStatus} options={["Todos", ...CONTENT_STATUS]} />
             <Field label="Buscar" value={search} onChange={setSearch} placeholder="Tema, legenda…" />
-            <div className="ml-auto flex gap-1 rounded-control border border-border p-1">
+            <div className="flex gap-1 rounded-control border border-border p-1 sm:ml-auto">
               <button onClick={() => setView("cards")} className={`rounded px-3 py-1.5 text-sm ${view === "cards" ? "bg-primary text-white" : ""}`}>Roteiros</button>
               <button onClick={() => setView("grade")} className={`rounded px-3 py-1.5 text-sm ${view === "grade" ? "bg-primary text-white" : ""}`}>Feed</button>
             </div>
@@ -318,7 +318,7 @@ function ContentCard({ me, p, c, onOpen, onMove, onChange }: { me: Me; p: Projec
       <div className="flex flex-wrap items-start justify-between gap-2">
         <button onClick={onOpen} className="min-w-0 flex-1 text-left">
           <p className="text-xs font-semibold text-[#c9c7ff]">{TYPE_LABEL[c.type] ?? c.type} · {brDate(c.postDate)}{c.week ? ` · ${c.week}` : ""}</p>
-          <h3 className="mt-0.5 text-lg font-bold hover:underline">{c.title || "Sem tema"}</h3>
+          <h3 className="mt-0.5 break-words text-base font-bold hover:underline sm:text-lg">{c.title || "Sem tema"}</h3>
         </button>
         <div className="flex items-center gap-2">
           <Pill>{c.status || "Em criação"}</Pill>

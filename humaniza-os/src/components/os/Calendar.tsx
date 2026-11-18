@@ -30,13 +30,13 @@ export function MonthCalendar({ me, clientId, go }: { me: Me; clientId?: string;
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Button small variant="ghost" onClick={() => setMonth(shiftMonth(month, -1))}>←</Button>
-          <h2 className="min-w-48 text-center text-2xl font-extrabold capitalize">{monthLabel(month)}</h2>
+          <h2 className="min-w-0 flex-1 text-center text-xl font-extrabold capitalize sm:min-w-48 sm:flex-none sm:text-2xl">{monthLabel(month)}</h2>
           <Button small variant="ghost" onClick={() => setMonth(shiftMonth(month, 1))}>→</Button>
           <Button small variant="ghost" onClick={() => setMonth(thisMonth())}>Hoje</Button>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-wrap">
           {!clientId && <Select label="Cliente" value={filter} onChange={setFilter} options={[{ value: "", label: "Todos" }, ...(clients.data ?? []).map((c) => ({ value: c._id, label: c.name }))]} />}
           <Select label="Formato" value={type} onChange={setType} options={[{ value: "Todos", label: "Todos" }, { value: "roteiro", label: "Reels" }, { value: "carrossel", label: "Carrossel" }, { value: "estatico", label: "Estático" }]} />
           {me.role !== "client" && <Button onClick={() => setAdding(today.startsWith(month) ? today : `${month}-01`)}>+ Compromisso</Button>}
@@ -47,7 +47,8 @@ export function MonthCalendar({ me, clientId, go }: { me: Me; clientId?: string;
         {Object.entries(COLORS).map(([k, c]) => <span key={k} className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />{TYPE_SHORT[k]}</span>)}
         <span className="flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-full bg-amber-400" />Captação / compromisso</span>
       </div>
-      <div className="overflow-x-auto">
+      <MobileAgenda days={days.filter(Boolean) as string[]} byDay={byDay} today={today} me={me} go={go} filter={filter} onEventsChange={() => { events.reload(); say("Compromisso removido."); }} />
+      <div className="hidden overflow-x-auto md:block">
         <div className="grid min-w-[760px] grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border">
           {WEEK.map((w) => <div key={w} className="bg-secondary p-2 text-center text-xs font-semibold text-muted-foreground">{w}</div>)}
           {days.map((d, i) => {
@@ -69,6 +70,33 @@ export function MonthCalendar({ me, clientId, go }: { me: Me; clientId?: string;
       <p className="text-xs text-muted-foreground">As postagens vêm da data de postagem de cada roteiro. {me.role !== "client" && "Clique duas vezes num dia para agendar um compromisso."}</p>
       {adding && <NewEvent date={adding} clientId={filter} clients={clients.data ?? []} onClose={() => setAdding(null)} onDone={() => { setAdding(null); events.reload(); say("Compromisso agendado."); }} />}
       {toast}
+    </div>
+  );
+}
+
+function MobileAgenda({ days, byDay, today, me, go, filter, onEventsChange }: {
+  days: string[]; byDay: (d: string) => { posts: Content[]; evs: CalEvent[] }; today: string; me: Me; go: (p: string) => void; filter: string; onEventsChange: () => void;
+}) {
+  const withItems = days.filter((d) => { const x = byDay(d); return x.posts.length || x.evs.length; });
+  return (
+    <div className="grid gap-2 md:hidden">
+      {withItems.length === 0 && <p className="text-sm text-muted-foreground">Nada neste mês.</p>}
+      {withItems.map((d) => {
+        const { posts, evs } = byDay(d);
+        const date = new Date(d + "T12:00");
+        return (
+          <div key={d} className={`flex gap-3 rounded-control border p-2 ${d === today ? "border-primary" : "border-border"}`}>
+            <div className="w-12 shrink-0 text-center">
+              <b className="block text-xl leading-none">{d.slice(8)}</b>
+              <span className="text-[11px] uppercase text-muted-foreground">{date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}</span>
+            </div>
+            <div className="grid min-w-0 flex-1 gap-1">
+              {evs.map((e) => <EventChip key={e._id} e={e} me={me} onDeleted={onEventsChange} />)}
+              {posts.map((c) => <PostChip key={c._id} c={c} showClient={!filter} onOpen={() => go(`projeto/${c.projectId}`)} />)}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -138,7 +166,7 @@ function NewEvent({ date, clientId, clients, onClose, onDone }: { date: string; 
 export function CalendarPage({ me, go }: { me: Me; go: (p: string) => void }) {
   return (
     <div className="grid gap-4">
-      <div><p className="eyebrow">Planejamento</p><h1 className="text-3xl font-extrabold">Calendário de conteúdo</h1></div>
+      <div><p className="eyebrow">Planejamento</p><h1 className="text-2xl font-extrabold sm:text-3xl">Calendário de conteúdo</h1></div>
       <Card><MonthCalendar me={me} clientId={me.role === "client" ? me.clientId ?? undefined : undefined} go={go} /></Card>
     </div>
   );

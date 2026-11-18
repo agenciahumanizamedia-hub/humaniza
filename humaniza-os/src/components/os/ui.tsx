@@ -54,7 +54,7 @@ export function Panel({ children }: { children: ReactNode }) {
   return <div className="mx-auto max-w-xl rounded-lg border border-border bg-card p-8">{children}</div>;
 }
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-lg border border-border bg-card p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-lg border border-border bg-card p-4 sm:p-5 ${className}`}>{children}</div>;
 }
 export function Skeleton({ rows = 2 }: { rows?: number }) {
   return (
@@ -260,10 +260,10 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
     return () => window.removeEventListener("keydown", k);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 pt-12" onMouseDown={onClose}>
-      <div className={`w-full ${wide ? "max-w-4xl" : "max-w-lg"} rounded-lg border border-border bg-card p-6 shadow-2xl`} onMouseDown={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-bold">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-0 sm:p-4 sm:pt-12" onMouseDown={onClose}>
+      <div className={`min-h-full w-full sm:min-h-0 ${wide ? "max-w-4xl" : "max-w-lg"} border-border bg-card p-4 pb-24 shadow-2xl sm:rounded-lg sm:border sm:p-6 sm:pb-6`} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:static sm:m-0 sm:mb-4 sm:border-0 sm:p-0">
+          <h2 className="min-w-0 truncate text-lg font-bold">{title}</h2>
           <button onClick={onClose} className="rounded px-2 text-xl text-muted-foreground hover:text-foreground" aria-label="Fechar">×</button>
         </div>
         {children}
@@ -280,7 +280,7 @@ export function useToast(): [ReactNode, (msg: string) => void] {
     return () => clearTimeout(t);
   }, [msg]);
   const node = msg ? (
-    <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full border border-primary/40 bg-[#161616] px-5 py-2 text-sm shadow-xl">{msg}</div>
+    <div className="fixed bottom-20 left-1/2 z-[60] lg:bottom-6 -translate-x-1/2 rounded-full border border-primary/40 bg-[#161616] px-5 py-2 text-sm shadow-xl">{msg}</div>
   ) : null;
   return [node, setMsg];
 }

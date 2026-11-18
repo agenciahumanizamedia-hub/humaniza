@@ -10,7 +10,7 @@ export function TeamPage({ go }: { go: (p: string) => void }) {
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="eyebrow">Pessoas</p><h1 className="text-3xl font-extrabold">Equipe</h1></div>
+        <div><p className="eyebrow">Pessoas</p><h1 className="text-2xl font-extrabold sm:text-3xl">Equipe</h1></div>
         <Button variant="ghost" onClick={() => go("acessos")}>Liberar novo acesso</Button>
       </div>
       <ErrorText>{team.error}</ErrorText>
@@ -52,7 +52,7 @@ export function TrashPage({ me }: { me: Me }) {
   const act = async (fn: () => Promise<unknown>, msg: string) => { await fn(); contents.reload(); demands.reload(); say(msg); };
   return (
     <div className="grid gap-6">
-      <div><p className="eyebrow">Recuperação</p><h1 className="text-3xl font-extrabold">Lixeira</h1>
+      <div><p className="eyebrow">Recuperação</p><h1 className="text-2xl font-extrabold sm:text-3xl">Lixeira</h1>
         <p className="text-sm text-muted-foreground">Nada é apagado de verdade até alguém escolher “Apagar de vez”{me.role !== "admin" && " (só o administrador pode)"}.</p></div>
       <Card>
         <h2 className="text-lg font-bold">Roteiros e conteúdos</h2>
@@ -94,7 +94,7 @@ export function QuotesPage() {
   const [open, setOpen] = useState<string | null>(null);
   return (
     <div className="grid gap-6">
-      <div><p className="eyebrow">Comercial</p><h1 className="text-3xl font-extrabold">Orçamentos</h1>
+      <div><p className="eyebrow">Comercial</p><h1 className="text-2xl font-extrabold sm:text-3xl">Orçamentos</h1>
         <p className="text-sm text-muted-foreground">Orçamentos trazidos do sistema antigo. O gerador novo de orçamentos com link de aprovação entra na próxima etapa.</p></div>
       <ErrorText>{error}</ErrorText>
       {!data && <Skeleton />}

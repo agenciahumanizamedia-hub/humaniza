@@ -106,29 +106,65 @@ export default function AppShell() {
     }
   })();
 
+  const items = NAV[me.role];
+  const current = items.find((i) => i.id === active) ?? items[0];
   return (
-    <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
-      <aside className="no-print h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24">
+    <div className="grid gap-4 lg:grid-cols-[230px_1fr] lg:gap-6">
+      {/* Computador: menu lateral */}
+      <aside className="no-print hidden h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24 lg:block">
         <p className="font-semibold">{me.name}</p>
         <p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]}</p>
-        <nav className="mt-4 flex gap-1 overflow-x-auto lg:flex-col">
-          {NAV[me.role].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => go(item.id)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-control px-3 py-2 text-left text-sm font-semibold ${
-                active === item.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"
-              }`}
-            >
-              <span aria-hidden>{item.icon}</span>
-              {item.label}
+        <nav className="mt-4 flex flex-col gap-1">
+          {items.map((item) => (
+            <button key={item.id} type="button" onClick={() => go(item.id)}
+              className={`flex items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold ${active === item.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
+              <span aria-hidden>{item.icon}</span>{item.label}
             </button>
           ))}
         </nav>
       </aside>
+      {/* Celular: barra de atalhos no rodapé + menu completo */}
+      <MobileNav items={items} active={active} current={current} me={me} go={go} />
       <section className="min-w-0">{page ?? <p className="text-muted-foreground">Seu perfil não tem acesso a esta área.</p>}</section>
     </div>
+  );
+}
+
+function MobileNav({ items, active, current, me, go }: { items: Item[]; active: string; current: Item; me: Me; go: (p: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const quick = items.slice(0, 4);
+  return (
+    <>
+      <nav className="no-print fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-[#1C1C1C]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        {quick.map((item) => (
+          <button key={item.id} onClick={() => go(item.id)} className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold ${active === item.id ? "text-[#c9c7ff]" : "text-muted-foreground"}`}>
+            <span className="text-lg leading-none" aria-hidden>{item.icon}</span>
+            <span className="max-w-full truncate px-1">{item.label.split(" ")[0]}</span>
+          </button>
+        ))}
+        <button onClick={() => setOpen(true)} className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted-foreground">
+          <span className="text-lg leading-none" aria-hidden>☰</span><span>Menu</span>
+        </button>
+      </nav>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={() => setOpen(false)}>
+          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <div><p className="font-semibold">{me.name}</p><p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]} · {current.label}</p></div>
+              <button onClick={() => setOpen(false)} className="text-2xl text-muted-foreground" aria-label="Fechar">×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {items.map((item) => (
+                <button key={item.id} onClick={() => { setOpen(false); go(item.id); }}
+                  className={`flex items-center gap-2 rounded-control px-3 py-3 text-left text-sm font-semibold ${active === item.id ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                  <span aria-hidden>{item.icon}</span>{item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -145,10 +181,10 @@ function Home({ me, go }: { me: Me; go: (p: string) => void }) {
     <div className="grid gap-6">
       <div className="rounded-lg border border-border bg-card p-6" style={{ background: "radial-gradient(circle at top right, rgba(91,86,255,.35), transparent 45%), #242424" }}>
         <p className="eyebrow">Agência Humaniza</p>
-        <h1 className="mt-1 text-3xl font-extrabold">Olá, {me.name.split(" ")[0]}</h1>
+        <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Olá, {me.name.split(" ")[0]}</h1>
         <p className="mt-2 text-muted-foreground">{me.role === "team" ? "Suas demandas, clientes e roteiros aparecem aqui." : "Visão geral da agência."}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label={me.role === "admin" ? "Clientes ativos" : "Meus clientes"} value={clients.data?.filter((c) => (c.status || "Ativo") === "Ativo").length} onClick={() => go("clientes")} />
         <Stat label="Aguardando o cliente" value={pending.length} onClick={() => go("projetos")} />
         <Stat label="Com ajuste pedido" value={adjusts.length} tone="warn" onClick={() => go("projetos")} />
@@ -186,9 +222,9 @@ function Home({ me, go }: { me: Me; go: (p: string) => void }) {
 
 function Stat({ label, value, tone, onClick }: { label: string; value: number | undefined; tone?: "warn"; onClick?: () => void }) {
   return (
-    <button onClick={onClick} className="rounded-lg border border-border bg-card p-5 text-left transition hover:border-primary/60">
+    <button onClick={onClick} className="rounded-lg border border-border bg-card p-4 text-left sm:p-5 transition hover:border-primary/60">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-3xl font-extrabold ${tone === "warn" && value ? "text-amber-300" : ""}`}>{value ?? "—"}</p>
+      <p className={`mt-1 text-2xl font-extrabold sm:text-3xl ${tone === "warn" && value ? "text-amber-300" : ""}`}>{value ?? "—"}</p>
     </button>
   );
 }

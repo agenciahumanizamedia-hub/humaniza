@@ -27,9 +27,9 @@ export function ClientsList({ me, go }: { me: Me; go: (p: string) => void }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Carteira</p>
-          <h1 className="text-3xl font-extrabold">{me.role === "admin" ? "Clientes" : "Meus clientes"}</h1>
+          <h1 className="text-2xl font-extrabold sm:text-3xl">{me.role === "admin" ? "Clientes" : "Meus clientes"}</h1>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-3">
           <Field label="Buscar" value={search} onChange={setSearch} placeholder="Nome do cliente" />
           <Select label="Status" value={status} onChange={setStatus} options={["Ativo", "Pausado", "Finalizado", "Todos"]} />
           {me.role === "admin" && <Button onClick={() => setCreating(true)}>+ Novo cliente</Button>}
@@ -112,20 +112,21 @@ export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string)
     <div className="grid gap-6">
       {staff && <button onClick={() => go("clientes")} className="w-fit text-sm text-muted-foreground hover:text-foreground">← Clientes</button>}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="brand-hero relative h-44 sm:h-56"
-          style={c.coverUrl ? { backgroundImage: `linear-gradient(to top, rgba(28,28,28,.95), rgba(28,28,28,.1)), url(${c.coverUrl})` } : { background: `radial-gradient(circle at 80% 20%, ${color}cc, transparent 55%), linear-gradient(120deg, #5B56FF55, #1C1C1C 70%)` }}>
-          <div className="absolute bottom-4 left-5 right-5 flex flex-wrap items-end gap-4">
-            <div className="rounded-full border-4 border-card"><Logo name={c.name} url={c.logoUrl} color={color} size={88} /></div>
-            <div className="min-w-0 flex-1">
+        <div className="relative">
+          <div className="brand-hero h-28 sm:h-56"
+            style={c.coverUrl ? { backgroundImage: `linear-gradient(to top, rgba(36,36,36,1), rgba(28,28,28,.15) 70%), url(${c.coverUrl})` } : { background: `radial-gradient(circle at 80% 20%, ${color}cc, transparent 55%), linear-gradient(120deg, #5B56FF55, #242424 70%)` }} />
+          <div className="-mt-10 flex flex-wrap items-end gap-3 px-4 pb-4 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:gap-4 sm:px-5">
+            <div className="rounded-full border-4 border-card"><Logo name={c.name} url={c.logoUrl} color={color} size={80} /></div>
+            <div className="min-w-0 flex-1 basis-56">
               <p className="eyebrow">{c.serviceType || "Cliente Humaniza"}</p>
-              <h1 className="truncate text-3xl font-extrabold sm:text-4xl">{c.name}</h1>
+              <h1 className="break-words text-2xl font-extrabold leading-tight sm:text-4xl">{c.name}</h1>
               <p className="text-sm text-muted-foreground">
                 {[c.instagram, c.responsibleName && `Resp.: ${c.responsibleName}`].filter(Boolean).join(" · ")}
               </p>
             </div>
             <div className="flex gap-1.5">
               {[...(c.brand?.colors ?? []).slice(0, 5)].map((col) => (
-                <span key={col.hex} title={`${col.name || ""} ${col.hex}`} className="h-7 w-7 rounded-full border-2 border-white/30" style={{ background: col.hex }} />
+                <span key={col.hex} title={`${col.name || ""} ${col.hex}`} className="h-6 w-6 rounded-full border-2 border-white/30 sm:h-7 sm:w-7" style={{ background: col.hex }} />
               ))}
             </div>
           </div>

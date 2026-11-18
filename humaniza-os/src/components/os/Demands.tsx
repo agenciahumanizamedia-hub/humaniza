@@ -31,8 +31,8 @@ export function DemandsBoard({ me }: { me: Me }) {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="eyebrow">Operação</p><h1 className="text-3xl font-extrabold">Demandas da equipe</h1></div>
-        <div className="flex flex-wrap items-end gap-2">
+        <div><p className="eyebrow">Operação</p><h1 className="text-2xl font-extrabold sm:text-3xl">Demandas da equipe</h1></div>
+        <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Select label="Pessoa" value={who} onChange={setWho} options={[{ value: "", label: "Todos" }, ...(team.data ?? []).map((t) => ({ value: t.email, label: t.name }))]} />
           <Select label="Cliente" value={client} onChange={setClient} options={[{ value: "", label: "Todos" }, ...(clients.data ?? []).map((c) => ({ value: c._id, label: c.name }))]} />
           <Button onClick={() => setOpen("new")}>+ Nova demanda</Button>
@@ -40,12 +40,12 @@ export function DemandsBoard({ me }: { me: Me }) {
       </div>
       <ErrorText>{error}</ErrorText>
       {!data && !error && <Skeleton />}
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-4 sm:mx-0 sm:px-0">
         {COLUMNS.map((col) => {
           const cards = list.filter((d) => d.column === col);
           return (
             <div key={col} onDragOver={(e) => e.preventDefault()} onDrop={() => drop(col)}
-              className={`flex w-72 shrink-0 flex-col rounded-lg border bg-card/70 ${drag ? "border-primary/40" : "border-border"}`}>
+              className={`flex w-[85vw] max-w-[18rem] shrink-0 snap-start flex-col rounded-lg border bg-card/70 ${drag ? "border-primary/40" : "border-border"}`}>
               <div className="flex items-center justify-between border-b border-border p-3">
                 <h2 className="text-sm font-bold">{col}</h2><span className="rounded-full bg-secondary px-2 text-xs text-muted-foreground">{cards.length}</span>
               </div>
