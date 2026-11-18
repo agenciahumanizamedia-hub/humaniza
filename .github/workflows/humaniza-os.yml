@@ -2,9 +2,9 @@
 #
 # Fase 1 (build): a cada alteração em humaniza-os/, o GitHub instala, compila (astro build) e guarda
 #   o pacote "wix-build" (pasta .wix + dist) como artefato desta execução.
-# Fase 2 (upload): o Claude pede ao Wix um endereço de envio para esse pacote, guarda o endereço no
-#   segredo WIX_UPLOAD_URL e o número da execução da fase 1 na variável WIX_BUILD_RUN_ID, e dispara
-#   um commit com "[wix-upload]" na mensagem. Este job envia o pacote; o Claude então libera a
+# Fase 2 (upload): o Claude pede ao Wix um endereço de envio (vale 1 hora), grava-o CRIPTOGRAFADO em
+#   humaniza-os/.wix-upload/url.enc (chave no segredo WIX_UPLOAD_PASS) junto com o número da execução
+#   da fase 1, num commit com "[wix-upload]". Este job decifra, envia o pacote e o Claude libera a
 #   publicação no Wix.
 #
 # Por que assim: o site foi criado pela integração Wix + Claude, cuja publicação passa pela
@@ -70,18 +70,28 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '[wix-upload]') }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Ler pedido de envio
+        id: req
+        env:
+          PASS: ${{ secrets.WIX_UPLOAD_PASS }}
+        run: |
+          if [ -z "$PASS" ]; then echo "Falta o segredo WIX_UPLOAD_PASS." >&2; exit 1; fi
+          echo "run_id=$(cat humaniza-os/.wix-upload/run-id)" >> "$GITHUB_OUTPUT"
+          openssl enc -d -aes-256-cbc -pbkdf2 -a -A -pass env:PASS -in humaniza-os/.wix-upload/url.enc -out /tmp/url.txt
+          echo "::add-mask::$(cat /tmp/url.txt)"
+
       - uses: actions/download-artifact@v4
         with:
           name: wix-build
-          run-id: ${{ vars.WIX_BUILD_RUN_ID }}
+          run-id: ${{ steps.req.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enviar pacote ao Wix
-        env:
-          UPLOAD_URL: ${{ secrets.WIX_UPLOAD_URL }}
         run: |
-          if [ -z "$UPLOAD_URL" ]; then echo "Falta o segredo WIX_UPLOAD_URL." >&2; exit 1; fi
           ls -l wix-build.zip
-          code=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' -X PUT -H 'Content-Type: application/zip' --data-binary @wix-build.zip "$UPLOAD_URL")
+          code=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' -X PUT -H 'content-type: application/zip' --data-binary @wix-build.zip "$(cat /tmp/url.txt)")
+          rm -f /tmp/url.txt
           echo "HTTP $code"; head -c 300 /tmp/resp.txt; echo
           test "$code" -ge 200 -a "$code" -lt 300
