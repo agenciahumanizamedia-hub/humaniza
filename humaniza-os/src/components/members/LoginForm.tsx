@@ -93,37 +93,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       </form>
     );
   }
-  if (mode === "register") {
-    // Primeiro acesso / esqueci a senha: o Wix envia o link e hospeda a troca de senha.
-    // A conta já foi criada quando a Humaniza liberou o acesso, então não há cadastro aberto.
-    return (
-      <form method="post" action="/api/auth/reset-password" className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Informe o e-mail liberado pela Humaniza. Você vai criar sua senha em uma página segura do Wix e
-          depois voltar aqui para entrar.
-        </p>
-        <input type="hidden" name="failureUrl" value="/login?senha=erro" />
-        <label className="block text-sm">
-          E-mail
-          <input
-            required
-            type="email"
-            name="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-1 w-full rounded border border-border bg-background p-2"
-          />
-        </label>
-        <div className="flex items-center gap-4">
-          <button className="rounded bg-primary px-4 py-2 text-primary-foreground">Criar ou trocar senha</button>
-          <button type="button" onClick={() => setMode("login")} className="text-sm underline">
-            Voltar para entrar
-          </button>
-        </div>
-      </form>
-    );
-  }
   const resetFailed =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("senha") === "erro";
   return (
@@ -163,9 +132,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         >
           {busy ? "Aguarde…" : "Entrar"}
         </button>
-        <button type="button" onClick={() => setMode("register")} className="text-sm underline">
+        {/* Página de login do próprio Wix: tem CAPTCHA e "Esqueceu a senha?" embutidos. */}
+        <a href="/api/auth/login" className="text-sm underline">
           Primeiro acesso ou esqueceu a senha?
-        </button>
+        </a>
       </div>
     </form>
   );
