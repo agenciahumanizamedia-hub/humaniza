@@ -1,9 +1,15 @@
-# Publica o Humaniza OS no Wix a cada alteração aprovada na pasta humaniza-os/ (branch main).
-# Também pode ser disparado à mão em Actions → "Humaniza OS — publicar no Wix" → Run workflow.
+# Humaniza OS — publicação no Wix em duas fases.
 #
-# Precisa de um segredo no repositório: HUMANIZA (ou WIX_API_KEY) em Settings → Secrets and variables → Actions.
-# A chave é criada no Wix em API Keys Manager, com acesso ao site "Humaniza OS".
-name: Humaniza OS — publicar no Wix
+# Fase 1 (build): a cada alteração em humaniza-os/, o GitHub instala, compila (astro build) e guarda
+#   o pacote "wix-build" (pasta .wix + dist) como artefato desta execução.
+# Fase 2 (upload): o Claude pede ao Wix um endereço de envio para esse pacote, guarda o endereço no
+#   segredo WIX_UPLOAD_URL e o número da execução da fase 1 na variável WIX_BUILD_RUN_ID, e dispara
+#   um commit com "[wix-upload]" na mensagem. Este job envia o pacote; o Claude então libera a
+#   publicação no Wix.
+#
+# Por que assim: o site foi criado pela integração Wix + Claude, cuja publicação passa pela
+# ferramenta de upload do Wix (não pelo `wix release` do CLI).
+name: Humaniza OS — build e envio ao Wix
 
 on:
   push:
@@ -11,18 +17,21 @@ on:
     paths: ["humaniza-os/**", ".github/workflows/humaniza-os.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 concurrency:
-  group: humaniza-os-release
+  group: humaniza-os-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[wix-upload]') }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: humaniza-os
-    env:
-      CI: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -33,21 +42,46 @@ jobs:
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
 
-      - name: Login no Wix (chave de API)
-        env:
-          WIX_API_KEY: ${{ secrets.HUMANIZA || secrets.WIX_API_KEY }}
+      - name: Variáveis de build (o Wix preenche as secretas na publicação)
         run: |
-          if [ -z "$WIX_API_KEY" ]; then echo "Falta o segredo HUMANIZA (chave de API do Wix) no repositório." >&2; exit 1; fi
-          npx wix login --api-key "$WIX_API_KEY"
-
-      - name: Ligar o site à hospedagem do Wix (idempotente)
-        run: node scripts/wix-attach.mjs
-
-      - name: Baixar variáveis do site
-        run: npx wix env pull
+          APP_ID=$(node -p "require('./wix.config.json').appId")
+          {
+            echo "WIX_CLIENT_ID=\"$APP_ID\""
+            echo 'WIX_CLIENT_INSTANCE_ID="set-at-release"'
+            echo 'WIX_CLIENT_PUBLIC_KEY="set-at-release"'
+            echo 'WIX_CLIENT_SECRET="set-at-release"'
+          } > .env.local
 
       - name: Build
-        run: npx wix build
+        run: npx astro build
 
-      - name: Publicar
-        run: npx wix release --comment "GitHub ${{ github.sha }}"
+      - name: Empacotar
+        run: |
+          zip -qr ../wix-build.zip .wix dist
+          echo "Tamanho do pacote: $(wc -c < ../wix-build.zip) bytes"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wix-build
+          path: wix-build.zip
+          retention-days: 7
+
+  upload:
+    if: ${{ contains(github.event.head_commit.message, '[wix-upload]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wix-build
+          run-id: ${{ vars.WIX_BUILD_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enviar pacote ao Wix
+        env:
+          UPLOAD_URL: ${{ secrets.WIX_UPLOAD_URL }}
+        run: |
+          if [ -z "$UPLOAD_URL" ]; then echo "Falta o segredo WIX_UPLOAD_URL." >&2; exit 1; fi
+          ls -l wix-build.zip
+          code=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' -X PUT -H 'Content-Type: application/zip' --data-binary @wix-build.zip "$UPLOAD_URL")
+          echo "HTTP $code"; head -c 300 /tmp/resp.txt; echo
+          test "$code" -ge 200 -a "$code" -lt 300
