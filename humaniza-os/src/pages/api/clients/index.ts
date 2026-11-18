@@ -1,14 +1,14 @@
 // GET  /api/clients — clientes que o perfil pode ver (admin: todos; equipe: os que atende; cliente: o próprio).
 // POST /api/clients — cria cliente (somente admin) e registra no histórico.
 import type { APIRoute } from "astro";
-import { requireAccess, clientFilter } from "../../server/access";
-import { find, create, COLLECTIONS } from "../../server/db";
-import { logActivity } from "../../server/activity";
-import { handle, json, readFields } from "../../server/http";
-import { HttpError } from "../../server/access";
+import { requireAccess, clientFilter } from "../../../server/access";
+import { find, create, COLLECTIONS } from "../../../server/db";
+import { logActivity } from "../../../server/activity";
+import { handle, json, readFields } from "../../../server/http";
+import { HttpError } from "../../../server/access";
 
-const PUBLIC_FIELDS = ["_id", "name", "logo", "brandColor", "status", "serviceType", "instagram"] as const;
-const TEAM_FIELDS = [...PUBLIC_FIELDS, "email", "whatsapp", "driveUrl", "teamEmails", "access"] as const;
+const PUBLIC_FIELDS = ["_id", "name", "logoUrl", "coverUrl", "brand", "brandColor", "status", "serviceType", "serviceCustom", "instagram"] as const;
+const TEAM_FIELDS = [...PUBLIC_FIELDS, "email", "whatsapp", "driveUrl", "teamEmails", "access", "responsibleName", "responsiblePhone"] as const;
 
 export const GET: APIRoute = handle(async () => {
   const access = await requireAccess();

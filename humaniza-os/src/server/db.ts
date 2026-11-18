@@ -18,6 +18,7 @@ export const COLLECTIONS = {
   contents: "osContents",
   events: "osEvents",
   legacy: "osLegacy",
+  demands: "osDemands",
 } as const;
 
 type CollectionId = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
@@ -28,6 +29,7 @@ const elevatedInsert = auth.elevate(items.insert);
 const elevatedGet = auth.elevate(items.get);
 const elevatedUpdate = auth.elevate(items.update);
 const elevatedBulkInsert = auth.elevate(items.bulkInsert);
+const elevatedRemove = auth.elevate(items.remove);
 
 /** Lê itens de uma coleção com filtro (sintaxe de filtro do Wix: { campo: valor } ou { campo: { $in: [...] } }). */
 export async function find(
@@ -81,4 +83,15 @@ export async function createMany(collection: CollectionId, rows: Record<string, 
     ok += res?.bulkActionMetadata?.totalSuccesses ?? res?.results?.length ?? 0;
   }
   return ok;
+}
+
+export async function removeOne(collection: CollectionId, id: string): Promise<void> {
+  await elevatedRemove(collection, id);
+}
+
+/** Lê, aplica as mudanças e grava o item inteiro. */
+export async function patch(collection: CollectionId, id: string, changes: Record<string, unknown>): Promise<Row> {
+  const row = await getOne(collection, id);
+  if (!row) throw new Error("not-found");
+  return replace(collection, { ...row, ...changes, _id: id } as Row);
 }

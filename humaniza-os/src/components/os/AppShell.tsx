@@ -1,27 +1,44 @@
 // Painel único do Humaniza OS. O menu muda conforme o perfil (admin, equipe, cliente), mas o que
 // cada um VÊ é decidido no servidor: mesmo que alguém mexa nesta tela, os endpoints só devolvem os
 // dados permitidos.
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMember } from "../../hooks/members/useMember";
-import { api, ApiError, type Activity, type Client, type Me, type Role, type User } from "./api";
+import { api, ApiError, type Me, type Role } from "./api";
+import { Button, Card, Field, Panel, Pill, Skeleton, useLoad, useRoute } from "./ui";
+import { ClientPage, ClientsList, mainColor } from "./Clients";
+import { ProjectList, ProjectPage } from "./Projects";
+import { CalendarPage } from "./Calendar";
+import { DemandsBoard } from "./Demands";
+import { QuotesPage, TeamPage, TrashPage } from "./Extras";
 
-type View = "inicio" | "clientes" | "acessos" | "historico";
-
-const NAV: Record<Role, { id: View; label: string }[]> = {
+type Item = { id: string; label: string; icon: string };
+const NAV: Record<Role, Item[]> = {
   admin: [
-    { id: "inicio", label: "Início" },
-    { id: "clientes", label: "Clientes" },
-    { id: "acessos", label: "Acessos" },
-    { id: "historico", label: "Histórico" },
+    { id: "", label: "Visão geral", icon: "📊" },
+    { id: "clientes", label: "Clientes", icon: "👥" },
+    { id: "projetos", label: "Projetos e roteiros", icon: "🎬" },
+    { id: "calendario", label: "Calendário", icon: "🗓️" },
+    { id: "demandas", label: "Demandas", icon: "🗂️" },
+    { id: "equipe", label: "Equipe", icon: "👨‍💻" },
+    { id: "orcamentos", label: "Orçamentos", icon: "💼" },
+    { id: "acessos", label: "Acessos", icon: "🔐" },
+    { id: "lixeira", label: "Lixeira", icon: "🗑️" },
+    { id: "historico", label: "Histórico", icon: "🕒" },
   ],
   team: [
-    { id: "inicio", label: "Meu dia" },
-    { id: "clientes", label: "Meus clientes" },
-    { id: "historico", label: "Histórico" },
+    { id: "", label: "Meu dia", icon: "☀️" },
+    { id: "clientes", label: "Meus clientes", icon: "👥" },
+    { id: "projetos", label: "Projetos e roteiros", icon: "🎬" },
+    { id: "calendario", label: "Calendário", icon: "🗓️" },
+    { id: "demandas", label: "Demandas", icon: "🗂️" },
+    { id: "lixeira", label: "Lixeira", icon: "🗑️" },
+    { id: "historico", label: "Histórico", icon: "🕒" },
   ],
   client: [
-    { id: "inicio", label: "Início" },
-    { id: "historico", label: "Atualizações" },
+    { id: "", label: "Minha página", icon: "🏠" },
+    { id: "projetos", label: "Projetos e aprovações", icon: "🎬" },
+    { id: "calendario", label: "Calendário", icon: "🗓️" },
+    { id: "historico", label: "Atualizações", icon: "🕒" },
   ],
 };
 
@@ -32,7 +49,7 @@ export default function AppShell() {
   const [me, setMe] = useState<Me | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "blocked" | "error">("loading");
   const [message, setMessage] = useState("");
-  const [view, setView] = useState<View>("inicio");
+  const [route, go] = useRoute();
 
   useEffect(() => {
     if (loading) return;
@@ -52,7 +69,7 @@ export default function AppShell() {
       });
   }, [loading, loggedIn]);
 
-  if (loading || state === "loading") return <Skeleton />;
+  if (loading || state === "loading") return <Skeleton rows={3} />;
   if (state === "blocked")
     return (
       <Panel>
@@ -70,85 +87,109 @@ export default function AppShell() {
       </Panel>
     );
 
+  const [section, id] = route;
+  const active = section === "cliente" ? "clientes" : section === "projeto" ? "projetos" : section ?? "";
+  const page = (() => {
+    if (section === "cliente" && id) return <ClientPage me={me} id={id} go={go} />;
+    if (section === "projeto" && id) return <ProjectPage me={me} id={id} go={go} />;
+    switch (section ?? "") {
+      case "clientes": return me.role === "client" ? <ClientPage me={me} id={me.clientId!} go={go} /> : <ClientsList me={me} go={go} />;
+      case "projetos": return <ProjectList me={me} clientId={me.role === "client" ? me.clientId! : undefined} go={go} />;
+      case "calendario": return <CalendarPage me={me} go={go} />;
+      case "demandas": return me.role !== "client" ? <DemandsBoard me={me} /> : null;
+      case "equipe": return me.role === "admin" ? <TeamPage go={go} /> : null;
+      case "orcamentos": return me.role === "admin" ? <QuotesPage /> : null;
+      case "acessos": return me.role === "admin" ? <AccessView /> : null;
+      case "lixeira": return me.role !== "client" ? <TrashPage me={me} /> : null;
+      case "historico": return <Timeline />;
+      default: return me.role === "client" ? <ClientPage me={me} id={me.clientId!} go={go} /> : <Home me={me} go={go} />;
+    }
+  })();
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-      <aside className="h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24">
+    <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
+      <aside className="no-print h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24">
         <p className="font-semibold">{me.name}</p>
         <p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]}</p>
-        <nav className="mt-4 flex gap-2 overflow-x-auto lg:flex-col">
+        <nav className="mt-4 flex gap-1 overflow-x-auto lg:flex-col">
           {NAV[me.role].map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => setView(item.id)}
-              className={`whitespace-nowrap rounded-control px-3 py-2 text-left text-sm font-semibold ${
-                view === item.id ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground hover:bg-border"
+              onClick={() => go(item.id)}
+              className={`flex items-center gap-2 whitespace-nowrap rounded-control px-3 py-2 text-left text-sm font-semibold ${
+                active === item.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"
               }`}
             >
+              <span aria-hidden>{item.icon}</span>
               {item.label}
             </button>
           ))}
         </nav>
       </aside>
-      <section className="min-w-0">
-        {view === "inicio" && <Home me={me} />}
-        {view === "clientes" && <ClientsView me={me} />}
-        {view === "acessos" && me.role === "admin" && <AccessView />}
-        {view === "historico" && <Timeline />}
-      </section>
+      <section className="min-w-0">{page ?? <p className="text-muted-foreground">Seu perfil não tem acesso a esta área.</p>}</section>
     </div>
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto max-w-xl rounded-lg border border-border bg-card p-8">{children}</div>;
-}
-
-function Skeleton() {
-  return (
-    <div className="grid gap-4" aria-busy="true">
-      <div className="h-24 animate-pulse rounded-lg bg-card" />
-      <div className="h-64 animate-pulse rounded-lg bg-card" />
-    </div>
-  );
-}
-
-function useLoad<T>(fn: () => Promise<T>) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState("");
-  const reload = useCallback(() => {
-    fn().then(setData).catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, [fn]);
-  useEffect(reload, [reload]);
-  return { data, error, reload };
-}
-
-function Home({ me }: { me: Me }) {
+function Home({ me, go }: { me: Me; go: (p: string) => void }) {
   const clients = useLoad(api.clients);
-  const greeting = me.role === "client" ? clients.data?.[0]?.name ?? "" : "Agência Humaniza";
+  const projects = useLoad(() => api.projects(), []);
+  const demands = useLoad(() => api.demands(), []);
+  const pending = (projects.data ?? []).filter((p) => [p.strategicStatus, p.productionStatus, p.calendarStatus].some((s) => s === "Liberado ao cliente" || s === "Aguardando aprovação"));
+  const adjusts = (projects.data ?? []).filter((p) => p.adjustments > 0 || [p.strategicStatus, p.productionStatus, p.calendarStatus].includes("Ajustes solicitados"));
+  const myDemands = (demands.data ?? []).filter((d) => d.column !== "Concluído" && (me.role === "admin" || d.assignees.includes(me.email)));
+  const today = new Date().toISOString().slice(0, 10);
+  const byId = new Map((clients.data ?? []).map((c) => [c._id, c]));
   return (
     <div className="grid gap-6">
       <div className="rounded-lg border border-border bg-card p-6" style={{ background: "radial-gradient(circle at top right, rgba(91,86,255,.35), transparent 45%), #242424" }}>
-        <p className="eyebrow">{greeting}</p>
+        <p className="eyebrow">Agência Humaniza</p>
         <h1 className="mt-1 text-3xl font-extrabold">Olá, {me.name.split(" ")[0]}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {me.role === "client"
-            ? "Aqui você acompanha seus projetos, conteúdos e aprovações."
-            : me.role === "team"
-              ? "Suas tarefas, captações e clientes aparecem aqui."
-              : "Visão geral da agência."}
-        </p>
+        <p className="mt-2 text-muted-foreground">{me.role === "team" ? "Suas demandas, clientes e roteiros aparecem aqui." : "Visão geral da agência."}</p>
       </div>
-      {me.role !== "client" && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Stat label={me.role === "admin" ? "Clientes" : "Meus clientes"} value={clients.data?.length} />
-          <Stat label="Aprovações pendentes" value={0} hint="chega na etapa de conteúdos" />
-          <Stat label="Ajustes abertos" value={0} hint="chega na etapa de conteúdos" />
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label={me.role === "admin" ? "Clientes ativos" : "Meus clientes"} value={clients.data?.filter((c) => (c.status || "Ativo") === "Ativo").length} onClick={() => go("clientes")} />
+        <Stat label="Aguardando o cliente" value={pending.length} onClick={() => go("projetos")} />
+        <Stat label="Com ajuste pedido" value={adjusts.length} tone="warn" onClick={() => go("projetos")} />
+        <Stat label={me.role === "admin" ? "Demandas abertas" : "Minhas demandas"} value={myDemands.length} onClick={() => go("demandas")} />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Pedidos de ajuste</h2><Button small variant="ghost" onClick={() => go("projetos")}>Ver projetos</Button></div>
+          {adjusts.length === 0 && <p className="mt-2 text-sm text-muted-foreground">Nenhum ajuste pendente. 🎉</p>}
+          <ul className="mt-3 grid gap-2">
+            {adjusts.slice(0, 6).map((p) => (
+              <li key={p._id}><button onClick={() => go(`projeto/${p._id}`)} className="flex w-full items-center justify-between gap-2 rounded-control border border-amber-400/30 p-3 text-left text-sm hover:bg-amber-400/5">
+                <span><b>{byId.get(p.clientId)?.name ?? ""}</b> · {p.period}</span><Pill>{p.adjustments ? `${p.adjustments} conteúdos` : "Etapa"}</Pill></button></li>
+            ))}
+          </ul>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between"><h2 className="text-lg font-bold">{me.role === "admin" ? "Demandas da equipe" : "Minhas demandas"}</h2><Button small variant="ghost" onClick={() => go("demandas")}>Abrir quadro</Button></div>
+          {myDemands.length === 0 && <p className="mt-2 text-sm text-muted-foreground">Nenhuma demanda aberta.</p>}
+          <ul className="mt-3 grid gap-2">
+            {myDemands.slice(0, 6).map((d) => (
+              <li key={d._id} className="flex items-center justify-between gap-2 rounded-control border border-border p-3 text-sm">
+                <span className="truncate"><b>{d.title}</b>{d.clientName ? ` · ${d.clientName}` : ""}</span>
+                <span className={`text-xs ${d.dueDate && d.dueDate < today ? "font-bold text-red-300" : "text-muted-foreground"}`}>{d.column}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
       {me.role === "admin" && <ImportBox />}
       <Timeline compact />
     </div>
+  );
+}
+
+function Stat({ label, value, tone, onClick }: { label: string; value: number | undefined; tone?: "warn"; onClick?: () => void }) {
+  return (
+    <button onClick={onClick} className="rounded-lg border border-border bg-card p-5 text-left transition hover:border-primary/60">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-3xl font-extrabold ${tone === "warn" && value ? "text-amber-300" : ""}`}>{value ?? "—"}</p>
+    </button>
   );
 }
 
@@ -190,81 +231,6 @@ function ImportBox() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: number | undefined; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-3xl font-extrabold">{value ?? "—"}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function ClientsView({ me }: { me: Me }) {
-  const { data, error, reload } = useLoad(api.clients);
-  const [form, setForm] = useState({ name: "", email: "", serviceType: "", instagram: "" });
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setMsg("");
-    try {
-      await api.createClient(form);
-      setForm({ name: "", email: "", serviceType: "", instagram: "" });
-      setMsg("Cliente cadastrado.");
-      reload();
-    } catch (err) {
-      setMsg(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="grid gap-6">
-      <h1 className="text-2xl font-bold">{me.role === "admin" ? "Clientes" : "Meus clientes"}</h1>
-      {me.role === "admin" && (
-        <form onSubmit={save} className="grid gap-3 rounded-lg border border-border bg-card p-5 sm:grid-cols-2">
-          <Field label="Nome do cliente" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
-          <Field label="E-mail principal" value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
-          <Field label="Serviço contratado" value={form.serviceType} onChange={(v) => setForm({ ...form, serviceType: v })} />
-          <Field label="Instagram" value={form.instagram} onChange={(v) => setForm({ ...form, instagram: v })} />
-          <div className="flex items-center gap-3 sm:col-span-2">
-            <button disabled={saving} className="rounded-control bg-primary px-4 py-2 font-semibold text-primary-foreground">
-              {saving ? "Salvando…" : "+ Cadastrar cliente"}
-            </button>
-            {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
-          </div>
-        </form>
-      )}
-      {error && <p className="text-destructive">{error}</p>}
-      {!data && !error && <Skeleton />}
-      {data && data.length === 0 && <p className="text-muted-foreground">Nenhum cliente por aqui ainda.</p>}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {data?.map((c) => (
-          <article key={c._id} className="rounded-lg border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full font-bold text-white" style={{ background: c.brandColor || "#5B56FF" }}>
-                {c.name.slice(0, 1).toUpperCase()}
-              </span>
-              <div>
-                <h2 className="font-semibold">{c.name}</h2>
-                <p className="text-xs text-muted-foreground">{c.serviceType || "Serviço não definido"}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full border border-border px-2 py-1">{c.status || "Ativo"}</span>
-              {c.instagram && <span className="rounded-full border border-border px-2 py-1">{c.instagram}</span>}
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function AccessView() {
   const users = useLoad(api.users);
   const clients = useLoad(api.clients);
@@ -279,7 +245,7 @@ function AccessView() {
     setMsg("");
     try {
       await api.grantAccess(form);
-      setMsg("Acesso liberado. A pessoa cria a senha em “Criar acesso” na tela de login.");
+      setMsg("Acesso liberado. A pessoa entra pelo link “Primeiro acesso ou esqueceu a senha?” da tela de login (pode usar o Google).");
       setForm({ ...form, name: "", email: "", jobTitle: "" });
       users.reload();
     } catch (err) {
@@ -374,17 +340,3 @@ function Timeline({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Field(props: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean }) {
-  return (
-    <label className="text-sm">
-      {props.label}
-      <input
-        type={props.type ?? "text"}
-        required={props.required}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-        className="mt-1 w-full rounded-control border border-border bg-secondary p-2"
-      />
-    </label>
-  );
-}

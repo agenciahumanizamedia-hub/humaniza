@@ -9,12 +9,13 @@ export function json(data: unknown, status = 200): Response {
 }
 
 /** Envolve um endpoint: erros conhecidos viram 401/403/404/400; o resto vira 500 sem vazar detalhes. */
-export function handle(fn: (request: Request) => Promise<Response>) {
-  return async ({ request }: { request: Request }) => {
+export function handle(fn: (request: Request, ctx: { params: Record<string, string | undefined>; url: URL }) => Promise<Response>) {
+  return async ({ request, params, url }: { request: Request; params: Record<string, string | undefined>; url: URL }) => {
     try {
-      return await fn(request);
+      return await fn(request, { params: params ?? {}, url: url ?? new URL(request.url) });
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.message }, e.status);
+      if (e instanceof Error && e.message === "not-found") return json({ error: "Item não encontrado." }, 404);
       console.error("[humaniza-os]", e);
       return json({ error: "Erro interno. Tente novamente." }, 500);
     }

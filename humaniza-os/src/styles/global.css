@@ -56,3 +56,12 @@
     color: var(--color-muted-foreground);
   }
 }
+
+/* Texto dos roteiros (vindo do editor) */
+.rich div, .rich p { min-height: 1em; }
+.rich ul { list-style: disc; padding-left: 1.25rem; }
+.rich ol { list-style: decimal; padding-left: 1.25rem; }
+.rich b, .rich strong { font-weight: 800; }
+[contenteditable][data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--color-muted-foreground, #a6a6a6); }
+.brand-hero { background-size: cover; background-position: center; }
+@media print { aside, header, .no-print { display: none !important; } body { background: #fff; color: #111; } }
