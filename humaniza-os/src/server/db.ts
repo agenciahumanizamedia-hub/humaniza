@@ -14,6 +14,10 @@ export const COLLECTIONS = {
   users: "osUsers",
   clients: "osClients",
   activity: "osActivity",
+  projects: "osProjects",
+  contents: "osContents",
+  events: "osEvents",
+  legacy: "osLegacy",
 } as const;
 
 type CollectionId = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
@@ -23,6 +27,7 @@ const elevatedQuery = auth.elevate(items.query);
 const elevatedInsert = auth.elevate(items.insert);
 const elevatedGet = auth.elevate(items.get);
 const elevatedUpdate = auth.elevate(items.update);
+const elevatedBulkInsert = auth.elevate(items.bulkInsert);
 
 /** Lê itens de uma coleção com filtro (sintaxe de filtro do Wix: { campo: valor } ou { campo: { $in: [...] } }). */
 export async function find(
@@ -54,4 +59,26 @@ export async function create(collection: CollectionId, data: Record<string, unkn
 /** Atualiza um item inteiro: leia antes, mude, e envie o item completo. */
 export async function replace(collection: CollectionId, row: Row): Promise<Row> {
   return (await elevatedUpdate(collection, row as any)) as Row;
+}
+
+/** Lê todos os itens que batem com o filtro, em páginas de 1000. */
+export async function findAll(collection: CollectionId, filter: Record<string, unknown> = {}): Promise<Row[]> {
+  const all: Row[] = [];
+  for (let offset = 0; offset < 50000; offset += 1000) {
+    const res: any = await elevatedQuery(collection, { filter, paging: { limit: 1000, offset } } as any);
+    const list = res?.items ?? res?.dataItems?.map((d: any) => ({ _id: d.id, ...d.data })) ?? [];
+    all.push(...list);
+    if (list.length < 1000) break;
+  }
+  return all;
+}
+
+/** Insere vários itens de uma vez (lotes de 500). Devolve quantos entraram. */
+export async function createMany(collection: CollectionId, rows: Record<string, unknown>[]): Promise<number> {
+  let ok = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const res: any = await elevatedBulkInsert(collection, rows.slice(i, i + 500) as any);
+    ok += res?.bulkActionMetadata?.totalSuccesses ?? res?.results?.length ?? 0;
+  }
+  return ok;
 }

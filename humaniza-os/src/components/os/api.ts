@@ -58,6 +58,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  importHub: () =>
+    call<{ clientes: number; projetos: number; conteudos: number; briefing: number; lidosDoHub: Record<string, number> }>(
+      "/api/admin/importar-hub",
+      { method: "POST", body: "{}" },
+    ),
   me: () => call<Me>("/api/me"),
   clients: () => call<Client[]>("/api/clients"),
   createClient: (data: Record<string, string>) => call<{ _id: string }>("/api/clients", { method: "POST", body: JSON.stringify(data) }),

@@ -146,7 +146,46 @@ function Home({ me }: { me: Me }) {
           <Stat label="Ajustes abertos" value={0} hint="chega na etapa de conteúdos" />
         </div>
       )}
+      {me.role === "admin" && <ImportBox />}
       <Timeline compact />
+    </div>
+  );
+}
+
+function ImportBox() {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  async function run() {
+    setState("busy");
+    setMsg("");
+    try {
+      const r = await api.importHub();
+      setState("done");
+      setMsg(
+        `Copiados agora: ${r.clientes} clientes, ${r.projetos} projetos/mês, ${r.conteudos} conteúdos e ${r.briefing} itens de briefing. ` +
+          `(Lidos no Hub: ${r.lidosDoHub.clientes} clientes e ${r.lidosDoHub.projetos} projetos.)`,
+      );
+    } catch (e) {
+      setState("error");
+      setMsg((e as Error).message);
+    }
+  }
+  return (
+    <div className="rounded-lg border border-border bg-card p-5">
+      <p className="eyebrow">Migração</p>
+      <h2 className="mt-1 text-lg font-bold">Trazer dados do Hub Humaniza</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Copia clientes, projetos/mês, roteiros, carrosséis, estáticos e briefings do Hub antigo. Nada é apagado lá, e o
+        que já foi copiado não é duplicado.
+      </p>
+      <button
+        onClick={run}
+        disabled={state === "busy"}
+        className="mt-3 rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+      >
+        {state === "busy" ? "Copiando… (pode levar até 1 minuto)" : "Copiar dados do Hub"}
+      </button>
+      {msg && <p className={`mt-2 text-sm ${state === "error" ? "text-destructive" : "text-green-400"}`}>{msg}</p>}
     </div>
   );
 }
