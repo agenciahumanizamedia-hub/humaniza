@@ -1,9 +1,11 @@
 // GET  /api/users — pessoas com acesso (somente admin).
 // POST /api/users — libera acesso para um e-mail: equipe ou cliente (somente admin).
 //
-// Como funciona o acesso: a pessoa cria a própria senha em /login ("Criar acesso"). Ela só enxerga
-// algo depois que o admin libera o e-mail aqui, com o perfil e, para clientes, a empresa vinculada.
+// Como funciona o acesso: ao liberar, o sistema cria a conta de membro no Wix (sem senha). A pessoa
+// cria a senha em /login → "Primeiro acesso". Não existe cadastro aberto: só entra quem foi liberado.
 import type { APIRoute } from "astro";
+import { members } from "@wix/members";
+import { auth } from "@wix/essentials";
 import { requireAccess, HttpError } from "../../server/access";
 import { find, create, getOne, COLLECTIONS } from "../../server/db";
 import { logActivity } from "../../server/activity";
@@ -48,6 +50,14 @@ export const POST: APIRoute = handle(async (request) => {
     permission: f.role === "team" ? f.permission || "Operacional" : f.role === "admin" ? "Gestor" : "",
     active: true,
   });
+  // Cria a conta de membro (sem senha). Se já existir, segue normalmente.
+  let memberCreated = false;
+  try {
+    await auth.elevate(members.createMember)({ member: { loginEmail: email } });
+    memberCreated = true;
+  } catch (err) {
+    console.warn("createMember:", (err as Error)?.message ?? err);
+  }
   const roleLabel = f.role === "client" ? `cliente (${clientName})` : f.role === "team" ? "equipe" : "administrador";
   await logActivity(access, {
     action: "user.granted",
@@ -56,5 +66,5 @@ export const POST: APIRoute = handle(async (request) => {
     entityId: row._id,
     clientId: f.role === "client" ? f.clientId : "",
   });
-  return json({ _id: row._id }, 201);
+  return json({ _id: row._id, memberCreated }, 201);
 });

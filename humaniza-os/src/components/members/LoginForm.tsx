@@ -93,43 +93,45 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       </form>
     );
   }
+  if (mode === "register") {
+    // Primeiro acesso / esqueci a senha: o Wix envia o link e hospeda a troca de senha.
+    // A conta já foi criada quando a Humaniza liberou o acesso, então não há cadastro aberto.
+    return (
+      <form method="post" action="/api/auth/reset-password" className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Informe o e-mail liberado pela Humaniza. Você vai criar sua senha em uma página segura do Wix e
+          depois voltar aqui para entrar.
+        </p>
+        <input type="hidden" name="failureUrl" value="/login?senha=erro" />
+        <label className="block text-sm">
+          E-mail
+          <input
+            required
+            type="email"
+            name="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-1 w-full rounded border border-border bg-background p-2"
+          />
+        </label>
+        <div className="flex items-center gap-4">
+          <button className="rounded bg-primary px-4 py-2 text-primary-foreground">Criar ou trocar senha</button>
+          <button type="button" onClick={() => setMode("login")} className="text-sm underline">
+            Voltar para entrar
+          </button>
+        </div>
+      </form>
+    );
+  }
+  const resetFailed =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("senha") === "erro";
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className="text-sm underline"
-        >
-          Entrar
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("register")}
-          className="text-sm underline"
-        >
-          Criar acesso
-        </button>
-      </div>
-      {mode === "register" && PROFILE_ON_SIGNUP && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm">
-            Nome
-            <input
-              value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
-              className="mt-1 w-full rounded border border-border bg-background p-2"
-            />
-          </label>
-          <label className="text-sm">
-            Sobrenome
-            <input
-              value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
-              className="mt-1 w-full rounded border border-border bg-background p-2"
-            />
-          </label>
-        </div>
+      {resetFailed && (
+        <p className="text-sm text-destructive">
+          Não foi possível abrir a troca de senha. Confira o e-mail ou fale com a Humaniza.
+        </p>
       )}
       <label className="block text-sm">
         E-mail
@@ -147,19 +149,30 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         <input
           required
           type="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="mt-1 w-full rounded border border-border bg-background p-2"
         />
       </label>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <button
-        disabled={busy}
-        className="rounded bg-primary px-4 py-2 text-primary-foreground"
-      >
-        {busy ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar acesso"}
-      </button>
+      {error && <p className="text-sm text-destructive">{traduzErro(error)}</p>}
+      <div className="flex items-center gap-4">
+        <button
+          disabled={busy}
+          className="rounded bg-primary px-4 py-2 text-primary-foreground"
+        >
+          {busy ? "Aguarde…" : "Entrar"}
+        </button>
+        <button type="button" onClick={() => setMode("register")} className="text-sm underline">
+          Primeiro acesso ou esqueceu a senha?
+        </button>
+      </div>
     </form>
   );
+}
+
+function traduzErro(message: string): string {
+  if (/wrong email or password/i.test(message)) return "E-mail ou senha incorretos.";
+  if (/reset your password/i.test(message)) return "Você precisa criar uma nova senha. Use “Primeiro acesso ou esqueceu a senha?”.";
+  return message;
 }
