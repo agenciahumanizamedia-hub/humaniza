@@ -51,9 +51,16 @@ async function call(path, { method = "POST", body, query } = {}) {
   }
 }
 
-const comp = await call("/_api/companion-apps/v1/companion-apps/get-or-create", { body: {} });
-const appId = comp.companionApp?.id;
-if (!appId) throw new Error("get-or-create não devolveu o app");
+// O app OAuth do site já foi criado na criação do site (appId em wix.config.json). Com chave de API
+// o get-or-create pode ser negado (403); nesse caso usamos o appId do wix.config.json.
+let appId = config.appId;
+try {
+  const comp = await call("/_api/companion-apps/v1/companion-apps/get-or-create", { body: {} });
+  if (comp.companionApp?.id) appId = comp.companionApp.id;
+} catch (e) {
+  console.log("aviso get-or-create:", String(e.message).slice(0, 120), "— usando appId do wix.config.json");
+}
+if (!appId) throw new Error("sem appId");
 if (appId !== config.appId) {
   console.log(`appId do site: ${appId} (wix.config.json tinha ${config.appId}) — atualizado nesta execução.`);
   writeFileSync("wix.config.json", JSON.stringify({ ...config, appId }, null, 2) + "\n");
