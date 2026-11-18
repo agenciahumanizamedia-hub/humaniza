@@ -42,7 +42,7 @@ wix.config.json      site e app do Wix (não são segredos)
 ## Publicar
 
 Cada alteração aprovada na `main` dentro de `humaniza-os/` é publicada pelo GitHub Actions
-(`.github/workflows/humaniza-os.yml`). Requer o segredo `WIX_API_KEY` no repositório.
+(`.github/workflows/humaniza-os.yml`). Requer o segredo `HUMANIZA` (chave de API do Wix) no repositório.
 
 Para rodar no computador: Node 24+, `npm install`, `npx wix login`, `npx wix env pull`, `npx wix dev`.
 

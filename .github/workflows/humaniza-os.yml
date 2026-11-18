@@ -1,13 +1,13 @@
 # Publica o Humaniza OS no Wix a cada alteração aprovada na pasta humaniza-os/ (branch main).
 # Também pode ser disparado à mão em Actions → "Humaniza OS — publicar no Wix" → Run workflow.
 #
-# Precisa de um segredo no repositório: WIX_API_KEY (Settings → Secrets and variables → Actions).
+# Precisa de um segredo no repositório: HUMANIZA (ou WIX_API_KEY) em Settings → Secrets and variables → Actions.
 # A chave é criada no Wix em API Keys Manager, com acesso ao site "Humaniza OS".
 name: Humaniza OS — publicar no Wix
 
 on:
   push:
-    branches: [main]
+    branches: [main, humaniza-os-base]
     paths: ["humaniza-os/**", ".github/workflows/humaniza-os.yml"]
   workflow_dispatch:
 
@@ -35,9 +35,9 @@ jobs:
 
       - name: Login no Wix (chave de API)
         env:
-          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+          WIX_API_KEY: ${{ secrets.HUMANIZA || secrets.WIX_API_KEY }}
         run: |
-          if [ -z "$WIX_API_KEY" ]; then echo "Falta o segredo WIX_API_KEY no repositório." >&2; exit 1; fi
+          if [ -z "$WIX_API_KEY" ]; then echo "Falta o segredo HUMANIZA (chave de API do Wix) no repositório." >&2; exit 1; fi
           npx wix login --api-key "$WIX_API_KEY"
 
       - name: Baixar variáveis do site
