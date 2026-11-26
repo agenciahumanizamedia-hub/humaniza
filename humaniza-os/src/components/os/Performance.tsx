@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, type Client, type Me, type MetaStatus, type Performance, type Post, type Suggestion2 } from "./api";
 import { Area, Button, Card, ErrorText, Field, Modal, Pill, Select, Skeleton, brDate, useLoad, useToast } from "./ui";
+import { AdsFunnel, BestTime, CountUp, Countdown, FormatDonut, PeriodFeed, ProductionSpotlight, Ring, Sparkline, Spotlight } from "./Visuals";
 
 /* ---------------- formatação ---------------- */
 const nf = (v: number | null | undefined, d = 0) => (v === null || v === undefined ? null : v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d }));
@@ -72,18 +73,20 @@ export function usePerformance(client: Client, me: Me) {
 function SourceTag({ children }: { children: string }) {
   return <span className="mt-1 inline-block rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">{children}</span>;
 }
-export function Kpi({ label, value, prev, current, source, invert, hint, empty = "Dado indisponível" }: {
+export function Kpi({ label, value, prev, current, source, invert, hint, empty = "Dado indisponível", spark, fmt }: {
   label: string; value: string | null; prev?: number | null; current?: number | null; source: string; invert?: boolean; hint?: string; empty?: string;
+  spark?: (number | null)[]; fmt?: (v: number) => string;
 }) {
   const v = variation(current, prev);
   const good = v === null ? null : invert ? v <= 0 : v >= 0;
   return (
-    <div className="rounded-lg border border-border bg-card p-4" title={hint}>
+    <div className="hz-rise rounded-lg border border-border bg-card p-4" title={hint}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      {value === null ? <p className="mt-1 text-sm font-semibold text-muted-foreground">{empty}</p> : <p className="mt-1 text-2xl font-extrabold tabular-nums">{value}</p>}
+      {value === null ? <p className="mt-1 text-sm font-semibold text-muted-foreground">{empty}</p> : <p className="mt-1 text-2xl font-extrabold tabular-nums">{fmt && typeof current === "number" ? <CountUp value={current} format={fmt} /> : value}</p>}
       {v !== null && value !== null && (
         <p className={`text-xs font-semibold ${good ? "text-emerald-300" : "text-amber-300"}`}>{v >= 0 ? "▲" : "▼"} {Math.abs(v * 100).toFixed(0)}% vs período anterior</p>
       )}
+      {spark && value !== null && <Sparkline values={spark} />}
       <SourceTag>{source}</SourceTag>
     </div>
   );
@@ -200,37 +203,44 @@ export function PerformanceOverview({ me, client, ctx, goTab }: { me: Me; client
   const def = metricDefs[metric];
   const curSeries = metric === "spend" ? ads?.series ?? [] : ig?.series ?? [];
   const prevSeries = metric === "spend" ? pads?.series ?? [] : pig?.series ?? [];
+  const brand = client.brand?.colors?.[0]?.hex || "#5B56FF";
+  const approved = del.items.filter((d) => d.clientApproval === "Aprovado" || ["Aprovado", "Agendado", "Postado"].includes(d.status)).length;
+  const igSeries = (k: string) => (ig?.series ?? []).map((r: any) => (typeof r[k] === "number" ? r[k] : null));
+  const bestCampaign = ads ? [...ads.campaigns].filter((x) => x.costPerResult !== null).sort((x, y) => x.costPerResult! - y.costPerResult!)[0] : undefined;
   return (
     <div className="grid gap-6">
       {head}
+      {ig && ig.posts.length ? <Spotlight posts={ig.posts} brand={brand} /> : <ProductionSpotlight items={del.items} brand={brand} />}
+
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
+        <Card className="hz-rise">
           <p className="eyebrow">1 · O que a Humaniza entregou</p>
-          <p className="mt-2 text-3xl font-extrabold tabular-nums">{del.total}<span className="ml-2 text-sm font-semibold text-muted-foreground">conteúdos no período</span></p>
-          <p className="text-sm text-muted-foreground">{del.byType.filter((t) => t.count).map((t) => `${t.count} ${t.type === "roteiro" ? "Reels" : t.type === "carrossel" ? "carrosséis" : "estáticos"}`).join(" · ") || "Nenhum conteúdo com data neste período"}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-control bg-secondary p-2"><b className="tabular-nums">{del.postedInternal}</b> marcados como postados<SourceTag>Humaniza OS (status interno)</SourceTag></div>
-            <div className="rounded-control bg-secondary p-2"><b className="tabular-nums">{ig ? del.confirmedByInstagram : "—"}</b> confirmados no Instagram<SourceTag>{ig ? "Instagram (Meta)" : "Conta aguardando conexão"}</SourceTag></div>
+          <p className="mt-2 text-4xl font-extrabold tabular-nums"><CountUp value={del.total} /><span className="ml-2 text-sm font-semibold text-muted-foreground">conteúdos no período</span></p>
+          <div className="mt-4 grid gap-4">
+            <Ring value={approved} total={del.total} label="Aprovados" sub={`${approved} de ${del.total} · Humaniza OS`} color="#7B76FF" />
+            <Ring value={del.postedInternal} total={del.total} label="Postados" sub={`${del.postedInternal} marcados como postados · Humaniza OS`} color="#2A9DB0" />
+            <p className="rounded-control bg-secondary p-2 text-xs">{ig ? <>📲 <b>{del.confirmedByInstagram}</b> confirmados pelo Instagram</> : "Confirmação pelo Instagram: conta aguardando conexão"}</p>
           </div>
         </Card>
-        <Card>
+        <Card className="hz-rise">
           <p className="eyebrow">2 · O que trouxe resultado</p>
           {best[0] ? (
-            <a href={best[0].permalink} target="_blank" rel="noreferrer" className="mt-2 flex gap-3">
-              {best[0].thumb && <img src={best[0].thumb} alt="" className="h-20 w-16 shrink-0 rounded object-cover" />}
-              <span className="text-sm"><b>{best[0].type} de {brDate(best[0].date)}</b><br />{nf(best[0].interactions)} interações · {nf(best[0].reach) ?? "alcance indisponível"} de alcance<br /><span className="text-xs text-muted-foreground">Conteúdo com mais interações</span></span>
-            </a>
-          ) : <p className="mt-2 text-sm text-muted-foreground">{ig ? "Sem publicações no período." : "Conta do Instagram aguardando conexão."}</p>}
-          {ads?.campaigns.find((c) => c.costPerResult !== null) && (() => {
-            const c = [...ads.campaigns].filter((x) => x.costPerResult !== null).sort((a, b) => a.costPerResult! - b.costPerResult!)[0];
-            return <p className="mt-3 rounded-control bg-secondary p-2 text-sm">📣 <b>{c.name}</b>: {nf(c.results)} {c.resultLabel.toLowerCase()} a {brl(c.costPerResult)} cada<SourceTag>Gerenciador de Anúncios (Meta)</SourceTag></p>;
-          })()}
+            <div className="mt-3 grid gap-2">
+              {best.map((x, k) => (
+                <a key={x.id} href={x.permalink} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-control border border-border p-2 transition hover:border-primary/60">
+                  {x.thumb ? <img src={x.thumb} alt="" className="h-14 w-11 shrink-0 rounded object-cover" /> : <span className="h-14 w-11 shrink-0 rounded bg-secondary" />}
+                  <span className="min-w-0 text-sm"><b>#{k + 1} {x.type}</b> · {brDate(x.date)}<br /><span className="text-muted-foreground">{nf(x.interactions)} interações · {nf(x.reach) ?? "—"} alcance</span></span>
+                </a>
+              ))}
+            </div>
+          ) : <p className="mt-2 text-sm text-muted-foreground">{ig ? "Sem publicações no período." : "Conecte o Instagram para ver os conteúdos com mais resultado."}</p>}
+          {bestCampaign && <p className="mt-3 rounded-control bg-secondary p-2 text-sm">📣 <b>{bestCampaign.name}</b>: {nf(bestCampaign.results)} {bestCampaign.resultLabel.toLowerCase()} a {brl(bestCampaign.costPerResult)} cada<SourceTag>Gerenciador de Anúncios (Meta)</SourceTag></p>}
         </Card>
-        <Card>
+        <Card className="hz-rise">
           <p className="eyebrow">3 · Próximo passo</p>
           <ul className="mt-2 grid gap-2 text-sm">
-            {(p.report?.nextSteps ?? []).filter((s) => !s.done).slice(0, 3).map((s, i) => <li key={i}>→ {s.text}</li>)}
-            {!(p.report?.nextSteps ?? []).some((s) => !s.done) && steps.filter((s) => s.kind === "teste" || s.kind === "melhorar").slice(0, 2).map((s) => <li key={s.id}>→ {s.text}</li>)}
+            {(p.report?.nextSteps ?? []).filter((s) => !s.done).slice(0, 3).map((s, i) => <li key={i} className="rounded-control border-l-2 border-primary bg-secondary/60 p-2">→ {s.text}</li>)}
+            {!(p.report?.nextSteps ?? []).some((s) => !s.done) && steps.filter((s) => s.kind === "teste" || s.kind === "melhorar").slice(0, 2).map((s) => <li key={s.id} className="rounded-control border-l-2 border-primary bg-secondary/60 p-2">→ {s.text}</li>)}
             {!(p.report?.nextSteps ?? []).length && !steps.length && <li className="text-muted-foreground">{staff ? "Revise as sugestões abaixo e aprove os próximos passos." : "A equipe vai publicar os próximos passos aqui."}</li>}
           </ul>
           {p.upcoming?.[0] && <p className="mt-3 rounded-control border border-primary/40 p-2 text-sm">📌 Próxima data: <b>{p.upcoming[0].title}</b> em {brDate(p.upcoming[0].date)}</p>}
@@ -238,15 +248,15 @@ export function PerformanceOverview({ me, client, ctx, goTab }: { me: Me; client
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <Kpi label="Seguidores" value={ig ? nf(ig.followers) : null} current={ig?.followers} prev={pig?.followers} source="Instagram (Meta)" empty={ig ? "Dado indisponível" : "Conta aguardando conexão"} />
-        <Kpi label="Alcance diário médio" value={ig ? nf(ig.totals.reachDailyAvg) : null} current={ig?.totals.reachDailyAvg} prev={pig?.totals.reachDailyAvg} source="Instagram (Meta)" hint="Média de contas alcançadas por dia no período" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
-        <Kpi label="Visualizações" value={ig ? nf(ig.totals.views) : null} current={ig?.totals.views} prev={pig?.totals.views} source="Instagram (Meta)" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
-        <Kpi label="Interações" value={ig ? nf(ig.totals.total_interactions) : null} current={ig?.totals.total_interactions} prev={pig?.totals.total_interactions} source="Instagram (Meta)" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
-        <Kpi label="Investimento em anúncios" value={ads ? brl(ads.totals.spend) : null} current={ads?.totals.spend} prev={pads?.totals.spend} source="Gerenciador de Anúncios (Meta)" empty={ads ? "Sem dados no período" : "Conta aguardando conexão"} />
-        <Kpi label="Conversas pelos anúncios" value={ads ? nf(ads.totals.conversations) : null} current={ads?.totals.conversations} prev={pads?.totals.conversations} source="Gerenciador de Anúncios (Meta)" empty={ads ? "Dado indisponível" : "Conta aguardando conexão"} />
+        <Kpi label="Seguidores" value={ig ? nf(ig.followers) : null} current={ig?.followers} prev={pig?.followers} fmt={(v) => nf(v)!} source="Instagram (Meta)" empty={ig ? "Dado indisponível" : "Conta aguardando conexão"} />
+        <Kpi label="Alcance diário médio" value={ig ? nf(ig.totals.reachDailyAvg) : null} current={ig?.totals.reachDailyAvg} prev={pig?.totals.reachDailyAvg} fmt={(v) => nf(v)!} spark={igSeries("reach")} source="Instagram (Meta)" hint="Média de contas alcançadas por dia no período" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
+        <Kpi label="Visualizações" value={ig ? nf(ig.totals.views) : null} current={ig?.totals.views} prev={pig?.totals.views} fmt={(v) => nf(v)!} spark={igSeries("views")} source="Instagram (Meta)" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
+        <Kpi label="Interações" value={ig ? nf(ig.totals.total_interactions) : null} current={ig?.totals.total_interactions} prev={pig?.totals.total_interactions} fmt={(v) => nf(v)!} spark={igSeries("total_interactions")} source="Instagram (Meta)" empty={ig ? "Sem dados no período" : "Conta aguardando conexão"} />
+        <Kpi label="Investimento em anúncios" value={ads ? brl(ads.totals.spend) : null} current={ads?.totals.spend} prev={pads?.totals.spend} fmt={(v) => brl(v)!} spark={ads?.series.map((r) => r.spend)} source="Gerenciador de Anúncios (Meta)" empty={ads ? "Sem dados no período" : "Conta aguardando conexão"} />
+        <Kpi label="Conversas pelos anúncios" value={ads ? nf(ads.totals.conversations) : null} current={ads?.totals.conversations} prev={pads?.totals.conversations} fmt={(v) => nf(v)!} source="Gerenciador de Anúncios (Meta)" empty={ads ? "Dado indisponível" : "Conta aguardando conexão"} />
       </div>
 
-      <Card>
+      <Card className="hz-rise">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="eyebrow">Evolução no período</p>
           <select value={metric} onChange={(e) => setMetric(e.target.value)} className="rounded-control border border-border bg-secondary p-1.5 text-sm">
@@ -257,25 +267,26 @@ export function PerformanceOverview({ me, client, ctx, goTab }: { me: Me; client
         <Coverage c={metric === "spend" ? ads?.coverage : ig?.coverage} />
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <Card>
-          <div className="flex items-center justify-between"><p className="eyebrow">Conteúdos em destaque</p><Button small variant="ghost" onClick={() => goTab("gerenciamento")}>Gerenciamento →</Button></div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">{best.map((x, i) => <PostTile key={x.id} p={x} badge={`#${i + 1} em interações`} />)}</div>
-          {!best.length && <p className="mt-2 text-sm text-muted-foreground">{ig ? "Sem publicações no período." : "Conta aguardando conexão."}</p>}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="hz-rise">
+          <div className="flex items-center justify-between"><p className="eyebrow">{ig?.posts.length ? "Feed do período" : "Feed planejado do período"}</p><Button small variant="ghost" onClick={() => goTab("gerenciamento")}>Gerenciamento →</Button></div>
+          <div className="mt-3"><PeriodFeed posts={ig?.posts ?? []} items={del.items} brand={brand} /></div>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">{ig?.posts.length ? "Capas reais · Fonte: Instagram (Meta)" : "Conteúdos do Humaniza OS com data de postagem no período"}</p>
         </Card>
-        <Card>
-          <div className="flex items-center justify-between"><p className="eyebrow">Próximas datas</p><Button small variant="ghost" onClick={() => goTab("datas")}>Datas e campanhas →</Button></div>
-          <ul className="mt-3 grid gap-2">
-            {(p.upcoming ?? []).map((u) => (
-              <li key={u._id} className="flex items-center gap-3 rounded-control border border-border p-2 text-sm">
-                <span className="w-12 text-center"><b className="block leading-none">{u.date.slice(8)}</b><span className="text-[11px] text-muted-foreground">{new Date(u.date + "T12:00").toLocaleDateString("pt-BR", { month: "short" })}</span></span>
-                <span className="min-w-0 flex-1"><b className="block truncate">{u.title}</b><span className="text-xs text-muted-foreground">{u.kind} · {u.status}</span></span>
-              </li>
-            ))}
-            {!(p.upcoming ?? []).length && <li className="text-sm text-muted-foreground">Nenhuma data liberada para os próximos 60 dias.</li>}
-          </ul>
+        <Card className="hz-rise">
+          <p className="eyebrow">Mix de formatos entregues</p>
+          <div className="mt-3"><FormatDonut rows={del.byType} /></div>
+          <p className="mt-2 text-[11px] text-muted-foreground">Fonte: Humaniza OS</p>
+          {ig && ig.posts.length > 0 && (<><p className="eyebrow mt-6">Melhor momento para postar</p><div className="mt-3"><BestTime posts={ig.posts} /></div></>)}
+          {ads && (<><p className="eyebrow mt-6">Funil dos anúncios</p><div className="mt-3"><AdsFunnel impressions={ads.totals.impressions} clicks={ads.totals.clicks} conversations={ads.totals.conversations} /></div></>)}
         </Card>
       </div>
+
+      <Card className="hz-rise">
+        <div className="flex items-center justify-between"><p className="eyebrow">Próximas datas</p><Button small variant="ghost" onClick={() => goTab("datas")}>Datas e campanhas →</Button></div>
+        <div className="mt-3"><Countdown items={p.upcoming ?? []} /></div>
+      </Card>
+
       <div className="flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => goTab("gerenciamento")}>📱 Gerenciamento</Button>
         <Button variant="ghost" onClick={() => goTab("trafego")}>📣 Tráfego pago</Button>
@@ -440,9 +451,12 @@ export function PaidTab({ me, client, ctx }: { me: Me; client: Client; ctx: Retu
         <Kpi label="Cliques no link" value={nf(t.clicks)} current={t.clicks} prev={prev?.totals.clicks} source="Gerenciador de Anúncios (Meta)" />
       </div>
       <Coverage c={ads.coverage} />
-      <Card>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.6fr]">
+        <Card className="hz-rise"><p className="eyebrow">Funil dos anúncios</p><div className="mt-3"><AdsFunnel impressions={t.impressions} clicks={t.clicks} conversations={t.conversations} /></div></Card>
+      <Card className="hz-rise">
         <EvolutionChart title="Investimento por dia" dates={ads.series.map((r) => r.date)} points={ads.series.map((r) => r.spend)} prevPoints={prev?.series.map((r) => r.spend)} format={(v) => brl(v)!} />
       </Card>
+      </div>
       <Card>
         <p className="eyebrow">Campanhas no período</p>
         <p className="mt-1 text-xs text-muted-foreground">“Resultado” é o que cada campanha foi configurada para buscar no Gerenciador de Anúncios. Resultados de campanhas diferentes não são somados.</p>

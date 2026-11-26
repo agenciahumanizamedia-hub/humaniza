@@ -65,3 +65,12 @@
 [contenteditable][data-placeholder]:empty::before { content: attr(data-placeholder); color: var(--color-muted-foreground, #a6a6a6); }
 .brand-hero { background-size: cover; background-position: center; }
 @media print { aside, header, .no-print { display: none !important; } body { background: #fff; color: #111; } }
+
+/* Entrada suave dos blocos do painel de desempenho */
+@keyframes hz-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes hz-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes hz-fade { from { opacity: 0; } to { opacity: 1; } }
+.hz-rise { animation: hz-rise .55s cubic-bezier(.2,.7,.2,1) both; }
+.hz-grow { transform-origin: left; animation: hz-grow .9s cubic-bezier(.2,.7,.2,1) both; }
+.hz-fade { animation: hz-fade .6s ease both; }
+@media (prefers-reduced-motion: reduce) { .hz-rise, .hz-grow, .hz-fade { animation: none; } }
