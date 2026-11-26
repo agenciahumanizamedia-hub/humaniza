@@ -3,8 +3,8 @@
 // dados permitidos.
 import { useEffect, useState } from "react";
 import { useMember } from "../../hooks/members/useMember";
-import { api, ApiError, type Me, type Role } from "./api";
-import { Button, Card, Field, Panel, Pill, Skeleton, useLoad, useRoute } from "./ui";
+import { api, ApiError, can, TEAM_MODULES, type Me, type Role, type TeamModule, type User } from "./api";
+import { Button, Card, Field, Modal, Panel, Pill, Skeleton, useLoad, useRoute } from "./ui";
 import { ClientPage, ClientsList, mainColor } from "./Clients";
 import { ProjectList, ProjectPage } from "./Projects";
 import { CalendarPage } from "./Calendar";
@@ -91,22 +91,24 @@ export default function AppShell() {
   const active = section === "cliente" ? "clientes" : section === "projeto" ? "projetos" : section ?? "";
   const page = (() => {
     if (section === "cliente" && id) return <ClientPage me={me} id={id} go={go} />;
-    if (section === "projeto" && id) return <ProjectPage me={me} id={id} go={go} />;
+    if (section === "projeto" && id) return me.role === "team" && !can(me, "projetos") ? null : <ProjectPage me={me} id={id} go={go} />;
     switch (section ?? "") {
       case "clientes": return me.role === "client" ? <ClientPage me={me} id={me.clientId!} go={go} /> : <ClientsList me={me} go={go} />;
-      case "projetos": return <ProjectList me={me} clientId={me.role === "client" ? me.clientId! : undefined} go={go} />;
-      case "calendario": return <CalendarPage me={me} go={go} />;
-      case "demandas": return me.role !== "client" ? <DemandsBoard me={me} /> : null;
+      case "projetos": return me.role === "team" && !can(me, "projetos") ? null : <ProjectList me={me} clientId={me.role === "client" ? me.clientId! : undefined} go={go} />;
+      case "calendario": return me.role === "team" && !can(me, "calendario") ? null : <CalendarPage me={me} go={go} />;
+      case "demandas": return me.role !== "client" && can(me, "demandas") ? <DemandsBoard me={me} /> : null;
       case "equipe": return me.role === "admin" ? <TeamPage go={go} /> : null;
       case "orcamentos": return me.role === "admin" ? <QuotesPage /> : null;
       case "acessos": return me.role === "admin" ? <AccessView /> : null;
-      case "lixeira": return me.role !== "client" ? <TrashPage me={me} /> : null;
+      case "lixeira": return me.role !== "client" && can(me, "lixeira") ? <TrashPage me={me} /> : null;
       case "historico": return <Timeline />;
       default: return me.role === "client" ? <ClientPage me={me} id={me.clientId!} go={go} /> : <Home me={me} go={go} />;
     }
   })();
 
-  const items = NAV[me.role];
+  // Equipe: o menu mostra só as áreas liberadas em Acessos (o servidor também confere).
+  const NEEDS: Record<string, TeamModule> = { projetos: "projetos", calendario: "calendario", demandas: "demandas", lixeira: "lixeira" };
+  const items = NAV[me.role].filter((i) => me.role !== "team" || !NEEDS[i.id] || can(me, NEEDS[i.id]));
   const current = items.find((i) => i.id === active) ?? items[0];
   return (
     <div className="grid gap-4 lg:grid-cols-[230px_1fr] lg:gap-6">
@@ -114,6 +116,7 @@ export default function AppShell() {
       <aside className="no-print hidden h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24 lg:block">
         <p className="font-semibold">{me.name}</p>
         <p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]}</p>
+        <MyPasswordButton />
         <nav className="mt-4 flex flex-col gap-1">
           {items.map((item) => (
             <button key={item.id} type="button" onClick={() => go(item.id)}
@@ -150,7 +153,7 @@ function MobileNav({ items, active, current, me, go }: { items: Item[]; active: 
         <div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={() => setOpen(false)}>
           <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <div><p className="font-semibold">{me.name}</p><p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]} · {current.label}</p></div>
+              <div><p className="font-semibold">{me.name}</p><p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]} · {current.label}</p><MyPasswordButton /></div>
               <button onClick={() => setOpen(false)} className="text-2xl text-muted-foreground" aria-label="Fechar">×</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -170,8 +173,10 @@ function MobileNav({ items, active, current, me, go }: { items: Item[]; active: 
 
 function Home({ me, go }: { me: Me; go: (p: string) => void }) {
   const clients = useLoad(api.clients);
-  const projects = useLoad(() => api.projects(), []);
-  const demands = useLoad(() => api.demands(), []);
+  const seesProjects = can(me, "projetos");
+  const seesDemands = can(me, "demandas");
+  const projects = useLoad(() => (seesProjects ? api.projects() : Promise.resolve([])), []);
+  const demands = useLoad(() => (seesDemands ? api.demands() : Promise.resolve([])), []);
   const pending = (projects.data ?? []).filter((p) => [p.strategicStatus, p.productionStatus, p.calendarStatus].some((s) => s === "Liberado ao cliente" || s === "Aguardando aprovação"));
   const adjusts = (projects.data ?? []).filter((p) => p.adjustments > 0 || [p.strategicStatus, p.productionStatus, p.calendarStatus].includes("Ajustes solicitados"));
   const myDemands = (demands.data ?? []).filter((d) => d.column !== "Concluído" && (me.role === "admin" || d.assignees.includes(me.email)));
@@ -186,12 +191,12 @@ function Home({ me, go }: { me: Me; go: (p: string) => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label={me.role === "admin" ? "Clientes ativos" : "Meus clientes"} value={clients.data?.filter((c) => (c.status || "Ativo") === "Ativo").length} onClick={() => go("clientes")} />
-        <Stat label="Aguardando o cliente" value={pending.length} onClick={() => go("projetos")} />
-        <Stat label="Com ajuste pedido" value={adjusts.length} tone="warn" onClick={() => go("projetos")} />
-        <Stat label={me.role === "admin" ? "Demandas abertas" : "Minhas demandas"} value={myDemands.length} onClick={() => go("demandas")} />
+        {seesProjects && <Stat label="Aguardando o cliente" value={pending.length} onClick={() => go("projetos")} />}
+        {seesProjects && <Stat label="Com ajuste pedido" value={adjusts.length} tone="warn" onClick={() => go("projetos")} />}
+        {seesDemands && <Stat label={me.role === "admin" ? "Demandas abertas" : "Minhas demandas"} value={myDemands.length} onClick={() => go("demandas")} />}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        {seesProjects && <Card>
           <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Pedidos de ajuste</h2><Button small variant="ghost" onClick={() => go("projetos")}>Ver projetos</Button></div>
           {adjusts.length === 0 && <p className="mt-2 text-sm text-muted-foreground">Nenhum ajuste pendente. 🎉</p>}
           <ul className="mt-3 grid gap-2">
@@ -200,8 +205,8 @@ function Home({ me, go }: { me: Me; go: (p: string) => void }) {
                 <span><b>{byId.get(p.clientId)?.name ?? ""}</b> · {p.period}</span><Pill>{p.adjustments ? `${p.adjustments} conteúdos` : "Etapa"}</Pill></button></li>
             ))}
           </ul>
-        </Card>
-        <Card>
+        </Card>}
+        {seesDemands && <Card>
           <div className="flex items-center justify-between"><h2 className="text-lg font-bold">{me.role === "admin" ? "Demandas da equipe" : "Minhas demandas"}</h2><Button small variant="ghost" onClick={() => go("demandas")}>Abrir quadro</Button></div>
           {myDemands.length === 0 && <p className="mt-2 text-sm text-muted-foreground">Nenhuma demanda aberta.</p>}
           <ul className="mt-3 grid gap-2">
@@ -212,7 +217,7 @@ function Home({ me, go }: { me: Me; go: (p: string) => void }) {
               </li>
             ))}
           </ul>
-        </Card>
+        </Card>}
       </div>
       {me.role === "admin" && <ImportBox />}
       <Timeline compact />
@@ -267,22 +272,63 @@ function ImportBox() {
   );
 }
 
+/** Mostra uma senha gerada UMA vez, com botão de copiar e o texto pronto para mandar à pessoa. */
+function PasswordCard({ name, email, password, onClose }: { name: string; email: string; password: string; onClose: () => void }) {
+  const [copied, setCopied] = useState("");
+  const site = typeof window !== "undefined" ? window.location.origin : "";
+  const message = `Olá, ${name.split(" ")[0]}! Seu acesso ao Humaniza OS está pronto.\n\nEndereço: ${site}/login\nE-mail: ${email}\nSenha: ${password}\n\nDepois de entrar, você pode trocar a senha em “Trocar minha senha”.`;
+  const copy = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+    } catch {
+      setCopied("");
+      window.prompt("Copie:", text);
+    }
+  };
+  return (
+    <div className="grid gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4">
+      <p className="text-sm font-semibold">Senha de {name} (aparece só agora: copie antes de fechar)</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="rounded-control bg-black/40 px-3 py-2 font-mono text-lg tracking-wider">{password}</code>
+        <Button small onClick={() => copy(password, "senha")}>{copied === "senha" ? "Senha copiada ✓" : "Copiar senha"}</Button>
+        <Button small variant="ghost" onClick={() => copy(message, "mensagem")}>{copied === "mensagem" ? "Mensagem copiada ✓" : "Copiar mensagem para enviar"}</Button>
+        <Button small variant="ghost" onClick={onClose}>Fechar</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">A senha não fica guardada no sistema. Se a pessoa perder, gere outra em “Gerar nova senha”.</p>
+    </div>
+  );
+}
+
 function AccessView() {
   const users = useLoad(api.users);
   const clients = useLoad(api.clients);
   const [form, setForm] = useState({ name: "", email: "", role: "team", clientId: "", jobTitle: "", permission: "Operacional" });
+  const [modules, setModules] = useState<TeamModule[]>(TEAM_MODULES.map((m) => m.id));
+  const [teamClients, setTeamClients] = useState<string[]>([]);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [shown, setShown] = useState<{ name: string; email: string; password: string } | null>(null);
+  const [busyRow, setBusyRow] = useState("");
+  const [rowMsg, setRowMsg] = useState<{ id: string; text: string; error?: boolean } | null>(null);
   const clientName = (id: string | null) => clients.data?.find((c) => c._id === id)?.name ?? "";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setMsg("");
+    setShown(null);
     try {
-      await api.grantAccess(form);
-      setMsg("Acesso liberado. A pessoa entra pelo link “Primeiro acesso ou esqueceu a senha?” da tela de login (pode usar o Google).");
+      const r = await api.grantAccess(form.role === "team" ? { ...form, modules, clientIds: teamClients } : form);
+      if (r.password) {
+        setShown({ name: form.name, email: r.email, password: r.password });
+        setMsg("Acesso liberado.");
+      } else {
+        setMsg(`Acesso liberado, mas a senha não foi criada (${r.passwordMessage || "erro do Wix"}). Use “Enviar e-mail para criar senha” na lista abaixo.`);
+      }
       setForm({ ...form, name: "", email: "", jobTitle: "" });
+      setTeamClients([]);
       users.reload();
     } catch (err) {
       setMsg(err instanceof Error ? err.message : String(err));
@@ -291,9 +337,44 @@ function AccessView() {
     }
   }
 
+  async function reset(u: { _id: string; name: string; email: string }) {
+    if (!window.confirm(`Gerar uma senha nova para ${u.name}? A senha atual dele(a) deixa de funcionar.`)) return;
+    setBusyRow(u._id);
+    setRowMsg(null);
+    try {
+      const r = await api.resetPassword(u._id);
+      setShown({ name: u.name, email: r.email, password: r.password });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      users.reload();
+    } catch (err) {
+      setRowMsg({ id: u._id, text: err instanceof Error ? err.message : String(err), error: true });
+    } finally {
+      setBusyRow("");
+    }
+  }
+
+  async function emailLink(u: { _id: string; name: string }) {
+    setBusyRow(u._id);
+    setRowMsg(null);
+    try {
+      const r = await api.sendPasswordEmail(u._id);
+      setRowMsg({ id: u._id, text: `E-mail enviado para ${r.sentTo}. O link vale 3 horas.` });
+    } catch (err) {
+      setRowMsg({ id: u._id, text: err instanceof Error ? err.message : String(err), error: true });
+    } finally {
+      setBusyRow("");
+    }
+  }
+
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-bold">Acessos</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Acessos</h1>
+        <p className="text-sm text-muted-foreground">
+          Ao liberar, o sistema cria a senha da pessoa e mostra aqui para você copiar e enviar. Ela pode trocar depois em “Trocar minha senha”.
+        </p>
+      </div>
+      {shown && <PasswordCard {...shown} onClose={() => setShown(null)} />}
       <form onSubmit={save} className="grid gap-3 rounded-lg border border-border bg-card p-5 sm:grid-cols-2">
         <Field label="Nome" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
         <Field label="E-mail de login" value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" required />
@@ -320,9 +401,14 @@ function AccessView() {
         ) : (
           <Field label="Função (ex.: Editor, Designer)" value={form.jobTitle} onChange={(v) => setForm({ ...form, jobTitle: v })} />
         )}
+        {form.role === "team" && (
+          <div className="sm:col-span-2">
+            <TeamAccessPicker modules={modules} onModules={setModules} clientIds={teamClients} onClients={setTeamClients} clients={clients.data ?? []} />
+          </div>
+        )}
         <div className="flex items-center gap-3 sm:col-span-2">
           <button disabled={saving} className="rounded-control bg-primary px-4 py-2 font-semibold text-primary-foreground">
-            {saving ? "Salvando…" : "Liberar acesso"}
+            {saving ? "Criando acesso e senha…" : "Liberar acesso e gerar senha"}
           </button>
           {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
         </div>
@@ -336,21 +422,185 @@ function AccessView() {
               <th className="p-3">E-mail</th>
               <th className="p-3">Perfil</th>
               <th className="p-3">Vínculo</th>
+              <th className="p-3">Senha e acesso</th>
             </tr>
           </thead>
           <tbody>
             {users.data?.map((u) => (
-              <tr key={u._id} className="border-t border-border">
+              <tr key={u._id} className="border-t border-border align-top">
                 <td className="p-3">{u.name}</td>
                 <td className="p-3">{u.email}</td>
                 <td className="p-3">{ROLE_LABEL[u.role] ?? u.role}</td>
-                <td className="p-3">{u.role === "client" ? clientName(u.clientId) : u.jobTitle}</td>
+                <td className="p-3">
+                  {u.role === "client" ? clientName(u.clientId) : u.jobTitle}
+                  {u.role === "team" && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {(u.clientIds ?? []).length} cliente(s) · {(u.modules ?? []).length === TEAM_MODULES.length ? "todas as áreas da equipe" : `${(u.modules ?? []).length} de ${TEAM_MODULES.length} áreas`}
+                    </p>
+                  )}
+                  {!u.active && <p className="mt-1 text-xs font-semibold text-red-300">Acesso bloqueado</p>}
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {u.role === "team" && <Button small onClick={() => setEditingUser(u)}>Editar acesso</Button>}
+                    <Button small variant={u.active ? "danger" : "green"} disabled={busyRow === u._id}
+                      onClick={async () => {
+                        if (u.active && !window.confirm(`Bloquear o acesso de ${u.name}? A pessoa não entra mais no sistema até você liberar de novo.`)) return;
+                        setBusyRow(u._id);
+                        try { await api.updateUser(u._id, { active: !u.active }); users.reload(); }
+                        catch (err) { setRowMsg({ id: u._id, text: err instanceof Error ? err.message : String(err), error: true }); }
+                        finally { setBusyRow(""); }
+                      }}>
+                      {u.active ? "Bloquear" : "Liberar de novo"}
+                    </Button>
+                    <Button small variant="ghost" disabled={busyRow === u._id} onClick={() => reset(u)}>
+                      {busyRow === u._id ? "Aguarde…" : "Gerar nova senha"}
+                    </Button>
+                    <Button small variant="ghost" disabled={busyRow === u._id} onClick={() => emailLink(u)}>
+                      Enviar e-mail para criar senha
+                    </Button>
+                  </div>
+                  {u.passwordSetAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">Última senha gerada: {new Date(u.passwordSetAt).toLocaleString("pt-BR")}</p>
+                  )}
+                  {rowMsg?.id === u._id && <p className={`mt-1 text-xs ${rowMsg.error ? "text-destructive" : "text-green-400"}`}>{rowMsg.text}</p>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {editingUser && (
+        <EditTeamAccess user={editingUser} clients={clients.data ?? []} onClose={() => setEditingUser(null)}
+          onSaved={() => { setEditingUser(null); users.reload(); }} />
+      )}
     </div>
+  );
+}
+
+/** Escolha das áreas e dos clientes de uma pessoa da equipe. */
+function TeamAccessPicker({ modules, onModules, clientIds, onClients, clients }: {
+  modules: TeamModule[]; onModules: (m: TeamModule[]) => void; clientIds: string[]; onClients: (ids: string[]) => void; clients: { _id: string; name: string; status?: string | null }[];
+}) {
+  const toggle = <T,>(list: T[], v: T, on: boolean) => (on ? [...list, v] : list.filter((x) => x !== v));
+  return (
+    <div className="grid gap-4 rounded-control border border-border p-4 md:grid-cols-2">
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-semibold">O que pode acessar</p>
+          <button type="button" className="text-xs text-[#c9c7ff] underline" onClick={() => onModules(modules.length === TEAM_MODULES.length ? [] : TEAM_MODULES.map((m) => m.id))}>
+            {modules.length === TEAM_MODULES.length ? "Desmarcar tudo" : "Marcar tudo"}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">Orçamentos, Acessos, Equipe e conexões nunca aparecem para a equipe.</p>
+        <div className="mt-2 grid gap-2">
+          {TEAM_MODULES.map((m) => (
+            <label key={m.id} className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={modules.includes(m.id)} onChange={(e) => onModules(toggle(modules, m.id, e.target.checked))} />
+              <span><b>{m.label}</b><br /><span className="text-xs text-muted-foreground">{m.hint}</span></span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-semibold">Clientes que atende</p>
+          <button type="button" className="text-xs text-[#c9c7ff] underline" onClick={() => onClients(clientIds.length === clients.length ? [] : clients.map((c) => c._id))}>
+            {clientIds.length === clients.length ? "Desmarcar todos" : "Marcar todos"}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">A pessoa só vê os clientes marcados.</p>
+        <div className="mt-2 grid max-h-72 gap-1 overflow-y-auto pr-1">
+          {clients.map((c) => (
+            <label key={c._id} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={clientIds.includes(c._id)} onChange={(e) => onClients(toggle(clientIds, c._id, e.target.checked))} />
+              {c.name}
+            </label>
+          ))}
+          {clients.length === 0 && <p className="text-sm text-muted-foreground">Nenhum cliente cadastrado.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditTeamAccess({ user, clients, onClose, onSaved }: { user: User; clients: { _id: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
+  const [modules, setModules] = useState<TeamModule[]>(user.modules ?? TEAM_MODULES.map((m) => m.id));
+  const [clientIds, setClientIds] = useState<string[]>(user.clientIds ?? []);
+  const [jobTitle, setJobTitle] = useState(user.jobTitle ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  async function save() {
+    setBusy(true);
+    setErr("");
+    try {
+      await api.updateUser(user._id, { modules, clientIds, jobTitle });
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal wide title={`Acesso de ${user.name}`} onClose={onClose}>
+      <div className="grid gap-4">
+        <Field label="Função (ex.: Editor, Designer)" value={jobTitle} onChange={setJobTitle} />
+        <TeamAccessPicker modules={modules} onModules={setModules} clientIds={clientIds} onClients={setClientIds} clients={clients} />
+        {err && <p className="text-sm text-destructive">{err}</p>}
+        <div className="flex gap-2">
+          <Button onClick={save} disabled={busy}>{busy ? "Salvando…" : "Salvar acesso"}</Button>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Vale no próximo carregamento da página da pessoa.</p>
+      </div>
+    </Modal>
+  );
+}
+
+/** Qualquer perfil troca a própria senha. */
+function MyPasswordButton() {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [state, setState] = useState<"idle" | "busy" | "ok" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < 8) return (setState("error"), setMsg("Use pelo menos 8 caracteres."));
+    if (pw !== pw2) return (setState("error"), setMsg("As duas senhas não são iguais."));
+    setState("busy");
+    setMsg("");
+    try {
+      await api.changeMyPassword(pw);
+      setState("ok");
+      setMsg("Senha trocada. Use a nova senha no próximo login.");
+      setPw("");
+      setPw2("");
+    } catch (err) {
+      setState("error");
+      setMsg(err instanceof Error ? err.message : String(err));
+    }
+  }
+  return (
+    <>
+      <button type="button" onClick={() => { setOpen(true); setState("idle"); setMsg(""); }} className="mt-2 text-xs text-[#c9c7ff] underline">
+        Trocar minha senha
+      </button>
+      {open && (
+        <Modal title="Trocar minha senha" onClose={() => setOpen(false)}>
+          <form onSubmit={save} className="grid gap-3">
+            <Field label="Nova senha (mínimo 8 caracteres)" type="password" value={pw} onChange={setPw} required />
+            <Field label="Repita a nova senha" type="password" value={pw2} onChange={setPw2} required />
+            {msg && <p className={`text-sm ${state === "error" ? "text-destructive" : "text-green-400"}`}>{msg}</p>}
+            <div className="flex gap-2">
+              <Button type="submit" disabled={state === "busy"}>{state === "busy" ? "Salvando…" : "Salvar nova senha"}</Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }
 

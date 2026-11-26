@@ -5,5 +5,5 @@ import { handle, json } from "../../server/http";
 
 export const GET: APIRoute = handle(async () => {
   const a = await requireAccess();
-  return json({ name: a.name, email: a.email, role: a.role, clientId: a.clientId, permission: a.permission });
+  return json({ name: a.name, email: a.email, role: a.role, clientId: a.clientId, permission: a.permission, modules: a.modules });
 });

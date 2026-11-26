@@ -1,7 +1,7 @@
 // Clientes: lista com logos e a página "pró" do cliente (capa, logo, paleta, visão geral, projetos,
 // calendário do mês e dados). O cliente vê a própria página como "Início".
 import { useEffect, useMemo, useState } from "react";
-import { api, type Brand, type BrandColor, type Client, type Me } from "./api";
+import { api, can, type Brand, type BrandColor, type Client, type Me } from "./api";
 import {
   Area, Button, Card, ErrorText, Field, HUMANIZA_PALETTE, ImagePicker, Logo, Modal, Pill, Select, Skeleton, useLoad, useToast,
 } from "./ui";
@@ -107,7 +107,7 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
   const [tab, setTab] = useState<Tab>("visao");
   const [toast, say] = useToast();
   const [connect, setConnect] = useState(false);
-  const perf = usePerformance(c, me);
+  const perf = usePerformance(c, me, me.role !== "team" || can(me, "resultados"));
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get("meta");
     if (!m) return;
@@ -117,17 +117,24 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
   }, []);
   const color = mainColor(c);
   const staff = me.role !== "client";
-  const tabs: [Tab, string][] = [
+  // Equipe: só as abas das áreas liberadas em Acessos (o servidor também confere).
+  const team = me.role === "team";
+  const sees = {
+    resultados: !team || can(me, "resultados"),
+    calendario: !team || can(me, "calendario"),
+    projetos: !team || can(me, "projetos"),
+    pauta: !team || can(me, "pauta"),
+  };
+  const tabs: [Tab, string][] = ([
     ["visao", "Visão geral"],
-    ["gerenciamento", "Gerenciamento"],
-    ["trafego", "Tráfego pago"],
-    ["datas", "Datas e campanhas"],
-    ...(staff ? ([["proximos", "✨ Próximos conteúdos"]] as [Tab, string][]) : []),
-    ["projetos", "Projetos e roteiros"],
-    ["calendario", "Calendário"],
+    ...(sees.resultados ? [["gerenciamento", "Gerenciamento"], ["trafego", "Tráfego pago"]] : []),
+    ...(sees.calendario ? [["datas", "Datas e campanhas"]] : []),
+    ...(staff && sees.pauta ? [["proximos", "✨ Próximos conteúdos"]] : []),
+    ...(sees.projetos ? [["projetos", "Projetos e roteiros"]] : []),
+    ...(sees.calendario ? [["calendario", "Calendário"]] : []),
     ["identidade", "Identidade visual"],
-    ...(me.role === "admin" ? ([["dados", "Dados e equipe"]] as [Tab, string][]) : []),
-  ];
+    ...(me.role === "admin" ? [["dados", "Dados e equipe"]] : []),
+  ] as [Tab, string][]);
   return (
     <div className="grid gap-6">
       {staff && <button onClick={() => go("clientes")} className="w-fit text-sm text-muted-foreground hover:text-foreground">← Clientes</button>}
@@ -168,18 +175,18 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
       )}
       {tab === "visao" && (
         <div className="grid gap-8">
-          <PerformanceOverview me={me} client={c} ctx={perf} goTab={(t) => setTab(t as Tab)} />
+          {sees.resultados && <PerformanceOverview me={me} client={c} ctx={perf} goTab={(t) => setTab(t as Tab)} />}
           <Overview me={me} client={c} go={go} />
         </div>
       )}
-      {tab === "gerenciamento" && <ManagementTab me={me} client={c} ctx={perf} />}
-      {tab === "trafego" && <PaidTab me={me} client={c} ctx={perf} />}
+      {tab === "gerenciamento" && sees.resultados && <ManagementTab me={me} client={c} ctx={perf} />}
+      {tab === "trafego" && sees.resultados && <PaidTab me={me} client={c} ctx={perf} />}
       {connect && me.role === "admin" && <MetaConnections client={c} onClose={() => setConnect(false)} onDone={() => { setConnect(false); reload(); perf.reload(); say("Conexões salvas e dados sincronizados."); }} />}
-      {tab === "datas" && <PlannerTab me={me} client={c} />}
-      {tab === "proximos" && staff && <PautaTab me={me} client={c} go={go} />}
-      {tab === "projetos" && <ProjectList me={me} clientId={c._id} go={go} />}
-      {tab === "calendario" && <MonthCalendar me={me} clientId={c._id} go={go} />}
-      {tab === "identidade" && <BrandEditor client={c} canEdit={staff} onSaved={() => { reload(); say("Identidade visual salva."); }} />}
+      {tab === "datas" && sees.calendario && <PlannerTab me={me} client={c} />}
+      {tab === "proximos" && staff && sees.pauta && <PautaTab me={me} client={c} go={go} />}
+      {tab === "projetos" && sees.projetos && <ProjectList me={me} clientId={c._id} go={go} />}
+      {tab === "calendario" && sees.calendario && <MonthCalendar me={me} clientId={c._id} go={go} />}
+      {tab === "identidade" && <BrandEditor client={c} canEdit={staff && (!team || can(me, "identidade"))} onSaved={() => { reload(); say("Identidade visual salva."); }} />}
       {tab === "dados" && me.role === "admin" && <ClientData client={c} onSaved={() => { reload(); say("Dados salvos."); }} />}
       {toast}
     </div>
@@ -187,8 +194,9 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
 }
 
 function Overview({ me, client, go }: { me: Me; client: Client; go: (p: string) => void }) {
-  const projects = useLoad(() => api.projects(client._id), [client._id]);
-  const upcoming = useLoad(() => api.contents({ clientId: client._id }), [client._id]);
+  const seesProjects = me.role !== "team" || can(me, "projetos");
+  const projects = useLoad(() => (seesProjects ? api.projects(client._id) : Promise.resolve([])), [client._id]);
+  const upcoming = useLoad(() => (seesProjects ? api.contents({ clientId: client._id }) : Promise.resolve([])), [client._id]);
   const today = new Date().toISOString().slice(0, 10);
   const next = (upcoming.data ?? []).filter((x) => x.postDate && x.postDate >= today).sort((a, b) => a.postDate.localeCompare(b.postDate)).slice(0, 6);
   const current = projects.data?.[0];
@@ -196,6 +204,7 @@ function Overview({ me, client, go }: { me: Me; client: Client; go: (p: string) 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
       <div className="grid content-start gap-6">
+        {seesProjects && <>
         <Card>
           <p className="eyebrow">Projeto atual</p>
           {projects.loading && <p className="mt-2 text-sm text-muted-foreground">Carregando…</p>}
@@ -228,6 +237,7 @@ function Overview({ me, client, go }: { me: Me; client: Client; go: (p: string) 
             ))}
           </ul>
         </Card>
+        </>}
       </div>
       <div className="grid content-start gap-6">
         <BrandCard client={client} />

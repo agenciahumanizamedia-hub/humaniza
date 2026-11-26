@@ -11,6 +11,19 @@ import { find, getOne, COLLECTIONS, type Row } from "./db";
 
 export type Role = "admin" | "team" | "client";
 
+/**
+ * Áreas que o administrador libera para cada pessoa da EQUIPE (Acessos → Editar acesso).
+ * A área de administração (Orçamentos, Acessos, Equipe, conexões do Meta e da IA) nunca é da equipe.
+ * Quem foi cadastrado antes desta opção existir (sem `modules`) continua com todas as áreas.
+ */
+export const TEAM_MODULES = ["projetos", "calendario", "demandas", "resultados", "pauta", "identidade", "lixeira"] as const;
+export type TeamModule = (typeof TEAM_MODULES)[number];
+
+export function cleanModules(v: unknown): TeamModule[] {
+  if (!Array.isArray(v)) return [...TEAM_MODULES];
+  return TEAM_MODULES.filter((m) => v.includes(m));
+}
+
 export interface Access {
   userId: string; // item em osUsers
   memberId: string;
@@ -19,6 +32,7 @@ export interface Access {
   role: Role;
   clientId: string | null; // só para perfil client
   permission: string; // Operacional | Líder | Gestor (equipe)
+  modules: TeamModule[]; // áreas liberadas (só conta para a equipe; admin tem tudo)
 }
 
 export class HttpError extends Error {
@@ -64,7 +78,21 @@ export async function getAccess(): Promise<Access | null> {
     role,
     clientId: role === "client" ? String(user.clientId) : null,
     permission: user.permission || "",
+    modules: role === "team" ? cleanModules(user.modules) : [...TEAM_MODULES],
   };
+}
+
+/** A pessoa pode usar esta área? Admin sempre; cliente não usa áreas da equipe; equipe conforme liberado. */
+export function canUse(access: Access, module: TeamModule): boolean {
+  if (access.role === "admin") return true;
+  if (access.role === "team") return access.modules.includes(module);
+  return false;
+}
+
+/** Interrompe com 403 se a pessoa da equipe não tem a área liberada. Admin e cliente passam direto. */
+export function requireModule(access: Access, ...modules: TeamModule[]): void {
+  if (access.role !== "team") return;
+  if (!modules.some((m) => access.modules.includes(m))) throw new HttpError(403, "Esta área não foi liberada para o seu acesso.");
 }
 
 /** Igual a getAccess, mas interrompe com 401/403. `roles` limita quem pode usar o endpoint. */

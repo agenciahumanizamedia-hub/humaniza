@@ -1,7 +1,7 @@
 // GET  /api/projects?clientId=… — projetos/mês de um cliente (ou de todos os visíveis).
 // POST /api/projects — cria projeto/mês, em branco ou duplicando outro (admin e equipe).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, clientFilter, HttpError } from "../../../server/access";
+import { requireAccess, loadClientFor, clientFilter, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, find, findAll, create, createMany } from "../../../server/db";
 import { logActivity } from "../../../server/activity";
 import { handle, json } from "../../../server/http";
@@ -10,6 +10,7 @@ import { loadProjectFor } from "../../../server/projects";
 
 export const GET: APIRoute = handle(async (_req, { url }) => {
   const access = await requireAccess();
+  requireModule(access, "projetos");
   const clientId = url.searchParams.get("clientId");
   let ids: string[];
   if (clientId) {
@@ -47,6 +48,7 @@ export const GET: APIRoute = handle(async (_req, { url }) => {
 
 export const POST: APIRoute = handle(async (request) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "projetos");
   const b = await readJson(request);
   const client = await loadClientFor(access, str(b.clientId, 100));
   const period = str(b.period, 120);

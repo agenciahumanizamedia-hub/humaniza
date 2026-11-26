@@ -1,7 +1,7 @@
 // POST /api/contents/ia { contentId, pedido? } — o Claude sugere 3 ganchos e um ajuste de legenda/CTA para
 // um roteiro, usando o tom da marca e os posts que mais engajaram do cliente. Equipe/admin.
 import type { APIRoute } from "astro";
-import { requireAccess, HttpError } from "../../../server/access";
+import { requireAccess, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, findAll } from "../../../server/db";
 import { handle, json } from "../../../server/http";
 import { readJson, str } from "../../../server/util";
@@ -10,6 +10,7 @@ import { askClaude, plain, MODEL } from "../../../server/ai";
 
 export const POST: APIRoute = handle(async (request) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "projetos");
   const b = await readJson(request);
   const { content, client } = await loadContentFor(access, str(b.contentId, 100));
   if (content.trashedAt) throw new HttpError(404, "Conteúdo não encontrado.");

@@ -1,7 +1,7 @@
 // GET  /api/events?month=AAAA-MM — compromissos (captações, reuniões, entregas) do calendário.
 // POST /api/events — novo compromisso (admin e equipe).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, clientFilter } from "../../../server/access";
+import { requireAccess, loadClientFor, clientFilter, requireModule } from "../../../server/access";
 import { COLLECTIONS, find, findAll, create } from "../../../server/db";
 import { HttpError as HttpErrorShim } from "../../../server/access";
 import { handle, json } from "../../../server/http";
@@ -10,6 +10,7 @@ import { logActivity } from "../../../server/activity";
 
 export const GET: APIRoute = handle(async (_req, { url }) => {
   const access = await requireAccess();
+  requireModule(access, "calendario");
   const month = url.searchParams.get("month") ?? "";
   const clients = await find(COLLECTIONS.clients, clientFilter(access), { limit: 1000 });
   const ids = new Set(clients.map((c) => c._id));
@@ -29,6 +30,7 @@ export const GET: APIRoute = handle(async (_req, { url }) => {
 
 export const POST: APIRoute = handle(async (request) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "calendario");
   const b = await readJson(request);
   const clientId = str(b.clientId, 100);
   const client = clientId ? await loadClientFor(access, clientId) : null;

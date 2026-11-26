@@ -54,7 +54,7 @@ export function PeriodBar({ period, onChange, publishedOnly }: { period: Period;
 }
 
 /** Carrega o desempenho do período escolhido (compartilhado entre as abas do cliente). */
-export function usePerformance(client: Client, me: Me) {
+export function usePerformance(client: Client, me: Me, enabled = true) {
   const isClient = me.role === "client";
   const reports = useLoad(() => (isClient ? api.reports(client._id) : Promise.resolve([])), [client._id]);
   const [period, setPeriod] = useState<Period>(presetPeriod("mes"));
@@ -65,7 +65,10 @@ export function usePerformance(client: Client, me: Me) {
     }
   }, [reports.data, isClient]);
   const [tick, setTick] = useState(0);
-  const perf = useLoad(() => api.performance(client._id, period.de, period.ate), [client._id, period.de, period.ate, tick]);
+  const perf = useLoad(
+    () => (enabled ? api.performance(client._id, period.de, period.ate) : new Promise<never>(() => undefined)),
+    [client._id, period.de, period.ate, tick, enabled],
+  );
   return { period, setPeriod, perf, reload: () => setTick((t) => t + 1), published: isClient ? reports.data ?? [] : undefined };
 }
 

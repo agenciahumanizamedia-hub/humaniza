@@ -2,7 +2,7 @@
 // PATCH  /api/projects/:id — equipe/admin editam planejamento, calendário, observações e etapas.
 // DELETE /api/projects/:id — manda o projeto para a lixeira (admin).
 import type { APIRoute } from "astro";
-import { requireAccess, HttpError } from "../../../../server/access";
+import { requireAccess, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, findAll, patch } from "../../../../server/db";
 import { logActivity } from "../../../../server/activity";
 import { handle, json } from "../../../../server/http";
@@ -11,6 +11,7 @@ import { loadProjectFor, projectView, contentView, contentVisibleToClient } from
 
 export const GET: APIRoute = handle(async (_req, { params }) => {
   const access = await requireAccess();
+  requireModule(access, "projetos");
   const { project, client } = await loadProjectFor(access, params.id!);
   const contents = (await findAll(COLLECTIONS.contents, { projectId: project._id }))
     .filter((c) => !c.trashedAt && (access.role !== "client" || contentVisibleToClient(project, c)))
@@ -25,6 +26,7 @@ export const GET: APIRoute = handle(async (_req, { params }) => {
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "projetos");
   const { project, client } = await loadProjectFor(access, params.id!);
   const b = await readJson(request);
   const changes: Record<string, any> = {};

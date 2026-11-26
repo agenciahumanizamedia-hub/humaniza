@@ -23,6 +23,7 @@ export const COLLECTIONS = {
   reports: "osReports",
   planner: "osPlanner",
   settings: "osSettings",
+  quotes: "osQuotes",
 } as const;
 
 type CollectionId = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
