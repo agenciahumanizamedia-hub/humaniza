@@ -2,7 +2,7 @@
 // trouxe resultado, próximo passo), Gerenciamento, Tráfego pago, revisão da equipe e conexões do Meta.
 // Dado ausente nunca vira zero: aparece como "Dado indisponível" / "Sem dados no período".
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, type Client, type Me, type MetaStatus, type Performance, type Post, type Suggestion2 } from "./api";
+import { api, type AiAnalysis, type Client, type Me, type MetaStatus, type Performance, type Post, type Suggestion2 } from "./api";
 import { Area, Button, Card, ErrorText, Field, Modal, Pill, Select, Skeleton, brDate, useLoad, useToast } from "./ui";
 import { AdsFunnel, BestTime, CountUp, Countdown, FormatDonut, PeriodFeed, ProductionSpotlight, Ring, Sparkline, Spotlight } from "./Visuals";
 
@@ -572,10 +572,18 @@ function Review({ me, client, perf, onSaved }: { me: Me; client: Client; perf: P
         </div>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">As sugestões abaixo são geradas a partir dos números do período. Edite o texto e marque “Aprovar” nas que o cliente deve ver.</p>
+      <ClaudePanel me={me} client={client} perf={perf}
+        onResult={(r) => {
+          setItems([...r.suggestions, ...items.filter((x) => !x.ai)]);
+          if (!analysis.trim()) setAnalysis(r.summary);
+          say("Rascunho do Claude pronto. Revise, edite e aprove o que fizer sentido.");
+        }}
+        onUseSummary={(t) => setAnalysis(t)}
+        onAddStep={(t) => setSteps((st) => (st.some((x) => x.text === t) ? st : [...st, { text: t, done: false }]))} />
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         {items.map((s, i) => (
           <div key={s.id} className={`rounded-control border p-3 ${s.approved ? "border-emerald-500/40" : "border-border"}`}>
-            <p className={`text-xs font-semibold ${KIND[s.kind][1]}`}>{KIND[s.kind][0]}</p>
+            <p className={`flex items-center justify-between text-xs font-semibold ${KIND[s.kind][1]}`}>{KIND[s.kind][0]}{s.ai && <span className="rounded-full bg-[#D97757]/20 px-2 py-0.5 text-[10px] text-[#F0A584]">✨ Claude</span>}</p>
             <textarea value={s.text} rows={2} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} className="mt-1 w-full rounded-control border border-border bg-secondary p-2 text-sm" />
             <Evidence s={s} />
             <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={!!s.approved} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, approved: e.target.checked } : x)))} />Aprovar para o cliente</label>
@@ -726,3 +734,88 @@ export function SyncButton({ client, onDone }: { client: Client; onDone: () => v
 }
 
 export type { ReactNode };
+
+
+/* ---------------- Claude (IA) ---------------- */
+function ClaudePanel({ me, client, perf, onResult, onUseSummary, onAddStep }: {
+  me: Me; client: Client; perf: Performance; onResult: (r: AiAnalysis) => void; onUseSummary: (t: string) => void; onAddStep: (t: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [needKey, setNeedKey] = useState(false);
+  const [key, setKey] = useState("");
+  const [res, setRes] = useState<AiAnalysis | null>(null);
+  const [copied, setCopied] = useState("");
+  const run = async () => {
+    setBusy(true); setErr(""); setNeedKey(false);
+    try { const r = await api.aiAnalysis(client._id, perf.de, perf.ate); setRes(r); onResult(r); }
+    catch (x: any) { if (x?.status === 409) setNeedKey(true); setErr(x instanceof Error ? x.message : String(x)); }
+    finally { setBusy(false); }
+  };
+  const copy = async (t: string) => { try { await navigator.clipboard.writeText(t); setCopied(t); setTimeout(() => setCopied(""), 1500); } catch { /* sem permissão */ } };
+  return (
+    <div className="mt-4 overflow-hidden rounded-control border border-[#D97757]/40" style={{ background: "linear-gradient(120deg, rgba(217,119,87,.12), transparent 60%)" }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <p className="font-bold">✨ Análise com Claude</p>
+          <p className="text-xs text-muted-foreground">Lê os números, os posts e os roteiros do período e sugere o que manter, o que mudar, novos ganchos e temas. Vem como rascunho: nada chega ao cliente sem a sua aprovação.</p>
+        </div>
+        <Button disabled={busy} onClick={run}>{busy ? "Claude analisando… (até 1 min)" : res ? "Gerar de novo" : "Gerar análise com Claude"}</Button>
+      </div>
+      {err && <p className="px-4 pb-3 text-sm text-destructive">{err}</p>}
+      {needKey && me.role === "admin" && (
+        <div className="border-t border-border p-4 text-sm">
+          <p className="font-semibold">Conectar o Claude (uma vez)</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+            <li>Acesse platform.claude.com com a conta da agência → Settings → API keys → Create key (adicione créditos em Billing).</li>
+            <li>Cole a chave aqui. Ela fica guardada só no servidor e nunca aparece de novo.</li>
+          </ol>
+          <div className="mt-2 flex gap-2">
+            <input type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-…" className="flex-1 rounded-control border border-border bg-secondary p-2 text-sm" />
+            <Button small disabled={busy || key.length < 40} onClick={async () => { setBusy(true); setErr(""); try { await api.saveAiKey(key); setKey(""); setNeedKey(false); setBusy(false); await run(); } catch (x) { setErr(x instanceof Error ? x.message : String(x)); setBusy(false); } }}>Salvar e testar</Button>
+          </div>
+        </div>
+      )}
+      {needKey && me.role !== "admin" && <p className="border-t border-border p-4 text-sm text-muted-foreground">Peça ao administrador para conectar o Claude.</p>}
+      {res && (
+        <div className="grid gap-4 border-t border-border p-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <p className="text-xs font-semibold text-[#F0A584]">Resumo do Claude</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm">{res.summary}</p>
+            <button className="mt-1 text-xs font-semibold text-[#c9c7ff] underline" onClick={() => onUseSummary(res.summary)}>Usar como análise da agência</button>
+          </div>
+          {res.hooks.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-[#F0A584]">Ganchos para reescrever</p>
+              <ul className="mt-2 grid gap-2">
+                {res.hooks.map((h, i) => (
+                  <li key={i} className="rounded-control bg-secondary p-2 text-sm">
+                    <p className="text-xs text-muted-foreground">{h.theme}{h.current ? ` · atual: “${h.current}”` : ""}</p>
+                    <p className="mt-0.5 font-semibold">“{h.suggested}”</p>
+                    <p className="text-xs text-muted-foreground">{h.why}</p>
+                    <button className="mt-1 text-xs font-semibold text-[#c9c7ff] underline" onClick={() => copy(h.suggested)}>{copied === h.suggested ? "Copiado ✓" : "Copiar gancho"}</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="grid content-start gap-4">
+            {res.themes.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-[#F0A584]">Temas para aprofundar</p>
+                <ul className="mt-2 grid gap-2">{res.themes.map((t, i) => <li key={i} className="rounded-control bg-secondary p-2 text-sm"><b>{t.theme}</b><p className="text-xs text-muted-foreground">{t.why}</p><p className="text-xs">💡 {t.idea}</p></li>)}</ul>
+              </div>
+            )}
+            {res.nextSteps.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-[#F0A584]">Próximos passos sugeridos</p>
+                <ul className="mt-2 grid gap-1">{res.nextSteps.map((t, i) => <li key={i} className="flex items-start justify-between gap-2 text-sm"><span>→ {t}</span><button className="shrink-0 text-xs font-semibold text-[#c9c7ff] underline" onClick={() => onAddStep(t)}>+ usar</button></li>)}</ul>
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground md:col-span-2">Gerado por {res.model} a partir dos dados do Humaniza OS e do Meta deste período. Confira os números antes de aprovar.</p>
+        </div>
+      )}
+    </div>
+  );
+}

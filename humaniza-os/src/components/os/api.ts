@@ -46,7 +46,7 @@ export interface IgAgg { coverage: { days: number; withData: number }; totals: R
 export interface Campaign { id: string; name: string; objective: string; currency: string; resultIndicator: string; resultLabel: string; spend: number; results: number | null; costPerResult: number | null; conversations: number | null; costPerConversation: number | null; impressions: number | null; clicks: number | null; ctr: number | null; cpc: number | null }
 export interface AdsAgg { coverage: { days: number; withData: number }; totals: { spend: number | null; conversations: number | null; costPerConversation: number | null; impressions: number | null; clicks: number | null }; campaigns: Campaign[]; series: { date: string; spend: number | null }[] }
 export interface Evidence { label: string; value: string; source: string }
-export interface Suggestion2 { id: string; kind: "funcionou" | "repetir" | "melhorar" | "teste"; text: string; evidence: Evidence[]; approved?: boolean }
+export interface Suggestion2 { id: string; kind: "funcionou" | "repetir" | "melhorar" | "teste"; text: string; evidence: Evidence[]; approved?: boolean; ai?: boolean }
 export interface Performance {
   de: string; ate: string; previous?: { de: string; ate: string }; published: boolean; message?: string; sources?: Record<string, string>;
   connections?: { metaConnected?: boolean; instagram: ConnState; ads: ConnState };
@@ -57,6 +57,10 @@ export interface Performance {
   upcoming?: { _id: string; date: string; endDate: string; title: string; kind: string; status: string; visibleToClient: boolean }[];
   suggestions?: Suggestion2[];
   report?: { analysis: string; suggestions: Suggestion2[]; nextSteps: { text: string; done: boolean }[]; manual: Record<string, Record<string, number>>; publishedAt: string; updatedBy?: string };
+}
+export interface AiAnalysis {
+  model: string; summary: string; suggestions: Suggestion2[]; nextSteps: string[];
+  hooks: { theme: string; current: string; suggested: string; why: string }[]; themes: { theme: string; why: string; idea: string }[];
 }
 export interface PlannerItem { _id: string; date: string; endDate: string; kind: string; title: string; description: string; status: string; color: string; visibleToClient: boolean; budget?: string; channels?: string[]; internalNote?: string }
 export interface Suggestion { date: string; title: string; kind: "data" | "campanha"; tags: string[]; tip: string }
@@ -120,6 +124,10 @@ export const api = {
   performance: (clientId: string, de: string, ate: string) => call<Performance>(`/api/clients/${clientId}/resultados${q({ de, ate })}`),
   reports: (clientId: string) => call<{ periodKey: string; published: boolean; publishedAt: string }[]>(`/api/clients/${clientId}/resultados?relatorios=1`),
   saveReport: (clientId: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/clients/${clientId}/resultados`, send("PATCH", data)),
+  aiAnalysis: (clientId: string, de: string, ate: string) => call<AiAnalysis>(`/api/clients/${clientId}/analise-ia`, send("POST", { de, ate })),
+  aiHooks: (contentId: string, pedido?: string) => call<{ hooks: { text: string; why: string }[]; caption: string; cta: string; note: string }>("/api/contents/ia", send("POST", { contentId, pedido })),
+  aiStatus: () => call<{ connected: boolean; savedAt: string; model: string }>("/api/admin/ia"),
+  saveAiKey: (apiKey: string) => call<{ ok: true }>("/api/admin/ia", send("POST", { apiKey })),
   syncNow: (clientId: string, full = false) => call<Record<string, unknown>>(`/api/sync?cliente=${clientId}${full ? "&completo=1" : ""}`, send("POST", {})),
   saveMetaApp: (data: { appId: string; appSecret?: string; configId?: string }) => call<{ ok: true }>("/api/admin/meta", send("POST", data)),
   saveIntegrations: (clientId: string, data: Record<string, string>) => call<{ ok: true }>(`/api/clients/${clientId}/integracoes`, send("PATCH", data)),

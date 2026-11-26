@@ -387,6 +387,7 @@ function ContentModal({ me, p, c, onClose, onChange }: { me: Me; p: Project; c: 
             <Select label="Status" value={meta.status} onChange={set("status")} options={CONTENT_STATUS} />
           </div>
           {c.clientNote && <p className="rounded-control border border-amber-400/30 bg-amber-400/5 p-3 text-sm">💬 <b>Cliente ({c.clientApproval}):</b> {c.clientNote}</p>}
+          <HookHelper contentId={c._id} onUse={(k, v) => setF((cur) => ({ ...cur, [k]: v }))} />
           {fieldsFor(meta.type).map(([k, label]) => (
             <div key={k}><p className="mb-1 text-sm font-semibold text-[#c9c7ff]">{label}</p><RichEditor value={f[k] ?? ""} onChange={(v) => setF({ ...f, [k]: v })} /></div>
           ))}
@@ -486,3 +487,40 @@ function ApprovalStage({ me, p, onChange }: { me: Me; p: Project; onChange: (m?:
   );
 }
 
+
+
+/** Claude sugere ganchos, primeira linha da legenda e CTA para o roteiro aberto. */
+function HookHelper({ contentId, onUse }: { contentId: string; onUse: (field: string, value: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [ask, setAsk] = useState("");
+  const [res, setRes] = useState<{ hooks: { text: string; why: string }[]; caption: string; cta: string; note: string } | null>(null);
+  const [used, setUsed] = useState("");
+  return (
+    <div className="rounded-control border border-[#D97757]/40 p-3" style={{ background: "linear-gradient(120deg, rgba(217,119,87,.10), transparent 60%)" }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-bold">✨ Claude</p>
+        <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Pedido opcional (ex.: gancho mais emocional)" className="min-w-0 flex-1 rounded-control border border-border bg-secondary p-1.5 text-sm" />
+        <Button small disabled={busy} onClick={async () => { setBusy(true); setErr(""); try { setRes(await api.aiHooks(contentId, ask)); } catch (x) { setErr(x instanceof Error ? x.message : String(x)); } finally { setBusy(false); } }}>
+          {busy ? "Pensando…" : "Sugerir ganchos"}
+        </Button>
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">Salve o roteiro antes, se mudou algo: o Claude lê a versão salva.</p>
+      {err && <p className="mt-2 text-sm text-destructive">{err}</p>}
+      {res && (
+        <div className="mt-3 grid gap-2">
+          {res.hooks.map((h) => (
+            <div key={h.text} className="flex flex-wrap items-start justify-between gap-2 rounded-control bg-secondary p-2 text-sm">
+              <span className="min-w-0 flex-1"><b>“{h.text}”</b><br /><span className="text-xs text-muted-foreground">{h.why}</span></span>
+              <Button small variant="ghost" onClick={() => { onUse("gancho", h.text); setUsed(h.text); }}>{used === h.text ? "Usado ✓" : "Usar no gancho"}</Button>
+            </div>
+          ))}
+          {res.caption && <div className="flex flex-wrap items-start justify-between gap-2 rounded-control bg-secondary p-2 text-sm"><span className="min-w-0 flex-1"><span className="text-xs text-muted-foreground">Abertura da legenda</span><br />{res.caption}</span><Button small variant="ghost" onClick={() => onUse("legenda", res.caption)}>Usar na legenda</Button></div>}
+          {res.cta && <div className="flex flex-wrap items-start justify-between gap-2 rounded-control bg-secondary p-2 text-sm"><span className="min-w-0 flex-1"><span className="text-xs text-muted-foreground">CTA</span><br />{res.cta}</span><Button small variant="ghost" onClick={() => onUse("cta", res.cta)}>Usar no CTA</Button></div>}
+          {res.note && <p className="text-xs text-muted-foreground">💡 {res.note}</p>}
+          <p className="text-[11px] text-muted-foreground">Ao usar, o texto entra no campo abaixo. Revise e clique em Salvar.</p>
+        </div>
+      )}
+    </div>
+  );
+}

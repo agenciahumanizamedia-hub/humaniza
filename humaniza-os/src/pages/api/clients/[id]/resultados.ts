@@ -130,7 +130,7 @@ export const PATCH: APIRoute = handle(async (request, { params }) => {
   if ("analysis" in b) row.analysis = str(b.analysis, 8000);
   if (Array.isArray(b.suggestions))
     row.suggestions = b.suggestions.slice(0, 20).map((s: any) => ({
-      id: str(s?.id, 40), kind: ["funcionou", "repetir", "melhorar", "teste"].includes(s?.kind) ? s.kind : "melhorar", text: str(s?.text, 600), approved: !!s?.approved,
+      id: str(s?.id, 40), kind: ["funcionou", "repetir", "melhorar", "teste"].includes(s?.kind) ? s.kind : "melhorar", text: str(s?.text, 600), approved: !!s?.approved, ai: !!s?.ai,
       evidence: Array.isArray(s?.evidence) ? s.evidence.slice(0, 5).map((e: any) => ({ label: str(e?.label, 120), value: str(e?.value, 120), source: str(e?.source, 80) })) : [],
     })).filter((s: any) => s.text);
   if (Array.isArray(b.nextSteps)) row.nextSteps = b.nextSteps.slice(0, 30).map((s: any) => ({ text: str(s?.text, 400), done: !!s?.done })).filter((s: any) => s.text);
