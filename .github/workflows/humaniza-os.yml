@@ -60,6 +60,7 @@ jobs:
           zip -qr ../wix-build.zip .wix dist
           echo "Tamanho do pacote: $(wc -c < ../wix-build.zip) bytes"
           sha256sum ../wix-build.zip
+          echo "::notice title=pacote::bytes=$(wc -c < ../wix-build.zip)"
 
       - uses: actions/upload-artifact@v4
         with:
