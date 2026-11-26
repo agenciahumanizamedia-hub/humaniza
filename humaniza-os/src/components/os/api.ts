@@ -77,6 +77,20 @@ export class ApiError extends Error {
   }
 }
 
+
+export interface PautaTrend { id: string; title: string; description: string; apply: string; kind: string; sources: { url: string; title: string }[] }
+export interface PautaIdea {
+  id: string; type: "roteiro" | "carrossel" | "estatico"; title: string; tema: string; objetivo: string; gancho: string; desenvolvimento: string;
+  legenda: string; cta: string; captacao: string; postDate: string; trendId: string; why: string; status: "sugerida" | "aprovada" | "descartada";
+  contentId?: string; projectId?: string; createdAt: string; by: string; editedBy?: string;
+}
+export interface Pauta {
+  mes: string;
+  trends: { summary: string; items: PautaTrend[]; sources: { url: string; title: string }[]; at: string; by: string; searches: number } | null;
+  ideas: PautaIdea[]; capture: { date: string; title: string }[]; dates: { date: string; endDate: string; title: string; kind: string }[];
+  occupied: { date: string; type: string; title: string }[]; history: number; aiReady: boolean;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) }, credentials: "same-origin" });
   const body = await res.json().catch(() => ({}));
@@ -125,6 +139,12 @@ export const api = {
   reports: (clientId: string) => call<{ periodKey: string; published: boolean; publishedAt: string }[]>(`/api/clients/${clientId}/resultados?relatorios=1`),
   saveReport: (clientId: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/clients/${clientId}/resultados`, send("PATCH", data)),
   aiAnalysis: (clientId: string, de: string, ate: string) => call<AiAnalysis>(`/api/clients/${clientId}/analise-ia`, send("POST", { de, ate })),
+  pauta: (clientId: string, mes: string) => call<Pauta>(`/api/clients/${clientId}/pauta?mes=${mes}`),
+  pautaTrends: (clientId: string, mes: string, foco: string) => call<{ trends: Pauta["trends"] }>(`/api/clients/${clientId}/pauta`, send("POST", { etapa: "tendencias", mes, foco })),
+  pautaIdeas: (clientId: string, data: { mes: string; quantidade?: number; mix?: string; foco?: string; substituir?: string }) =>
+    call<{ created: string[]; rejected: { title: string; reason: string }[]; checkedAgainst: number }>(`/api/clients/${clientId}/pauta`, send("POST", { etapa: "ideias", ...data })),
+  pautaAction: (clientId: string, data: { mes: string; id: string; acao: "salvar" | "aprovar" | "descartar" | "reabrir"; ideia?: Partial<PautaIdea> }) =>
+    call<{ ok: true; contentId?: string; projectId?: string; projectCreated?: boolean }>(`/api/clients/${clientId}/pauta`, send("PATCH", data)),
   aiHooks: (contentId: string, pedido?: string) => call<{ hooks: { text: string; why: string }[]; caption: string; cta: string; note: string }>("/api/contents/ia", send("POST", { contentId, pedido })),
   aiStatus: () => call<{ connected: boolean; savedAt: string; model: string }>("/api/admin/ia"),
   saveAiKey: (apiKey: string) => call<{ ok: true }>("/api/admin/ia", send("POST", { apiKey })),

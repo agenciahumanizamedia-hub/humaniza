@@ -9,6 +9,7 @@ import { ProjectList } from "./Projects";
 import { MonthCalendar } from "./Calendar";
 import { ManagementTab, MetaConnections, PaidTab, PerformanceOverview, SyncButton, usePerformance } from "./Performance";
 import { PlannerTab } from "./Planner";
+import { PautaTab } from "./Pauta";
 
 export const mainColor = (c?: Pick<Client, "brand" | "brandColor"> | null) => c?.brand?.colors?.[0]?.hex || c?.brandColor || "#5B56FF";
 
@@ -93,7 +94,7 @@ function NewClient({ onClose, onDone }: { onClose: () => void; onDone: (id: stri
   );
 }
 
-type Tab = "visao" | "gerenciamento" | "trafego" | "datas" | "projetos" | "calendario" | "identidade" | "dados";
+type Tab = "visao" | "gerenciamento" | "trafego" | "datas" | "proximos" | "projetos" | "calendario" | "identidade" | "dados";
 
 export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string) => void }) {
   const { data: c, error, reload } = useLoad(() => api.client(id), [id]);
@@ -121,6 +122,7 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
     ["gerenciamento", "Gerenciamento"],
     ["trafego", "Tráfego pago"],
     ["datas", "Datas e campanhas"],
+    ...(staff ? ([["proximos", "✨ Próximos conteúdos"]] as [Tab, string][]) : []),
     ["projetos", "Projetos e roteiros"],
     ["calendario", "Calendário"],
     ["identidade", "Identidade visual"],
@@ -174,6 +176,7 @@ function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: stri
       {tab === "trafego" && <PaidTab me={me} client={c} ctx={perf} />}
       {connect && me.role === "admin" && <MetaConnections client={c} onClose={() => setConnect(false)} onDone={() => { setConnect(false); reload(); perf.reload(); say("Conexões salvas e dados sincronizados."); }} />}
       {tab === "datas" && <PlannerTab me={me} client={c} />}
+      {tab === "proximos" && staff && <PautaTab me={me} client={c} go={go} />}
       {tab === "projetos" && <ProjectList me={me} clientId={c._id} go={go} />}
       {tab === "calendario" && <MonthCalendar me={me} clientId={c._id} go={go} />}
       {tab === "identidade" && <BrandEditor client={c} canEdit={staff} onSaved={() => { reload(); say("Identidade visual salva."); }} />}
