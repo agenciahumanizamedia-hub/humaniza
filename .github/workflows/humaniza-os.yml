@@ -59,6 +59,7 @@ jobs:
         run: |
           zip -qr ../wix-build.zip .wix dist
           echo "Tamanho do pacote: $(wc -c < ../wix-build.zip) bytes"
+          sha256sum ../wix-build.zip
 
       - uses: actions/upload-artifact@v4
         with:
@@ -75,9 +76,11 @@ jobs:
       - name: Ler pedido de envio
         id: req
         env:
-          PASS: ${{ secrets.WIX_UPLOAD_PASS }}
+          # HUMANIZA_PUBLICAR (se existir) substitui WIX_UPLOAD_PASS só para a publicação;
+          # a sincronização do Meta continua usando WIX_UPLOAD_PASS.
+          PASS: ${{ secrets.HUMANIZA_PUBLICAR || secrets.WIX_UPLOAD_PASS }}
         run: |
-          if [ -z "$PASS" ]; then echo "Falta o segredo WIX_UPLOAD_PASS." >&2; exit 1; fi
+          if [ -z "$PASS" ]; then echo "Falta o segredo HUMANIZA_PUBLICAR (ou WIX_UPLOAD_PASS)." >&2; exit 1; fi
           echo "run_id=$(cat humaniza-os/.wix-upload/run-id)" >> "$GITHUB_OUTPUT"
           openssl enc -d -aes-256-cbc -pbkdf2 -a -A -pass env:PASS -in humaniza-os/.wix-upload/url.enc -out /tmp/url.txt
           echo "::add-mask::$(cat /tmp/url.txt)"
