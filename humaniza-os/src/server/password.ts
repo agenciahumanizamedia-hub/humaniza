@@ -114,7 +114,21 @@ export async function setMemberPassword(email: string, password: string): Promis
   } catch (e) {
     throw new PasswordStepError("change-password", e);
   }
+
+  // Confere de verdade: entra com a senha nova. E-mails que são donos/colaboradores do site no Wix
+  // entram com a senha da conta Wix, não com a senha de membro, e caem aqui.
+  let state = "";
+  try {
+    const visitor = await postJson(`${API}/oauth2/token`, { clientId: CLIENT_ID, grantType: "anonymous" });
+    const login = await postJson(`${API}/_api/iam/authentication/v2/login`, { loginId: { email }, password }, visitor.access_token);
+    state = String(login?.state ?? "");
+  } catch (e) {
+    state = String((e as Error)?.message ?? e);
+  }
+  if (state !== "SUCCESS") throw new PasswordStepError("conferência", OWNER_EMAIL);
 }
+
+export const OWNER_EMAIL = "owner-email";
 
 /** E-mail oficial do Wix com um link (válido por 3 horas) para a pessoa criar a própria senha. */
 export async function sendSetPasswordEmail(email: string): Promise<void> {
@@ -128,6 +142,8 @@ export async function changeOwnPassword(newPassword: string): Promise<void> {
 
 /** Mensagem curta em português para os erros mais comuns do Wix. */
 export function passwordError(err: unknown): string {
+  if (err instanceof PasswordStepError && err.cause === OWNER_EMAIL)
+    return "Este e-mail é de quem administra o site no Wix (dono ou colaborador). Ele entra com a senha da conta Wix, não com uma senha gerada. Use outro e-mail para o cliente ou para a equipe.";
   const m = err instanceof PasswordStepError ? detail(err.cause) : String((err as any)?.details?.applicationError?.description ?? (err as Error)?.message ?? err);
   const where = err instanceof PasswordStepError ? ` [etapa ${err.step}: ${m.slice(0, 160)}]` : "";
   if (/password.*(length|short|weak|requirement|complex)/i.test(m)) return "A senha não atende às regras do Wix (tamanho ou complexidade)." + where;

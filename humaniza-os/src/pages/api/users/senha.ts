@@ -43,7 +43,8 @@ export const POST: APIRoute = handle(async (request) => {
     await setMemberPassword(email, password);
   } catch (err) {
     console.warn("setMemberPassword:", (err as Error)?.message ?? err);
-    throw new HttpError(502, `${passwordError(err)} Use “Enviar e-mail para criar senha”.`);
+    const msg = passwordError(err);
+    throw new HttpError(502, msg.includes("conta Wix") ? msg : `${msg} Use “Enviar e-mail para criar senha”.`);
   }
   await patch(COLLECTIONS.users, user._id, { passwordSetAt: new Date().toISOString() });
   await log(`${access.name} gerou uma senha nova para ${user.name}.`);
