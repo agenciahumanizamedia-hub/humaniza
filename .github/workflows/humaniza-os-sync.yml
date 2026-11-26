@@ -1,0 +1,46 @@
+name: Humaniza OS — sincronização com o Meta
+
+# Roda a cada hora (minuto 17), mesmo com o painel fechado. Para cada cliente com Instagram ou conta
+# de anúncios vinculados, chama /api/sync no site. A chave enviada é derivada do segredo
+# WIX_UPLOAD_PASS; o site guarda só o hash dela.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humaniza-os-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: humaniza-os-base
+          sparse-checkout: humaniza-os/.sync-url
+      - name: Sincronizar clientes
+        env:
+          PASS: ${{ secrets.WIX_UPLOAD_PASS }}
+        run: |
+          set -u
+          SITE=$(tr -d '\n' < humaniza-os/.sync-url)
+          KEY=$(printf 'humaniza-sync:%s' "$PASS" | sha256sum | cut -d' ' -f1)
+          echo "::add-mask::$KEY"
+          LIST=$(curl -sS -f -H "x-sync-key: $KEY" "$SITE/api/sync") || { echo "Não foi possível listar os clientes"; exit 1; }
+          echo "$LIST" | python3 -c 'import sys,json; [print(c["_id"], c["name"]) for c in json.load(sys.stdin)]' > clients.txt
+          echo "Clientes: $(wc -l < clients.txt)"
+          FAIL=0
+          while read -r ID NAME; do
+            [ -z "$ID" ] && continue
+            CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST -H "x-sync-key: $KEY" "$SITE/api/sync?cliente=$ID" --max-time 240 || echo 000)
+            STATES=$(python3 -c 'import json;d=json.load(open("out.json"));print("ig="+d.get("ig",{}).get("state","-")+" ads="+d.get("ads",{}).get("state","-"))' 2>/dev/null || echo "?")
+            echo "$NAME: HTTP $CODE $STATES"
+            [ "$CODE" = "200" ] || FAIL=1
+          done < clients.txt
+          exit $FAIL
