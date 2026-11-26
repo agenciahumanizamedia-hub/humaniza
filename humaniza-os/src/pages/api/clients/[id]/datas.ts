@@ -2,7 +2,7 @@
 //      comercial para os próximos meses (sugestões só para equipe/admin).
 // POST /api/clients/:id/datas — adiciona uma data/campanha (equipe/admin).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, findAll, create } from "../../../../server/db";
 import { logActivity } from "../../../../server/activity";
 import { handle, json } from "../../../../server/http";
@@ -23,6 +23,7 @@ export function plannerView(r: any, client: boolean) {
 
 export const GET: APIRoute = handle(async (_req, { params }) => {
   const access = await requireAccess();
+  requireModule(access, "calendario", "pauta");
   const client = await loadClientFor(access, params.id!);
   const isClient = access.role === "client";
   const rows = (await findAll(COLLECTIONS.planner, { clientId: client._id }))
@@ -42,6 +43,7 @@ export const GET: APIRoute = handle(async (_req, { params }) => {
 
 export const POST: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "calendario");
   const client = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const title = str(b.title, 200);

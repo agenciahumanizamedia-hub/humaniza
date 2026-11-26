@@ -1,7 +1,7 @@
 // GET  /api/contents?month=AAAA-MM&clientId=…&trash=1 — conteúdos para o calendário (ou a lixeira).
 // POST /api/contents — novo roteiro, carrossel ou estático dentro de um projeto (admin e equipe).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, clientFilter, HttpError } from "../../../server/access";
+import { requireAccess, loadClientFor, clientFilter, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, find, findAll, create, patch } from "../../../server/db";
 import { logActivity } from "../../../server/activity";
 import { handle, json } from "../../../server/http";
@@ -20,6 +20,7 @@ export const GET: APIRoute = handle(async (_req, { url }) => {
   const clientId = url.searchParams.get("clientId");
   const trash = url.searchParams.get("trash") === "1";
   if (trash && access.role === "client") throw new HttpError(403, "Sem acesso.");
+  requireModule(access, ...(trash ? (["lixeira"] as const) : (["projetos", "calendario"] as const)));
   const clients = clientId ? [await loadClientFor(access, clientId)] : await find(COLLECTIONS.clients, clientFilter(access), { limit: 1000 });
   const ids = clients.map((c) => c._id);
   if (!ids.length) return json([]);
@@ -37,6 +38,7 @@ export const GET: APIRoute = handle(async (_req, { url }) => {
 
 export const POST: APIRoute = handle(async (request) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "projetos");
   const b = await readJson(request);
   const type = str(b.type, 20);
   if (!CHECKLIST[type]) throw new HttpError(400, "Tipo inválido.");

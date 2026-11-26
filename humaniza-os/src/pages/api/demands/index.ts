@@ -2,7 +2,7 @@
 //      dos clientes que atende e as atribuídas a ela. Cliente não acessa.
 // POST /api/demands — nova demanda.
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, clientFilter, HttpError } from "../../../server/access";
+import { requireAccess, loadClientFor, clientFilter, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, find, findAll, create } from "../../../server/db";
 import { logActivity } from "../../../server/activity";
 import { handle, json } from "../../../server/http";
@@ -12,6 +12,7 @@ import { demandView, COLUMNS } from "../../../server/demands";
 export const GET: APIRoute = handle(async (_req, { url }) => {
   const access = await requireAccess(["admin", "team"]);
   const trash = url.searchParams.get("trash") === "1";
+  requireModule(access, ...(trash ? (["lixeira"] as const) : (["demandas"] as const)));
   const clients = await find(COLLECTIONS.clients, clientFilter(access), { limit: 1000 });
   const ids = new Set(clients.map((c) => c._id));
   let rows = (await findAll(COLLECTIONS.demands)).filter((d) => (trash ? !!d.trashedAt : !d.trashedAt));
@@ -23,6 +24,7 @@ export const GET: APIRoute = handle(async (_req, { url }) => {
 
 export const POST: APIRoute = handle(async (request) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "demandas");
   const b = await readJson(request);
   const title = str(b.title, 200);
   if (!title) throw new HttpError(400, "Dê um título para a demanda.");

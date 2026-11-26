@@ -2,7 +2,7 @@
 // Cliente: decide sobre o que foi liberado para ele. Equipe/admin: também podem registrar.
 // O cliente nunca edita o conteúdo: só aprova, pede ajuste ou sugere outra ordem.
 import type { APIRoute } from "astro";
-import { requireAccess, HttpError } from "../../../../server/access";
+import { requireAccess, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, getOne, patch } from "../../../../server/db";
 import { logActivity } from "../../../../server/activity";
 import { handle, json } from "../../../../server/http";
@@ -18,6 +18,7 @@ const NEXT: Record<string, [string, string] | null> = {
 
 export const POST: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess();
+  requireModule(access, "projetos");
   const { project, client } = await loadProjectFor(access, params.id!);
   const b = await readJson(request);
   const decision = str(b.decision, 20);

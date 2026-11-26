@@ -1,7 +1,7 @@
 // PATCH  /api/contents/:id — equipe/admin editam o roteiro (campos, data, status, checklist…).
 // DELETE /api/contents/:id — lixeira (?restaurar=1 tira da lixeira; ?definitivo=1 apaga, só admin).
 import type { APIRoute } from "astro";
-import { requireAccess, HttpError } from "../../../server/access";
+import { requireAccess, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, patch, removeOne } from "../../../server/db";
 import { logActivity } from "../../../server/activity";
 import { handle, json } from "../../../server/http";
@@ -17,6 +17,7 @@ const url = (v: unknown) => {
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "projetos");
   const { content } = await loadContentFor(access, params.id!);
   const b = await readJson(request);
   const changes: Record<string, any> = { updatedBy: access.name };
@@ -48,6 +49,7 @@ export const DELETE: APIRoute = handle(async (_req, { params, url: u }) => {
   const restore = u.searchParams.get("restaurar") === "1";
   const forever = u.searchParams.get("definitivo") === "1";
   const access = await requireAccess(forever ? ["admin"] : ["admin", "team"]);
+  requireModule(access, ...(restore ? (["lixeira"] as const) : (["projetos"] as const)));
   const { content, client } = await loadContentFor(access, params.id!);
   if (forever) {
     if (!content.trashedAt) throw new HttpError(400, "Mande para a lixeira antes de apagar de vez.");

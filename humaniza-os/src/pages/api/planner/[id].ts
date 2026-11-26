@@ -1,6 +1,6 @@
 // PATCH  /api/planner/:id — edita data/campanha. DELETE — remove (vai para a lixeira). Equipe/admin.
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, getOne, patch } from "../../../server/db";
 import { handle, json } from "../../../server/http";
 import { readJson, str } from "../../../server/util";
@@ -17,6 +17,7 @@ async function load(access: any, id: string) {
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "calendario");
   const r = await load(access, params.id!);
   const b = await readJson(request);
   const c: Record<string, any> = {};
@@ -36,6 +37,7 @@ export const PATCH: APIRoute = handle(async (request, { params }) => {
 
 export const DELETE: APIRoute = handle(async (_req, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "calendario");
   const r = await load(access, params.id!);
   await patch(COLLECTIONS.planner, r._id, { trashedAt: new Date().toISOString() });
   return json({ ok: true });

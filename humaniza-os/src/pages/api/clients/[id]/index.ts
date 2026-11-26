@@ -1,7 +1,7 @@
 // GET   /api/clients/:id — ficha do cliente (o que cada perfil pode ver).
 // PATCH /api/clients/:id — atualiza identidade e dados do cliente (admin; equipe só identidade visual).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, patch } from "../../../../server/db";
 import { logActivity } from "../../../../server/activity";
 import { handle, json } from "../../../../server/http";
@@ -40,6 +40,7 @@ export const GET: APIRoute = handle(async (_req, { params }) => {
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "identidade");
   const c = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const changes: Record<string, unknown> = {};

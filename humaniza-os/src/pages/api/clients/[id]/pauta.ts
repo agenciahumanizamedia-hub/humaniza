@@ -6,7 +6,7 @@
 // PATCH /api/clients/:id/pauta { mes, id, acao: "salvar"|"aprovar"|"descartar"|"reabrir", ideia? }
 //       "aprovar" cria o roteiro/carrossel/estático no projeto do mês, que segue o fluxo normal de aprovação do cliente.
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, findAll, create, patch } from "../../../../server/db";
 import { handle, json } from "../../../../server/http";
 import { readJson, str, historyLine } from "../../../../server/util";
@@ -47,6 +47,7 @@ function segmentOf(client: any) {
 
 export const GET: APIRoute = handle(async (_req, { params, url }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "pauta");
   const client = await loadClientFor(access, params.id!);
   const mes = monthOf(url.searchParams.get("mes"));
   const [{ data }, ctx, ai] = await Promise.all([loadPauta(client._id, mes), context(client._id, mes), aiSettings()]);
@@ -111,6 +112,7 @@ function cleanIdea(x: any, mes: string, trendIds: Set<string>, by: string, i: nu
 
 export const POST: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "pauta");
   const client = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const mes = monthOf(b.mes);
@@ -272,6 +274,7 @@ ${JSON.stringify(input)}`;
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "pauta");
   const client = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const mes = monthOf(b.mes);

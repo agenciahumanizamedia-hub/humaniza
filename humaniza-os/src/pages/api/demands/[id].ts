@@ -1,7 +1,7 @@
 // PATCH  /api/demands/:id — mover de coluna, editar, marcar checklist, comentar.
 // DELETE /api/demands/:id — lixeira (?restaurar=1 tira da lixeira; ?definitivo=1 apaga, só admin).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../server/access";
 import { COLLECTIONS, patch, removeOne } from "../../../server/db";
 import { logActivity } from "../../../server/activity";
 import { handle, json } from "../../../server/http";
@@ -10,6 +10,7 @@ import { loadDemandFor, COLUMNS } from "../../../server/demands";
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "demandas");
   const d = await loadDemandFor(access, params.id!);
   const b = await readJson(request);
   const changes: Record<string, any> = {};
@@ -46,6 +47,7 @@ export const DELETE: APIRoute = handle(async (_req, { params, url }) => {
   const restore = url.searchParams.get("restaurar") === "1";
   const forever = url.searchParams.get("definitivo") === "1";
   const access = await requireAccess(forever ? ["admin"] : ["admin", "team"]);
+  requireModule(access, ...(restore ? (["lixeira"] as const) : (["demandas"] as const)));
   const d = await loadDemandFor(access, params.id!);
   if (forever) {
     if (!d.trashedAt) throw new HttpError(400, "Mande para a lixeira antes de apagar de vez.");

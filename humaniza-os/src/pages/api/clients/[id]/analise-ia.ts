@@ -2,7 +2,7 @@
 // roteiros e datas do Humaniza OS) e devolve um RASCUNHO de análise: resumo, sugestões com base nos
 // números, ganchos para reescrever, temas para aprofundar e próximos passos. Equipe/admin.
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, findAll } from "../../../../server/db";
 import { handle, json } from "../../../../server/http";
 import { readJson, str } from "../../../../server/util";
@@ -16,6 +16,7 @@ const TYPE_PT: Record<string, string> = { roteiro: "Reels", carrossel: "Carrosse
 
 export const POST: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "resultados");
   const client = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const de = str(b.de, 10), ate = str(b.ate, 10);

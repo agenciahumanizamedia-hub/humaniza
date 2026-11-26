@@ -5,7 +5,7 @@
 // PATCH /api/clients/:id/resultados — equipe salva análise, sugestões aprovadas, números manuais e
 //       se o período fica visível ao cliente.
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { requireAccess, loadClientFor, HttpError, requireModule } from "../../../../server/access";
 import { COLLECTIONS, find, findAll, create, replace, type Row } from "../../../../server/db";
 import { logActivity } from "../../../../server/activity";
 import { handle, json } from "../../../../server/http";
@@ -26,6 +26,7 @@ const TYPE_MAP: Record<string, string[]> = { roteiro: ["Reels", "Vídeo"], carro
 
 export const GET: APIRoute = handle(async (_req, { params, url }) => {
   const access = await requireAccess();
+  requireModule(access, "resultados");
   const client = await loadClientFor(access, params.id!);
   const isClient = access.role === "client";
 
@@ -120,6 +121,7 @@ const NUM_FIELDS = ["followers", "posts", "reach", "views", "interactions", "spe
 
 export const PATCH: APIRoute = handle(async (request, { params }) => {
   const access = await requireAccess(["admin", "team"]);
+  requireModule(access, "resultados");
   const client = await loadClientFor(access, params.id!);
   const b = await readJson(request);
   const de = str(b.de, 10), ate = str(b.ate, 10);

@@ -2,7 +2,19 @@
 // direto: tudo passa pelo servidor, que confere o perfil de quem chamou.
 export type Role = "admin" | "team" | "client";
 
-export interface Me { name: string; email: string; role: Role; clientId: string | null; permission: string }
+export type TeamModule = "projetos" | "calendario" | "demandas" | "resultados" | "pauta" | "identidade" | "lixeira";
+export const TEAM_MODULES: { id: TeamModule; label: string; hint: string }[] = [
+  { id: "projetos", label: "Projetos e roteiros", hint: "Ver e editar projetos/mês, roteiros, carrosséis e estáticos" },
+  { id: "calendario", label: "Calendário e datas", hint: "Calendário de conteúdo, captações e datas/campanhas" },
+  { id: "demandas", label: "Demandas", hint: "Quadro de tarefas da equipe" },
+  { id: "resultados", label: "Resultados e tráfego pago", hint: "Números do Instagram e dos anúncios, análise do período" },
+  { id: "pauta", label: "Próximos conteúdos (IA)", hint: "Tendências e ideias de pauta com o Claude" },
+  { id: "identidade", label: "Editar identidade visual", hint: "Alterar cores, fontes, logo e capa do cliente" },
+  { id: "lixeira", label: "Lixeira", hint: "Ver e restaurar itens apagados" },
+];
+export interface Me { name: string; email: string; role: Role; clientId: string | null; permission: string; modules?: TeamModule[] }
+/** A pessoa pode usar esta área? Admin sempre; equipe conforme liberado; cliente não usa áreas da equipe. */
+export const can = (me: Me, m: TeamModule) => me.role === "admin" || (me.role === "team" && (me.modules ?? []).includes(m));
 export interface BrandColor { hex: string; name: string; role: string }
 export interface Brand { colors: BrandColor[]; fonts: string; tone: string; notes: string; useHumanizaPalette: boolean }
 export interface Client {
@@ -12,7 +24,7 @@ export interface Client {
   responsibleName?: string | null; responsiblePhone?: string | null;
   integrations?: { igUserId?: string; igUsername?: string; pageId?: string; adAccountId?: string; adAccountName?: string } | null;
 }
-export interface User { _id: string; name: string; email: string; role: Role; clientId: string | null; jobTitle: string; permission: string; active: boolean; passwordSetAt?: string }
+export interface User { _id: string; name: string; email: string; role: Role; clientId: string | null; jobTitle: string; permission: string; active: boolean; passwordSetAt?: string; modules?: TeamModule[]; clientIds?: string[] }
 export interface TeamMember { _id: string; name: string; email: string; role: Role; jobTitle: string; permission: string }
 export interface Activity { _id: string; when: string | null; description: string; actorName: string; actorRole: string; action: string; clientId: string | null }
 export interface ProjectSummary {
@@ -121,7 +133,9 @@ export const api = {
   updateClient: (id: string, data: Partial<Client>) => call<{ ok: true }>(`/api/clients/${id}`, send("PATCH", data)),
   users: () => call<User[]>("/api/users"),
   team: () => call<TeamMember[]>("/api/team"),
-  grantAccess: (data: Record<string, string>) =>
+  updateUser: (id: string, data: { modules?: TeamModule[]; clientIds?: string[]; jobTitle?: string; active?: boolean }) =>
+    call<{ ok: true }>(`/api/users/${id}`, send("PATCH", data)),
+  grantAccess: (data: Record<string, unknown>) =>
     call<{ _id: string; email: string; password: string | null; passwordMessage: string }>("/api/users", send("POST", data)),
   resetPassword: (userId: string) => call<{ ok: true; email: string; password: string }>("/api/users/senha", send("POST", { userId, modo: "gerar" })),
   sendPasswordEmail: (userId: string) => call<{ ok: true; sentTo: string }>("/api/users/senha", send("POST", { userId, modo: "email" })),
