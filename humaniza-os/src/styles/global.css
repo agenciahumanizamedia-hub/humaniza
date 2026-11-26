@@ -74,3 +74,11 @@
 .hz-grow { transform-origin: left; animation: hz-grow .9s cubic-bezier(.2,.7,.2,1) both; }
 .hz-fade { animation: hz-fade .6s ease both; }
 @media (prefers-reduced-motion: reduce) { .hz-rise, .hz-grow, .hz-fade { animation: none; } }
+
+/* Orçamento: folha branca na tela e no PDF (cores do cabeçalho preservadas na impressão) */
+@media print {
+  @page { margin: 12mm; }
+  .quote-sheet { box-shadow: none !important; border-radius: 0 !important; max-width: none !important; }
+  .quote-sheet, .quote-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { padding: 0 !important; }
+}

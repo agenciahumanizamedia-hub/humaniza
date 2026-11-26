@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useMember } from "../../hooks/members/useMember";
 import { api, ApiError, type Me, type Role } from "./api";
-import { Button, Card, Field, Panel, Pill, Skeleton, useLoad, useRoute } from "./ui";
+import { Button, Card, Field, Modal, Panel, Pill, Skeleton, useLoad, useRoute } from "./ui";
 import { ClientPage, ClientsList, mainColor } from "./Clients";
 import { ProjectList, ProjectPage } from "./Projects";
 import { CalendarPage } from "./Calendar";
@@ -114,6 +114,7 @@ export default function AppShell() {
       <aside className="no-print hidden h-fit rounded-lg border border-border bg-card p-4 lg:sticky lg:top-24 lg:block">
         <p className="font-semibold">{me.name}</p>
         <p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]}</p>
+        <MyPasswordButton />
         <nav className="mt-4 flex flex-col gap-1">
           {items.map((item) => (
             <button key={item.id} type="button" onClick={() => go(item.id)}
@@ -150,7 +151,7 @@ function MobileNav({ items, active, current, me, go }: { items: Item[]; active: 
         <div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={() => setOpen(false)}>
           <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <div><p className="font-semibold">{me.name}</p><p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]} · {current.label}</p></div>
+              <div><p className="font-semibold">{me.name}</p><p className="text-xs text-muted-foreground">{ROLE_LABEL[me.role]} · {current.label}</p><MyPasswordButton /></div>
               <button onClick={() => setOpen(false)} className="text-2xl text-muted-foreground" aria-label="Fechar">×</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -267,21 +268,58 @@ function ImportBox() {
   );
 }
 
+/** Mostra uma senha gerada UMA vez, com botão de copiar e o texto pronto para mandar à pessoa. */
+function PasswordCard({ name, email, password, onClose }: { name: string; email: string; password: string; onClose: () => void }) {
+  const [copied, setCopied] = useState("");
+  const site = typeof window !== "undefined" ? window.location.origin : "";
+  const message = `Olá, ${name.split(" ")[0]}! Seu acesso ao Humaniza OS está pronto.\n\nEndereço: ${site}/login\nE-mail: ${email}\nSenha: ${password}\n\nDepois de entrar, você pode trocar a senha em “Trocar minha senha”.`;
+  const copy = async (text: string, what: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+    } catch {
+      setCopied("");
+      window.prompt("Copie:", text);
+    }
+  };
+  return (
+    <div className="grid gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4">
+      <p className="text-sm font-semibold">Senha de {name} (aparece só agora: copie antes de fechar)</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="rounded-control bg-black/40 px-3 py-2 font-mono text-lg tracking-wider">{password}</code>
+        <Button small onClick={() => copy(password, "senha")}>{copied === "senha" ? "Senha copiada ✓" : "Copiar senha"}</Button>
+        <Button small variant="ghost" onClick={() => copy(message, "mensagem")}>{copied === "mensagem" ? "Mensagem copiada ✓" : "Copiar mensagem para enviar"}</Button>
+        <Button small variant="ghost" onClick={onClose}>Fechar</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">A senha não fica guardada no sistema. Se a pessoa perder, gere outra em “Gerar nova senha”.</p>
+    </div>
+  );
+}
+
 function AccessView() {
   const users = useLoad(api.users);
   const clients = useLoad(api.clients);
   const [form, setForm] = useState({ name: "", email: "", role: "team", clientId: "", jobTitle: "", permission: "Operacional" });
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [shown, setShown] = useState<{ name: string; email: string; password: string } | null>(null);
+  const [busyRow, setBusyRow] = useState("");
+  const [rowMsg, setRowMsg] = useState<{ id: string; text: string; error?: boolean } | null>(null);
   const clientName = (id: string | null) => clients.data?.find((c) => c._id === id)?.name ?? "";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setMsg("");
+    setShown(null);
     try {
-      await api.grantAccess(form);
-      setMsg("Acesso liberado. A pessoa entra pelo link “Primeiro acesso ou esqueceu a senha?” da tela de login (pode usar o Google).");
+      const r = await api.grantAccess(form);
+      if (r.password) {
+        setShown({ name: form.name, email: r.email, password: r.password });
+        setMsg("Acesso liberado.");
+      } else {
+        setMsg(`Acesso liberado, mas a senha não foi criada (${r.passwordMessage || "erro do Wix"}). Use “Enviar e-mail para criar senha” na lista abaixo.`);
+      }
       setForm({ ...form, name: "", email: "", jobTitle: "" });
       users.reload();
     } catch (err) {
@@ -291,9 +329,44 @@ function AccessView() {
     }
   }
 
+  async function reset(u: { _id: string; name: string; email: string }) {
+    if (!window.confirm(`Gerar uma senha nova para ${u.name}? A senha atual dele(a) deixa de funcionar.`)) return;
+    setBusyRow(u._id);
+    setRowMsg(null);
+    try {
+      const r = await api.resetPassword(u._id);
+      setShown({ name: u.name, email: r.email, password: r.password });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      users.reload();
+    } catch (err) {
+      setRowMsg({ id: u._id, text: err instanceof Error ? err.message : String(err), error: true });
+    } finally {
+      setBusyRow("");
+    }
+  }
+
+  async function emailLink(u: { _id: string; name: string }) {
+    setBusyRow(u._id);
+    setRowMsg(null);
+    try {
+      const r = await api.sendPasswordEmail(u._id);
+      setRowMsg({ id: u._id, text: `E-mail enviado para ${r.sentTo}. O link vale 3 horas.` });
+    } catch (err) {
+      setRowMsg({ id: u._id, text: err instanceof Error ? err.message : String(err), error: true });
+    } finally {
+      setBusyRow("");
+    }
+  }
+
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-bold">Acessos</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Acessos</h1>
+        <p className="text-sm text-muted-foreground">
+          Ao liberar, o sistema cria a senha da pessoa e mostra aqui para você copiar e enviar. Ela pode trocar depois em “Trocar minha senha”.
+        </p>
+      </div>
+      {shown && <PasswordCard {...shown} onClose={() => setShown(null)} />}
       <form onSubmit={save} className="grid gap-3 rounded-lg border border-border bg-card p-5 sm:grid-cols-2">
         <Field label="Nome" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
         <Field label="E-mail de login" value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" required />
@@ -322,7 +395,7 @@ function AccessView() {
         )}
         <div className="flex items-center gap-3 sm:col-span-2">
           <button disabled={saving} className="rounded-control bg-primary px-4 py-2 font-semibold text-primary-foreground">
-            {saving ? "Salvando…" : "Liberar acesso"}
+            {saving ? "Criando acesso e senha…" : "Liberar acesso e gerar senha"}
           </button>
           {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
         </div>
@@ -336,21 +409,82 @@ function AccessView() {
               <th className="p-3">E-mail</th>
               <th className="p-3">Perfil</th>
               <th className="p-3">Vínculo</th>
+              <th className="p-3">Senha</th>
             </tr>
           </thead>
           <tbody>
             {users.data?.map((u) => (
-              <tr key={u._id} className="border-t border-border">
+              <tr key={u._id} className="border-t border-border align-top">
                 <td className="p-3">{u.name}</td>
                 <td className="p-3">{u.email}</td>
                 <td className="p-3">{ROLE_LABEL[u.role] ?? u.role}</td>
                 <td className="p-3">{u.role === "client" ? clientName(u.clientId) : u.jobTitle}</td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button small variant="ghost" disabled={busyRow === u._id} onClick={() => reset(u)}>
+                      {busyRow === u._id ? "Aguarde…" : "Gerar nova senha"}
+                    </Button>
+                    <Button small variant="ghost" disabled={busyRow === u._id} onClick={() => emailLink(u)}>
+                      Enviar e-mail para criar senha
+                    </Button>
+                  </div>
+                  {u.passwordSetAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">Última senha gerada: {new Date(u.passwordSetAt).toLocaleString("pt-BR")}</p>
+                  )}
+                  {rowMsg?.id === u._id && <p className={`mt-1 text-xs ${rowMsg.error ? "text-destructive" : "text-green-400"}`}>{rowMsg.text}</p>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+/** Qualquer perfil troca a própria senha. */
+function MyPasswordButton() {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [state, setState] = useState<"idle" | "busy" | "ok" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < 8) return (setState("error"), setMsg("Use pelo menos 8 caracteres."));
+    if (pw !== pw2) return (setState("error"), setMsg("As duas senhas não são iguais."));
+    setState("busy");
+    setMsg("");
+    try {
+      await api.changeMyPassword(pw);
+      setState("ok");
+      setMsg("Senha trocada. Use a nova senha no próximo login.");
+      setPw("");
+      setPw2("");
+    } catch (err) {
+      setState("error");
+      setMsg(err instanceof Error ? err.message : String(err));
+    }
+  }
+  return (
+    <>
+      <button type="button" onClick={() => { setOpen(true); setState("idle"); setMsg(""); }} className="mt-2 text-xs text-[#c9c7ff] underline">
+        Trocar minha senha
+      </button>
+      {open && (
+        <Modal title="Trocar minha senha" onClose={() => setOpen(false)}>
+          <form onSubmit={save} className="grid gap-3">
+            <Field label="Nova senha (mínimo 8 caracteres)" type="password" value={pw} onChange={setPw} required />
+            <Field label="Repita a nova senha" type="password" value={pw2} onChange={setPw2} required />
+            {msg && <p className={`text-sm ${state === "error" ? "text-destructive" : "text-green-400"}`}>{msg}</p>}
+            <div className="flex gap-2">
+              <Button type="submit" disabled={state === "busy"}>{state === "busy" ? "Salvando…" : "Salvar nova senha"}</Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }
 

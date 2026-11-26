@@ -1,15 +1,19 @@
 // GET  /api/users — pessoas com acesso (somente admin).
-// POST /api/users — libera acesso para um e-mail: equipe ou cliente (somente admin).
+// POST /api/users — libera acesso para um e-mail: equipe, cliente ou administrador (somente admin).
 //
-// Como funciona o acesso: ao liberar, o sistema cria a conta de membro no Wix (sem senha). A pessoa
-// cria a senha em /login → "Primeiro acesso". Não existe cadastro aberto: só entra quem foi liberado.
+// Como funciona o acesso: ao liberar, o sistema cria a conta de membro no Wix e já gera uma senha,
+// que aparece UMA vez para o administrador copiar e mandar à pessoa (ela pode trocar depois, em
+// "Trocar minha senha"). Não existe cadastro aberto: só entra quem foi liberado aqui.
+// Se o Wix não deixar gravar a senha, o acesso é liberado mesmo assim e a tela oferece o e-mail
+// oficial do Wix para a pessoa criar a senha.
 import type { APIRoute } from "astro";
 import { members } from "@wix/members";
 import { auth } from "@wix/essentials";
 import { requireAccess, HttpError } from "../../server/access";
-import { find, create, getOne, COLLECTIONS } from "../../server/db";
+import { find, create, getOne, patch, COLLECTIONS } from "../../server/db";
 import { logActivity } from "../../server/activity";
 import { handle, json, readFields } from "../../server/http";
+import { generatePassword, passwordError, setMemberPassword } from "../../server/password";
 
 export const GET: APIRoute = handle(async () => {
   await requireAccess(["admin"]);
@@ -24,6 +28,7 @@ export const GET: APIRoute = handle(async () => {
       jobTitle: r.jobTitle ?? "",
       permission: r.permission ?? "",
       active: r.active !== false,
+      passwordSetAt: r.passwordSetAt ?? "",
     })),
   );
 });
@@ -50,13 +55,34 @@ export const POST: APIRoute = handle(async (request) => {
     permission: f.role === "team" ? f.permission || "Operacional" : f.role === "admin" ? "Gestor" : "",
     active: true,
   });
-  // Cria a conta de membro (sem senha). Se já existir, segue normalmente.
-  let memberCreated = false;
+  // Cria a conta de membro. Se já existir, segue normalmente.
   try {
-    await auth.elevate(members.createMember)({ member: { loginEmail: email } });
-    memberCreated = true;
+    await auth.elevate(members.createMember)({ member: { loginEmail: email, profile: { nickname: f.name } } } as any);
   } catch (err) {
     console.warn("createMember:", (err as Error)?.message ?? err);
+  }
+  // Gera e grava a senha inicial.
+  let password: string | null = null;
+  let passwordMessage = "";
+  try {
+    const candidate = generatePassword();
+    await setMemberPassword(email, candidate);
+    password = candidate;
+    await create(COLLECTIONS.activity, {
+      action: "user.password",
+      description: `${access.name} gerou a senha inicial de ${f.name}.`,
+      entityType: "user",
+      entityId: row._id,
+      clientId: "",
+      visibleToClient: false,
+      actorEmail: access.email,
+      actorName: access.name,
+      actorRole: access.role,
+    });
+    await patch(COLLECTIONS.users, row._id, { passwordSetAt: new Date().toISOString() });
+  } catch (err) {
+    console.warn("setMemberPassword:", (err as Error)?.message ?? err);
+    passwordMessage = passwordError(err);
   }
   const roleLabel = f.role === "client" ? `cliente (${clientName})` : f.role === "team" ? "equipe" : "administrador";
   await logActivity(access, {
@@ -66,5 +92,5 @@ export const POST: APIRoute = handle(async (request) => {
     entityId: row._id,
     clientId: f.role === "client" ? f.clientId : "",
   });
-  return json({ _id: row._id, memberCreated }, 201);
+  return json({ _id: row._id, email, password, passwordMessage }, 201);
 });

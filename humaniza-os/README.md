@@ -11,6 +11,11 @@ Os sistemas antigos (`index.html`, `cliente.html`, `js/` na raiz do repositório
 - Login com e-mail e senha pelo Wix (`/login`). Criar a senha não dá acesso a nada sozinho.
 - O administrador libera cada e-mail em **Acessos**, escolhendo o perfil: Administrador, Equipe ou
   Cliente (com a empresa vinculada). Isso fica na coleção `osUsers`.
+  O sistema gera a senha inicial (Sign On + Change Password do Wix, em `src/server/password.ts`) e
+  mostra uma única vez para copiar; "Gerar nova senha" faz o mesmo depois, e "Trocar minha senha"
+  deixa cada pessoa mudar a própria.
+- Orçamentos novos ficam em `osQuotes`. O link público `/orcamento/TOKEN` mostra o orçamento sem
+  login, registra aprovação/recusa e serve de PDF (impressão do navegador).
 - Todas as coleções `os*` no CMS do Wix são somente-admin. O navegador nunca lê o banco direto:
   os dados saem pelos endpoints em `src/pages/api/`, que conferem no servidor quem é a pessoa
   (`src/server/access.ts`) e filtram por perfil:

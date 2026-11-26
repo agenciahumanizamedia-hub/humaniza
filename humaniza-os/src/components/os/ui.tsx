@@ -124,6 +124,9 @@ const PILL: Record<string, string> = {
   "Aguardando aprovação": "bg-sky-400/15 text-sky-300 border-sky-400/30",
   "Liberado ao cliente": "bg-sky-400/15 text-sky-300 border-sky-400/30",
   Bloqueado: "bg-white/5 text-muted-foreground border-border",
+  Rascunho: "bg-white/5 text-muted-foreground border-border",
+  Enviado: "bg-sky-400/15 text-sky-300 border-sky-400/30",
+  Recusado: "bg-red-500/10 text-red-300 border-red-500/30",
 };
 export function Pill({ children }: { children: string }) {
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${PILL[children] ?? "border-primary/40 bg-primary/15 text-[#bdbaff]"}`}>{children}</span>;

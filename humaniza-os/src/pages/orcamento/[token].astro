@@ -1,0 +1,23 @@
+---
+// Link público do orçamento: o cliente abre sem login, vê, aprova/recusa e baixa em PDF.
+import "../../styles/global.css";
+import QuotePublic from "../../components/os/QuotePublic";
+
+const token = String(Astro.params.token ?? "").replace(/[^0-9a-f]/gi, "").slice(0, 60);
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Orçamento · Agência Humaniza</title>
+  </head>
+  <body>
+    <main class="mx-auto max-w-4xl px-3 py-6 sm:px-6 sm:py-10">
+      <QuotePublic client:only="react" token={token} />
+    </main>
+  </body>
+</html>
