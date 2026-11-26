@@ -1,14 +1,14 @@
 // GET   /api/clients/:id — ficha do cliente (o que cada perfil pode ver).
 // PATCH /api/clients/:id — atualiza identidade e dados do cliente (admin; equipe só identidade visual).
 import type { APIRoute } from "astro";
-import { requireAccess, loadClientFor, HttpError } from "../../../server/access";
-import { COLLECTIONS, patch } from "../../../server/db";
-import { logActivity } from "../../../server/activity";
-import { handle, json } from "../../../server/http";
-import { readJson, str } from "../../../server/util";
+import { requireAccess, loadClientFor, HttpError } from "../../../../server/access";
+import { COLLECTIONS, patch } from "../../../../server/db";
+import { logActivity } from "../../../../server/activity";
+import { handle, json } from "../../../../server/http";
+import { readJson, str } from "../../../../server/util";
 
 const CLIENT_VIEW = ["_id", "name", "logoUrl", "coverUrl", "brand", "status", "serviceType", "serviceCustom", "instagram", "responsibleName", "responsiblePhone", "whatsapp", "driveUrl"];
-const TEAM_VIEW = [...CLIENT_VIEW, "email", "teamEmails", "access", "notes"];
+const TEAM_VIEW = [...CLIENT_VIEW, "email", "teamEmails", "access", "notes", "integrations"];
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 function cleanBrand(b: any) {

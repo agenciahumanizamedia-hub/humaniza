@@ -19,6 +19,10 @@ export const COLLECTIONS = {
   events: "osEvents",
   legacy: "osLegacy",
   demands: "osDemands",
+  metrics: "osMetrics",
+  reports: "osReports",
+  planner: "osPlanner",
+  settings: "osSettings",
 } as const;
 
 type CollectionId = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

@@ -7,6 +7,8 @@ import {
 } from "./ui";
 import { ProjectList } from "./Projects";
 import { MonthCalendar } from "./Calendar";
+import { ResultsTab } from "./Results";
+import { PlannerTab } from "./Planner";
 
 export const mainColor = (c?: Pick<Client, "brand" | "brandColor"> | null) => c?.brand?.colors?.[0]?.hex || c?.brandColor || "#5B56FF";
 
@@ -91,7 +93,7 @@ function NewClient({ onClose, onDone }: { onClose: () => void; onDone: (id: stri
   );
 }
 
-type Tab = "visao" | "projetos" | "calendario" | "identidade" | "dados";
+type Tab = "visao" | "resultados" | "datas" | "projetos" | "calendario" | "identidade" | "dados";
 
 export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string) => void }) {
   const { data: c, error, reload } = useLoad(() => api.client(id), [id]);
@@ -103,6 +105,8 @@ export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string)
   const staff = me.role !== "client";
   const tabs: [Tab, string][] = [
     ["visao", "Visão geral"],
+    ["resultados", "Resultados"],
+    ["datas", "Datas e campanhas"],
     ["projetos", "Projetos e roteiros"],
     ["calendario", "Calendário"],
     ["identidade", "Identidade visual"],
@@ -141,6 +145,8 @@ export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string)
         </nav>
       </div>
       {tab === "visao" && <Overview me={me} client={c} go={go} />}
+      {tab === "resultados" && <ResultsTab me={me} client={c} onClientChanged={reload} />}
+      {tab === "datas" && <PlannerTab me={me} client={c} />}
       {tab === "projetos" && <ProjectList me={me} clientId={c._id} go={go} />}
       {tab === "calendario" && <MonthCalendar me={me} clientId={c._id} go={go} />}
       {tab === "identidade" && <BrandEditor client={c} canEdit={staff} onSaved={() => { reload(); say("Identidade visual salva."); }} />}

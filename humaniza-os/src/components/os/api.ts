@@ -10,6 +10,7 @@ export interface Client {
   brandColor?: string | null; logoUrl?: string | null; coverUrl?: string | null; brand?: Brand | null; email?: string | null;
   whatsapp?: string | null; driveUrl?: string | null; teamEmails?: string[] | null; access?: string | null; notes?: string | null;
   responsibleName?: string | null; responsiblePhone?: string | null;
+  integrations?: { igUserId?: string; igUsername?: string; pageId?: string; adAccountId?: string; adAccountName?: string } | null;
 }
 export interface User { _id: string; name: string; email: string; role: Role; clientId: string | null; jobTitle: string; permission: string; active: boolean }
 export interface TeamMember { _id: string; name: string; email: string; role: Role; jobTitle: string; permission: string }
@@ -38,6 +39,25 @@ export interface Demand {
   _id: string; title: string; description: string; clientId: string; clientName?: string; column: string; priority: string; dueDate: string;
   assignees: string[]; links: string[]; imageUrl: string; order: number; createdBy: string; checklist: { label: string; done: boolean }[];
   comments: { by: string; at: string; text: string }[]; trashedAt: string;
+}
+export interface Post { id: string; caption: string; type: string; permalink: string; thumb: string; timestamp: string; likes: number; comments: number; saves: number; shares: number; reach: number; views: number; interactions: number; engagementRate: number }
+export interface AdsTotals { spend: number; impressions: number; reach: number; frequency: number; clicks: number; ctr: number; cpc: number; cpm: number; conversations: number; leads: number; purchases: number; results: number; costPerResult: number }
+export interface Results {
+  month: string; published: boolean; message?: string;
+  connections?: { metaConnected?: boolean; instagram: string; ads: string };
+  instagram?: { profile: { username: string; name: string; followers: number; following: number; mediaCount: number; picture: string }; totals: Record<string, number>; posts: Post[]; fetchedAt: string; error?: string } | null;
+  previousInstagram?: { totals: Record<string, number>; profile: { followers: number } } | null;
+  ads?: { account: { name: string; currency: string }; totals: AdsTotals; campaigns: (AdsTotals & { name: string; objective: string })[]; fetchedAt: string; error?: string } | null;
+  previousAds?: { totals: AdsTotals } | null;
+  production?: { planned: number; posted: number; approved: number; adjustments: number; byType: { type: string; count: number }[] };
+  auto?: { highlights: string[]; alerts: string[]; nextSteps: string[]; bestPosts: Post[]; worstPost: Post | null; formats: { type: string; count: number; avgReach: number; avgEngagement: number; avgSaves: number }[]; bestWeekday: string; bestHour: string };
+  report?: { analysis: string; nextSteps: { text: string; done: boolean }[]; manual: Record<string, Record<string, number | string>>; publishedAt: string; updatedBy?: string };
+}
+export interface PlannerItem { _id: string; date: string; endDate: string; kind: string; title: string; description: string; status: string; color: string; visibleToClient: boolean; budget?: string; channels?: string[]; internalNote?: string }
+export interface Suggestion { date: string; title: string; kind: "data" | "campanha"; tags: string[]; tip: string }
+export interface MetaStatus {
+  connected: boolean; accountName?: string; expiresAt?: string; savedAt?: string; savedBy?: string;
+  assets?: { instagram: { igUserId: string; username: string; pageId: string; pageName: string }[]; adAccounts: { id: string; name: string; currency: string; active: boolean }[]; errors: string[] };
 }
 export interface LegacyRow { _id: string; sourceCollection: string; legacyId: string; clientId: string; data: Record<string, any> }
 
@@ -91,6 +111,15 @@ export const api = {
   updateDemand: (id: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/demands/${id}`, send("PATCH", data)),
   trashDemand: (id: string, mode: "trash" | "restore" | "forever" = "trash") =>
     call<{ ok: true }>(`/api/demands/${id}${mode === "restore" ? "?restaurar=1" : mode === "forever" ? "?definitivo=1" : ""}`, send("DELETE")),
+  results: (clientId: string, month: string, refresh = false) => call<Results>(`/api/clients/${clientId}/resultados${q({ mes: month, atualizar: refresh ? "1" : undefined })}`),
+  saveResults: (clientId: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/clients/${clientId}/resultados`, send("PATCH", data)),
+  saveIntegrations: (clientId: string, data: Record<string, string>) => call<{ ok: true }>(`/api/clients/${clientId}/integracoes`, send("PATCH", data)),
+  metaStatus: (withAssets = false) => call<MetaStatus>(`/api/admin/meta${withAssets ? "?contas=1" : ""}`),
+  saveMetaToken: (token: string) => call<{ ok: true; name: string; expiresAt: string }>("/api/admin/meta", send("POST", { token })),
+  planner: (clientId: string) => call<{ items: PlannerItem[]; suggestions: Suggestion[] }>(`/api/clients/${clientId}/datas`),
+  addPlanner: (clientId: string, data: Record<string, unknown>) => call<{ _id: string }>(`/api/clients/${clientId}/datas`, send("POST", data)),
+  updatePlanner: (id: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/planner/${id}`, send("PATCH", data)),
+  deletePlanner: (id: string) => call<{ ok: true }>(`/api/planner/${id}`, send("DELETE")),
   archive: (tipo?: string) => call<LegacyRow[]>(`/api/arquivo${q({ tipo })}`),
   /** Envia uma imagem para a Mídia do Wix e devolve o link público dela. */
   async upload(file: File): Promise<string> {
