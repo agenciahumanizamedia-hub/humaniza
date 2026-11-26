@@ -40,23 +40,29 @@ export interface Demand {
   assignees: string[]; links: string[]; imageUrl: string; order: number; createdBy: string; checklist: { label: string; done: boolean }[];
   comments: { by: string; at: string; text: string }[]; trashedAt: string;
 }
-export interface Post { id: string; caption: string; type: string; permalink: string; thumb: string; timestamp: string; likes: number; comments: number; saves: number; shares: number; reach: number; views: number; interactions: number; engagementRate: number }
-export interface AdsTotals { spend: number; impressions: number; reach: number; frequency: number; clicks: number; ctr: number; cpc: number; cpm: number; conversations: number; leads: number; purchases: number; results: number; costPerResult: number }
-export interface Results {
-  month: string; published: boolean; message?: string;
-  connections?: { metaConnected?: boolean; instagram: string; ads: string };
-  instagram?: { profile: { username: string; name: string; followers: number; following: number; mediaCount: number; picture: string }; totals: Record<string, number>; posts: Post[]; fetchedAt: string; error?: string } | null;
-  previousInstagram?: { totals: Record<string, number>; profile: { followers: number } } | null;
-  ads?: { account: { name: string; currency: string }; totals: AdsTotals; campaigns: (AdsTotals & { name: string; objective: string })[]; fetchedAt: string; error?: string } | null;
-  previousAds?: { totals: AdsTotals } | null;
-  production?: { planned: number; posted: number; approved: number; adjustments: number; byType: { type: string; count: number }[] };
-  auto?: { highlights: string[]; alerts: string[]; nextSteps: string[]; bestPosts: Post[]; worstPost: Post | null; formats: { type: string; count: number; avgReach: number; avgEngagement: number; avgSaves: number }[]; bestWeekday: string; bestHour: string };
-  report?: { analysis: string; nextSteps: { text: string; done: boolean }[]; manual: Record<string, Record<string, number | string>>; publishedAt: string; updatedBy?: string };
+export interface Post { id: string; caption: string; type: string; permalink: string; thumb: string; timestamp: string; date: string; likes: number | null; comments: number | null; saves: number | null; shares: number | null; reach: number | null; views: number | null; interactions: number | null; engagementRate: number | null; syncedAt: string }
+export interface ConnState { linked: boolean; label: string; state: "ok" | "pendente" | "erro" | "aguardando"; lastSuccess: string; lastAttempt?: string; message?: string }
+export interface IgAgg { coverage: { days: number; withData: number }; totals: Record<string, number | null>; followers: number | null; profile: { username: string; followers: number; picture: string } | null; series: Record<string, any>[]; posts: Post[] }
+export interface Campaign { id: string; name: string; objective: string; currency: string; resultIndicator: string; resultLabel: string; spend: number; results: number | null; costPerResult: number | null; conversations: number | null; costPerConversation: number | null; impressions: number | null; clicks: number | null; ctr: number | null; cpc: number | null }
+export interface AdsAgg { coverage: { days: number; withData: number }; totals: { spend: number | null; conversations: number | null; costPerConversation: number | null; impressions: number | null; clicks: number | null }; campaigns: Campaign[]; series: { date: string; spend: number | null }[] }
+export interface Evidence { label: string; value: string; source: string }
+export interface Suggestion2 { id: string; kind: "funcionou" | "repetir" | "melhorar" | "teste"; text: string; evidence: Evidence[]; approved?: boolean }
+export interface Performance {
+  de: string; ate: string; previous?: { de: string; ate: string }; published: boolean; message?: string; sources?: Record<string, string>;
+  connections?: { metaConnected?: boolean; instagram: ConnState; ads: ConnState };
+  instagram?: IgAgg | null; previousInstagram?: { totals: Record<string, number | null>; followers: number | null; coverage: { days: number; withData: number }; series: Record<string, any>[] } | null;
+  ads?: AdsAgg | null; previousAds?: { totals: AdsAgg["totals"]; coverage: { days: number; withData: number }; series: { date: string; spend: number | null }[] } | null;
+  delivery?: { total: number; byType: { type: string; count: number }[]; byStatus: { status: string; count: number }[]; postedInternal: number; confirmedByInstagram: number;
+    items: { _id: string; projectId: string; title: string; type: string; postDate: string; status: string; clientApproval: string; instagramId: string }[] };
+  upcoming?: { _id: string; date: string; endDate: string; title: string; kind: string; status: string; visibleToClient: boolean }[];
+  suggestions?: Suggestion2[];
+  report?: { analysis: string; suggestions: Suggestion2[]; nextSteps: { text: string; done: boolean }[]; manual: Record<string, Record<string, number>>; publishedAt: string; updatedBy?: string };
 }
 export interface PlannerItem { _id: string; date: string; endDate: string; kind: string; title: string; description: string; status: string; color: string; visibleToClient: boolean; budget?: string; channels?: string[]; internalNote?: string }
 export interface Suggestion { date: string; title: string; kind: "data" | "campanha"; tags: string[]; tip: string }
 export interface MetaStatus {
-  connected: boolean; accountName?: string; expiresAt?: string; savedAt?: string; savedBy?: string;
+  connected: boolean; method?: string; accountName?: string; expiresAt?: string; savedAt?: string; scopes?: string[]; missingScopes?: string[];
+  app?: { appId: string; hasSecret: boolean; configId: string }; redirectUri?: string; scopesNeeded?: string[];
   assets?: { instagram: { igUserId: string; username: string; pageId: string; pageName: string }[]; adAccounts: { id: string; name: string; currency: string; active: boolean }[]; errors: string[] };
 }
 export interface LegacyRow { _id: string; sourceCollection: string; legacyId: string; clientId: string; data: Record<string, any> }
@@ -111,8 +117,11 @@ export const api = {
   updateDemand: (id: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/demands/${id}`, send("PATCH", data)),
   trashDemand: (id: string, mode: "trash" | "restore" | "forever" = "trash") =>
     call<{ ok: true }>(`/api/demands/${id}${mode === "restore" ? "?restaurar=1" : mode === "forever" ? "?definitivo=1" : ""}`, send("DELETE")),
-  results: (clientId: string, month: string, refresh = false) => call<Results>(`/api/clients/${clientId}/resultados${q({ mes: month, atualizar: refresh ? "1" : undefined })}`),
-  saveResults: (clientId: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/clients/${clientId}/resultados`, send("PATCH", data)),
+  performance: (clientId: string, de: string, ate: string) => call<Performance>(`/api/clients/${clientId}/resultados${q({ de, ate })}`),
+  reports: (clientId: string) => call<{ periodKey: string; published: boolean; publishedAt: string }[]>(`/api/clients/${clientId}/resultados?relatorios=1`),
+  saveReport: (clientId: string, data: Record<string, unknown>) => call<{ ok: true }>(`/api/clients/${clientId}/resultados`, send("PATCH", data)),
+  syncNow: (clientId: string, full = false) => call<Record<string, unknown>>(`/api/sync?cliente=${clientId}${full ? "&completo=1" : ""}`, send("POST", {})),
+  saveMetaApp: (data: { appId: string; appSecret?: string; configId?: string }) => call<{ ok: true }>("/api/admin/meta", send("POST", data)),
   saveIntegrations: (clientId: string, data: Record<string, string>) => call<{ ok: true }>(`/api/clients/${clientId}/integracoes`, send("PATCH", data)),
   metaStatus: (withAssets = false) => call<MetaStatus>(`/api/admin/meta${withAssets ? "?contas=1" : ""}`),
   saveMetaToken: (token: string) => call<{ ok: true; name: string; expiresAt: string }>("/api/admin/meta", send("POST", { token })),

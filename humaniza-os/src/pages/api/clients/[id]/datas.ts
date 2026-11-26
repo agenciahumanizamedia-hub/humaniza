@@ -9,7 +9,7 @@ import { handle, json } from "../../../../server/http";
 import { readJson, str } from "../../../../server/util";
 import { commercialCalendar, segmentTags } from "../../../../server/commercial-dates";
 
-export const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Evento", "Sazonal"];
+export const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Captação", "Prazo de aprovação", "Próxima ação", "Evento", "Sazonal"];
 export const STATUS = ["Ideia", "Planejada", "Em produção", "No ar", "Concluída"];
 
 export function plannerView(r: any, client: boolean) {

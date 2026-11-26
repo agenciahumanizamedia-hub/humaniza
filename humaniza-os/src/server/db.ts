@@ -34,6 +34,7 @@ const elevatedGet = auth.elevate(items.get);
 const elevatedUpdate = auth.elevate(items.update);
 const elevatedBulkInsert = auth.elevate(items.bulkInsert);
 const elevatedRemove = auth.elevate(items.remove);
+const elevatedBulkSave = auth.elevate(items.bulkSave);
 
 /** Lê itens de uma coleção com filtro (sintaxe de filtro do Wix: { campo: valor } ou { campo: { $in: [...] } }). */
 export async function find(
@@ -98,4 +99,14 @@ export async function patch(collection: CollectionId, id: string, changes: Recor
   const row = await getOne(collection, id);
   if (!row) throw new Error("not-found");
   return replace(collection, { ...row, ...changes, _id: id } as Row);
+}
+
+/** Grava (cria ou substitui) vários itens com _id definido, em lotes de 500. */
+export async function saveMany(collection: CollectionId, rows: Record<string, unknown>[]): Promise<number> {
+  let ok = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const res: any = await elevatedBulkSave(collection, rows.slice(i, i + 500) as any);
+    ok += res?.bulkActionMetadata?.totalSuccesses ?? res?.results?.length ?? 0;
+  }
+  return ok;
 }

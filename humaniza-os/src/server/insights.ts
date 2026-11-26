@@ -1,94 +1,161 @@
-// Análise automática dos resultados do mês (regras, sem IA): melhores posts, melhor formato,
-// melhores dias/horários, comparação com o mês anterior, saúde dos anúncios e próximos passos.
-type Post = { id: string; type: string; caption: string; permalink: string; thumb: string; timestamp: string; likes: number; comments: number; saves: number; shares: number; reach: number; views: number; interactions: number; engagementRate: number };
-type Ig = { profile: { followers: number }; totals: Record<string, number>; posts: Post[] } | null;
-type Ads = { totals: Record<string, number>; campaigns: any[] } | null;
+// Agregação dos dados sincronizados por período e análise com evidências.
+// Regra de ouro: dado ausente é null (a tela mostra "Dado indisponível"), nunca zero.
+import type { Row } from "./db";
 
-const pct = (a: number, b: number) => (b ? ((a - b) / b) * 100 : 0);
-const fmtPct = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`;
-const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
-const money = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const WEEK = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+export const SRC = { ig: "Instagram (Meta)", ads: "Gerenciador de Anúncios (Meta)", os: "Humaniza OS" } as const;
+const ADDITIVE_IG = ["views", "total_interactions", "likes", "comments", "shares", "saves", "profile_views", "website_clicks", "follows", "unfollows"];
 
-export function analyze(input: { ig: Ig; prevIg: Ig; ads: Ads; prevAds: Ads; planned: number; posted: number }) {
-  const { ig, prevIg, ads, prevAds } = input;
-  const highlights: string[] = [];
-  const alerts: string[] = [];
-  const nextSteps: string[] = [];
-  let bestPosts: Post[] = [];
-  let worstPost: Post | null = null;
-  let formats: { type: string; count: number; avgReach: number; avgEngagement: number; avgSaves: number }[] = [];
-  let bestWeekday = "";
-  let bestHour = "";
+export const daysBetween = (de: string, ate: string) => {
+  const out: string[] = [];
+  for (let d = de; d <= ate; d = new Date(Date.parse(d + "T12:00:00Z") + 86400e3).toISOString().slice(0, 10)) out.push(d);
+  return out;
+};
+const sum = (vals: (number | null | undefined)[]) => {
+  const v = vals.filter((x): x is number => typeof x === "number");
+  return v.length ? v.reduce((a, b) => a + b, 0) : null;
+};
+const avg = (vals: (number | null | undefined)[]) => {
+  const v = vals.filter((x): x is number => typeof x === "number");
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+};
+const ratio = (a: number | null, b: number | null) => (a !== null && b ? a / b : null);
 
-  if (ig) {
-    const feed = ig.posts.filter((p) => p.type !== "Story");
-    const valid = feed.filter((p) => p.reach > 0);
-    bestPosts = [...valid].sort((a, b) => b.engagementRate - a.engagementRate || b.reach - a.reach).slice(0, 3);
-    worstPost = valid.length > 3 ? [...valid].sort((a, b) => a.engagementRate - b.engagementRate)[0] : null;
+export function aggregateIg(dayRows: Row[], profileRows: Row[], mediaRows: Row[], de: string, ate: string) {
+  const days = daysBetween(de, ate);
+  const byDay = new Map(dayRows.map((r) => [r.date, r.data ?? {}]));
+  const covered = days.filter((d) => byDay.has(d));
+  const totals: Record<string, number | null> = {};
+  for (const m of ADDITIVE_IG) totals[m] = sum(covered.map((d) => byDay.get(d)?.[m]));
+  totals.reachDailyAvg = avg(covered.map((d) => byDay.get(d)?.reach));
+  totals.engagedDailyAvg = avg(covered.map((d) => byDay.get(d)?.accounts_engaged));
+  const profiles = profileRows.filter((r) => r.date >= de && r.date <= ate).sort((a, b) => a.date.localeCompare(b.date));
+  const followers = profiles.length ? profiles[profiles.length - 1].data?.followers ?? null : null;
+  const posts = mediaRows
+    .filter((r) => r.date >= de && r.date <= ate)
+    .map((r) => {
+      const d = r.data ?? {};
+      return { ...d, date: r.date, engagementRate: ratio(d.interactions ?? null, d.reach ?? null), syncedAt: r.fetchedAt };
+    })
+    .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  return {
+    coverage: { days: days.length, withData: covered.length },
+    totals,
+    followers,
+    profile: profiles.length ? profiles[profiles.length - 1].data : null,
+    series: days.map((d) => ({ date: d, ...(byDay.get(d) ?? {}) })),
+    posts,
+  };
+}
 
-    const byType = new Map<string, Post[]>();
-    for (const p of feed) byType.set(p.type, [...(byType.get(p.type) ?? []), p]);
-    formats = [...byType.entries()]
-      .map(([type, list]) => ({
-        type, count: list.length,
-        avgReach: list.reduce((s, p) => s + p.reach, 0) / list.length,
-        avgEngagement: list.reduce((s, p) => s + p.engagementRate, 0) / list.length,
-        avgSaves: list.reduce((s, p) => s + p.saves, 0) / list.length,
-      }))
-      .sort((a, b) => b.avgEngagement - a.avgEngagement);
-
-    const group = (key: (p: Post) => number) => {
-      const m = new Map<number, number[]>();
-      for (const p of valid) m.set(key(p), [...(m.get(key(p)) ?? []), p.engagementRate]);
-      return [...m.entries()].filter(([, v]) => v.length >= 2).map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length] as const).sort((a, b) => b[1] - a[1])[0];
+export function aggregateAds(rows: Row[], de: string, ate: string) {
+  const days = daysBetween(de, ate);
+  const inRange = rows.filter((r) => r.date >= de && r.date <= ate).map((r) => r.data ?? {});
+  const byCampaign = new Map<string, any[]>();
+  for (const r of inRange) byCampaign.set(r.campaignId, [...(byCampaign.get(r.campaignId) ?? []), r]);
+  const campaigns = [...byCampaign.values()].map((list) => {
+    const last = list[list.length - 1];
+    const indicators = list.map((x) => x.resultIndicator).filter(Boolean);
+    const indicator = indicators.sort((a, b) => indicators.filter((v) => v === b).length - indicators.filter((v) => v === a).length)[0] ?? "";
+    const spend = sum(list.map((x) => x.spend)) ?? 0;
+    const results = list.some((x) => x.results !== null && x.results !== undefined) ? sum(list.map((x) => x.results)) : null;
+    const conversations = list.some((x) => x.conversations !== null && x.conversations !== undefined) ? sum(list.map((x) => x.conversations)) : null;
+    const impressions = sum(list.map((x) => x.impressions));
+    const clicks = sum(list.map((x) => x.clicks));
+    return {
+      id: last.campaignId, name: last.campaign, objective: last.objective, currency: last.currency ?? "BRL", resultIndicator: indicator,
+      resultLabel: resultLabel(indicator, last.objective), spend, results, costPerResult: results ? spend / results : null,
+      conversations, costPerConversation: conversations ? spend / conversations : null, impressions, clicks,
+      ctr: impressions && clicks !== null ? (clicks / impressions) * 100 : null, cpc: clicks ? spend / clicks : null,
     };
-    const tz = (p: Post) => new Date(new Date(p.timestamp).toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    const wd = group((p) => tz(p).getDay());
-    const hr = group((p) => tz(p).getHours());
-    if (wd) bestWeekday = WEEK[wd[0]];
-    if (hr) bestHour = `${String(hr[0]).padStart(2, "0")}h`;
+  }).sort((a, b) => b.spend - a.spend);
+  const spendTotal = sum(inRange.map((r) => r.spend));
+  const conv = inRange.some((r) => r.conversations !== null && r.conversations !== undefined) ? sum(inRange.map((r) => r.conversations)) : null;
+  const daily = new Map<string, number>();
+  for (const r of inRange) daily.set(r.date, (daily.get(r.date) ?? 0) + (r.spend ?? 0));
+  const daysWithRows = new Set(inRange.map((r) => r.date));
+  return {
+    coverage: { days: days.length, withData: daysWithRows.size },
+    totals: {
+      spend: spendTotal, conversations: conv, costPerConversation: conv && spendTotal ? spendTotal / conv : null,
+      impressions: sum(inRange.map((r) => r.impressions)), clicks: sum(inRange.map((r) => r.clicks)),
+    },
+    campaigns,
+    series: days.map((d) => ({ date: d, spend: daily.has(d) ? daily.get(d)! : null })),
+  };
+}
 
-    const t = ig.totals;
-    if (feed.length) highlights.push(`${feed.length} publicações no feed neste mês (${formats.map((f) => `${f.count} ${f.type}`).join(", ")}).`);
-    if (prevIg) {
-      const dr = pct(t.reach ?? 0, prevIg.totals.reach ?? 0);
-      const di = pct(t.total_interactions ?? 0, prevIg.totals.total_interactions ?? 0);
-      if (prevIg.totals.reach) (dr >= 0 ? highlights : alerts).push(`Alcance ${fmtPct(dr)} em relação ao mês anterior (${fmt(t.reach ?? 0)} contas).`);
-      if (prevIg.totals.total_interactions) (di >= 0 ? highlights : alerts).push(`Interações ${fmtPct(di)} em relação ao mês anterior (${fmt(t.total_interactions ?? 0)}).`);
-    }
-    if (t.follows) highlights.push(`${fmt(t.follows)} novos seguidores${t.unfollows ? ` e ${fmt(t.unfollows)} deixaram de seguir` : ""}.`);
-    if (bestPosts[0]) highlights.push(`Melhor post: ${bestPosts[0].type} de ${new Date(bestPosts[0].timestamp).toLocaleDateString("pt-BR")} com ${(bestPosts[0].engagementRate * 100).toFixed(1)}% de engajamento sobre o alcance.`);
-    if (formats.length >= 2) {
-      nextSteps.push(`Priorizar ${formats[0].type}: teve o melhor engajamento médio (${(formats[0].avgEngagement * 100).toFixed(1)}%). Rever o formato ${formats[formats.length - 1].type}, que ficou abaixo.`);
-    }
-    const saver = [...valid].sort((a, b) => b.saves - a.saves)[0];
-    if (saver?.saves) nextSteps.push(`O post mais salvo teve ${fmt(saver.saves)} salvamentos: transformar o tema dele em série ou carrossel educativo.`);
-    if (bestWeekday || bestHour) nextSteps.push(`Concentrar as postagens principais ${bestWeekday ? `na ${bestWeekday}` : ""}${bestWeekday && bestHour ? ", " : ""}${bestHour ? `por volta das ${bestHour}` : ""} — onde o engajamento foi maior.`);
-    if (feed.length && feed.length < 8) alerts.push(`Só ${feed.length} posts no feed: abaixo do ritmo recomendado (2 a 3 por semana).`);
-    const reels = formats.find((f) => f.type === "Reels");
-    if (!reels && feed.length) nextSteps.push("Incluir Reels no próximo mês: é o formato que mais leva a conta para quem ainda não segue.");
-    if (worstPost) alerts.push(`Post com menor resposta: ${worstPost.type} de ${new Date(worstPost.timestamp).toLocaleDateString("pt-BR")} — revisar gancho e capa.`);
-  }
+export function resultLabel(indicator: string, objective: string) {
+  const i = indicator.toLowerCase();
+  if (i.includes("messaging_conversation_started")) return "Conversas iniciadas";
+  if (i.includes("lead")) return "Leads (cadastros)";
+  if (i.includes("purchase")) return "Compras";
+  if (i.includes("landing_page_view")) return "Visualizações da página";
+  if (i.includes("link_click")) return "Cliques no link";
+  if (i.includes("post_engagement")) return "Engajamentos com o post";
+  if (i.includes("video_view") || i.includes("thruplay")) return "Visualizações do vídeo";
+  if (i.includes("reach")) return "Pessoas alcançadas";
+  if (i.includes("follow") || i.includes("like")) return "Seguidores / curtidas";
+  if (i) return indicator;
+  const o = objective.toUpperCase();
+  if (o.includes("ENGAGEMENT") || o.includes("MESSAGES")) return "Engajamento / mensagens (definido no Gerenciador)";
+  if (o.includes("LEADS")) return "Leads";
+  if (o.includes("SALES")) return "Vendas";
+  if (o.includes("TRAFFIC")) return "Tráfego";
+  if (o.includes("AWARENESS")) return "Reconhecimento";
+  return "Resultado não informado pelo Meta";
+}
 
-  if (input.planned) {
-    if (input.posted < input.planned) alerts.push(`${input.posted} de ${input.planned} conteúdos planejados foram marcados como postados.`);
-    else highlights.push(`Todos os ${input.planned} conteúdos planejados foram entregues.`);
-  }
+const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const pctTxt = (n: number) => `${(n * 100).toFixed(1).replace(".", ",")}%`;
+const change = (a: number | null, b: number | null) => (a !== null && b ? (a - b) / b : null);
 
-  if (ads && ads.totals.spend) {
-    const a = ads.totals;
-    highlights.push(`Investimento em anúncios: ${money(a.spend)} · ${fmt(a.results)} resultados${a.costPerResult ? ` a ${money(a.costPerResult)} cada` : ""}.`);
-    if (a.ctr && a.ctr < 1) alerts.push(`CTR dos anúncios em ${a.ctr.toFixed(2)}% (abaixo de 1%): testar novos criativos e chamadas.`);
-    if (a.frequency > 3.5) alerts.push(`Frequência alta (${a.frequency.toFixed(1)}): o público está vendo o mesmo anúncio muitas vezes — renovar criativos ou ampliar público.`);
-    if (prevAds?.totals.costPerResult && a.costPerResult) {
-      const d = pct(a.costPerResult, prevAds.totals.costPerResult);
-      (d <= 0 ? highlights : alerts).push(`Custo por resultado ${fmtPct(d)} em relação ao mês anterior.`);
+type Ev = { label: string; value: string; source: string };
+export type Suggestion = { id: string; kind: "funcionou" | "repetir" | "melhorar" | "teste"; text: string; evidence: Ev[] };
+
+/** Sugestões automáticas — cada uma mostra os números em que se baseia. */
+export function suggest(ig: ReturnType<typeof aggregateIg> | null, prevIg: ReturnType<typeof aggregateIg> | null, ads: ReturnType<typeof aggregateAds> | null, deliveries: { planned: number; posted: number }): Suggestion[] {
+  const out: Suggestion[] = [];
+  if (ig && ig.posts.length) {
+    const withRate = ig.posts.filter((p: any) => p.engagementRate !== null && p.type !== "Story");
+    const best = [...withRate].sort((a: any, b: any) => b.engagementRate - a.engagementRate)[0] as any;
+    if (best)
+      out.push({ id: "melhor-post", kind: "funcionou", text: `O ${best.type} de ${String(best.date).split("-").reverse().join("/")} foi o que mais engajou quem viu.`,
+        evidence: [{ label: "Taxa de interações sobre alcance", value: pctTxt(best.engagementRate), source: SRC.ig }, { label: "Alcance do post", value: fmt(best.reach), source: SRC.ig }] });
+    const types = new Map<string, any[]>();
+    for (const p of withRate) types.set(p.type, [...(types.get(p.type) ?? []), p]);
+    const ranked = [...types.entries()].filter(([, l]) => l.length >= 2).map(([t, l]) => ({ t, n: l.length, rate: l.reduce((s, p) => s + p.engagementRate, 0) / l.length })).sort((a, b) => b.rate - a.rate);
+    if (ranked.length >= 2)
+      out.push({ id: "formato", kind: "repetir", text: `Repetir mais ${ranked[0].t}: engajou mais que ${ranked[ranked.length - 1].t} no período.`,
+        evidence: [{ label: `${ranked[0].t} (${ranked[0].n} posts)`, value: pctTxt(ranked[0].rate), source: SRC.ig }, { label: `${ranked[ranked.length - 1].t} (${ranked[ranked.length - 1].n} posts)`, value: pctTxt(ranked[ranked.length - 1].rate), source: SRC.ig }] });
+    const saver = [...ig.posts].filter((p: any) => typeof p.saves === "number").sort((a: any, b: any) => b.saves - a.saves)[0] as any;
+    if (saver?.saves) out.push({ id: "salvos", kind: "repetir", text: "Transformar o tema do post mais salvo em série ou carrossel educativo.", evidence: [{ label: "Salvamentos", value: fmt(saver.saves), source: SRC.ig }] });
+    const r = change(ig.totals.reachDailyAvg ?? null, prevIg?.totals.reachDailyAvg ?? null);
+    if (r !== null && r < -0.1)
+      out.push({ id: "alcance", kind: "melhorar", text: "O alcance caiu em relação ao período anterior: reforçar Reels com gancho nos 3 primeiros segundos e publicar nos horários de maior resposta.",
+        evidence: [{ label: "Alcance diário médio", value: `${fmt(ig.totals.reachDailyAvg!)} (antes ${fmt(prevIg!.totals.reachDailyAvg!)})`, source: SRC.ig }] });
+    const hours = new Map<number, number[]>();
+    for (const p of withRate) {
+      const h = new Date(Date.parse(p.timestamp) - 3 * 3600e3).getUTCHours();
+      hours.set(h, [...(hours.get(h) ?? []), p.engagementRate]);
     }
-    const best = [...ads.campaigns].filter((c) => c.results).sort((x, y) => x.costPerResult - y.costPerResult)[0];
-    if (best) nextSteps.push(`Reforçar a verba na campanha “${best.name}”, a de menor custo por resultado (${money(best.costPerResult)}).`);
-    if (bestPosts[0]) nextSteps.push("Impulsionar o melhor post orgânico do mês como anúncio: já provou que o público responde.");
+    const hr = [...hours.entries()].filter(([, v]) => v.length >= 2).map(([h, v]) => [h, v.reduce((a, b) => a + b, 0) / v.length] as const).sort((a, b) => b[1] - a[1])[0];
+    if (hr) out.push({ id: "horario", kind: "teste", text: `Teste no próximo período: concentrar as publicações principais por volta das ${String(hr[0]).padStart(2, "0")}h e comparar.`,
+      evidence: [{ label: `Engajamento médio às ${hr[0]}h`, value: pctTxt(hr[1]), source: SRC.ig }] });
   }
-  if (!nextSteps.length) nextSteps.push("Conectar o Instagram e a conta de anúncios do cliente para gerar a análise automática.");
-  return { highlights, alerts, nextSteps, bestPosts, worstPost, formats, bestWeekday, bestHour };
+  if (deliveries.planned && deliveries.posted < deliveries.planned)
+    out.push({ id: "entregas", kind: "melhorar", text: "Parte do planejado não foi marcada como postada: revisar o fluxo de aprovação e agendamento.",
+      evidence: [{ label: "Planejados x postados", value: `${deliveries.planned} x ${deliveries.posted}`, source: SRC.os }] });
+  if (ads && ads.campaigns.length) {
+    const withCost = ads.campaigns.filter((c) => c.costPerResult !== null);
+    const best = [...withCost].sort((a, b) => a.costPerResult! - b.costPerResult!)[0];
+    if (best) out.push({ id: "campanha", kind: "funcionou", text: `A campanha “${best.name}” entregou o menor custo por resultado (${best.resultLabel.toLowerCase()}).`,
+      evidence: [{ label: "Custo por resultado", value: brl(best.costPerResult!), source: SRC.ads }, { label: "Resultados", value: fmt(best.results!), source: SRC.ads }] });
+    const lowCtr = ads.campaigns.find((c) => c.ctr !== null && c.ctr < 1 && c.spend > 30);
+    if (lowCtr) out.push({ id: "ctr", kind: "melhorar", text: `Renovar criativos da campanha “${lowCtr.name}”: poucas pessoas clicam no anúncio.`,
+      evidence: [{ label: "CTR", value: `${lowCtr.ctr!.toFixed(2).replace(".", ",")}%`, source: SRC.ads }] });
+    if (ig?.posts.length) out.push({ id: "impulsionar", kind: "teste", text: "Teste: impulsionar o melhor post orgânico do período como anúncio e comparar o custo por resultado.",
+      evidence: [{ label: "Base", value: "melhor post orgânico + custo por resultado atual", source: `${SRC.ig} e ${SRC.ads}` }] });
+  }
+  return out;
 }

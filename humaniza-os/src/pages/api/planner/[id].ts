@@ -5,7 +5,7 @@ import { COLLECTIONS, getOne, patch } from "../../../server/db";
 import { handle, json } from "../../../server/http";
 import { readJson, str } from "../../../server/util";
 
-const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Evento", "Sazonal"];
+const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Captação", "Prazo de aprovação", "Próxima ação", "Evento", "Sazonal"];
 const STATUS = ["Ideia", "Planejada", "Em produção", "No ar", "Concluída"];
 
 async function load(access: any, id: string) {

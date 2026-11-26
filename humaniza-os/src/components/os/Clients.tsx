@@ -1,13 +1,13 @@
 // Clientes: lista com logos e a página "pró" do cliente (capa, logo, paleta, visão geral, projetos,
 // calendário do mês e dados). O cliente vê a própria página como "Início".
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, type Brand, type BrandColor, type Client, type Me } from "./api";
 import {
   Area, Button, Card, ErrorText, Field, HUMANIZA_PALETTE, ImagePicker, Logo, Modal, Pill, Select, Skeleton, useLoad, useToast,
 } from "./ui";
 import { ProjectList } from "./Projects";
 import { MonthCalendar } from "./Calendar";
-import { ResultsTab } from "./Results";
+import { ManagementTab, MetaConnections, PaidTab, PerformanceOverview, SyncButton, usePerformance } from "./Performance";
 import { PlannerTab } from "./Planner";
 
 export const mainColor = (c?: Pick<Client, "brand" | "brandColor"> | null) => c?.brand?.colors?.[0]?.hex || c?.brandColor || "#5B56FF";
@@ -93,19 +93,33 @@ function NewClient({ onClose, onDone }: { onClose: () => void; onDone: (id: stri
   );
 }
 
-type Tab = "visao" | "resultados" | "datas" | "projetos" | "calendario" | "identidade" | "dados";
+type Tab = "visao" | "gerenciamento" | "trafego" | "datas" | "projetos" | "calendario" | "identidade" | "dados";
 
 export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string) => void }) {
   const { data: c, error, reload } = useLoad(() => api.client(id), [id]);
-  const [tab, setTab] = useState<Tab>("visao");
-  const [toast, say] = useToast();
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!c) return <Skeleton rows={3} />;
+  return <ClientPageBody me={me} c={c} go={go} reload={reload} />;
+}
+
+function ClientPageBody({ me, c, go, reload }: { me: Me; c: Client; go: (p: string) => void; reload: () => void }) {
+  const [tab, setTab] = useState<Tab>("visao");
+  const [toast, say] = useToast();
+  const [connect, setConnect] = useState(false);
+  const perf = usePerformance(c, me);
+  useEffect(() => {
+    const m = new URLSearchParams(window.location.search).get("meta");
+    if (!m) return;
+    say(m === "ok" ? "Meta autorizado. Agora escolha as contas do cliente." : m === "cancelado" ? "Autorização do Meta cancelada." : "Não foi possível concluir a autorização do Meta.");
+    if (m === "ok" && me.role === "admin") setConnect(true);
+    window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+  }, []);
   const color = mainColor(c);
   const staff = me.role !== "client";
   const tabs: [Tab, string][] = [
     ["visao", "Visão geral"],
-    ["resultados", "Resultados"],
+    ["gerenciamento", "Gerenciamento"],
+    ["trafego", "Tráfego pago"],
     ["datas", "Datas e campanhas"],
     ["projetos", "Projetos e roteiros"],
     ["calendario", "Calendário"],
@@ -144,8 +158,21 @@ export function ClientPage({ me, id, go }: { me: Me; id: string; go: (p: string)
           ))}
         </nav>
       </div>
-      {tab === "visao" && <Overview me={me} client={c} go={go} />}
-      {tab === "resultados" && <ResultsTab me={me} client={c} onClientChanged={reload} />}
+      {staff && (
+        <div className="no-print -mt-3 flex flex-wrap items-center justify-end gap-2">
+          {me.role === "admin" && <SyncButton client={c} onDone={perf.reload} />}
+          {me.role === "admin" && <Button small variant="ghost" onClick={() => setConnect(true)}>Conexões do Meta</Button>}
+        </div>
+      )}
+      {tab === "visao" && (
+        <div className="grid gap-8">
+          <PerformanceOverview me={me} client={c} ctx={perf} goTab={(t) => setTab(t as Tab)} />
+          <Overview me={me} client={c} go={go} />
+        </div>
+      )}
+      {tab === "gerenciamento" && <ManagementTab me={me} client={c} ctx={perf} />}
+      {tab === "trafego" && <PaidTab me={me} client={c} ctx={perf} />}
+      {connect && me.role === "admin" && <MetaConnections client={c} onClose={() => setConnect(false)} onDone={() => { setConnect(false); reload(); perf.reload(); say("Conexões salvas e dados sincronizados."); }} />}
       {tab === "datas" && <PlannerTab me={me} client={c} />}
       {tab === "projetos" && <ProjectList me={me} clientId={c._id} go={go} />}
       {tab === "calendario" && <MonthCalendar me={me} clientId={c._id} go={go} />}

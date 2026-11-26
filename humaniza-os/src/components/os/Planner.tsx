@@ -4,9 +4,9 @@ import { useState } from "react";
 import { api, type Client, type Me, type PlannerItem, type Suggestion } from "./api";
 import { Area, Button, Card, ErrorText, Field, Modal, Pill, Select, Skeleton, brDate, monthLabel, useLoad, useToast } from "./ui";
 
-const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Evento", "Sazonal"];
+const KINDS = ["Data importante", "Campanha comercial", "Lançamento", "Captação", "Prazo de aprovação", "Próxima ação", "Evento", "Sazonal"];
 const STATUS = ["Ideia", "Planejada", "Em produção", "No ar", "Concluída"];
-const KIND_ICON: Record<string, string> = { "Data importante": "📌", "Campanha comercial": "💰", Lançamento: "🚀", Evento: "🎉", Sazonal: "🍂" };
+const KIND_ICON: Record<string, string> = { "Data importante": "📌", "Campanha comercial": "💰", Lançamento: "🚀", Captação: "🎥", "Prazo de aprovação": "⏰", "Próxima ação": "➡️", Evento: "🎉", Sazonal: "🍂" };
 const daysUntil = (d: string) => Math.round((new Date(d + "T12:00").getTime() - Date.now()) / 86400e3);
 
 export function PlannerTab({ me, client }: { me: Me; client: Client }) {
