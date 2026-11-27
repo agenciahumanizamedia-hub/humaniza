@@ -276,7 +276,7 @@ function ImportBox() {
 function PasswordCard({ name, email, password, onClose }: { name: string; email: string; password: string; onClose: () => void }) {
   const [copied, setCopied] = useState("");
   const site = typeof window !== "undefined" ? window.location.origin : "";
-  const message = `Olá, ${name.split(" ")[0]}! Seu acesso ao Humaniza OS está pronto.\n\nEndereço: ${site}/login\nE-mail: ${email}\nSenha: ${password}\n\nDepois de entrar, você pode trocar a senha em “Trocar minha senha”.`;
+  const message = `Olá, ${name.split(" ")[0]}! Seu acesso ao Portal Humaniza está pronto.\n\nEndereço: ${site}/login\nE-mail: ${email}\nSenha: ${password}\n\nDepois de entrar, você pode trocar a senha em “Trocar minha senha”.`;
   const copy = async (text: string, what: string) => {
     try {
       await navigator.clipboard.writeText(text);

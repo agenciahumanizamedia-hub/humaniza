@@ -59,14 +59,14 @@ export const POST: APIRoute = handle(async (request, { params }) => {
     anuncios: ads
       ? { fonte: "Gerenciador de Anúncios (Meta)", totais: ads.totals, campanhas: ads.campaigns.slice(0, 15).map((c) => ({ nome: c.name, mede: c.resultLabel, investido: c.spend, resultados: c.results, custo_por_resultado: c.costPerResult, conversas: c.conversations, ctr: c.ctr })) }
       : "Sem dados de anúncios.",
-    roteiros_do_periodo: { fonte: "Humaniza OS", itens: period.slice(0, 40).map(roteiro) },
-    proximos_roteiros: { fonte: "Humaniza OS", itens: next.map(roteiro) },
+    roteiros_do_periodo: { fonte: "Agência Humaniza", itens: period.slice(0, 40).map(roteiro) },
+    proximos_roteiros: { fonte: "Agência Humaniza", itens: next.map(roteiro) },
     proximas_datas: planner.filter((p) => !p.trashedAt && p.date > ate).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10).map((p) => ({ data: p.date, titulo: p.title, tipo: p.kind })),
   };
   const ask = `Analise o período do cliente e devolva este JSON:
 {
   "resumo": "3 a 5 frases: o que a Humaniza entregou, o que trouxe resultado e o foco do próximo período",
-  "sugestoes": [ { "tipo": "funcionou|repetir|melhorar|teste", "texto": "recomendação específica", "base": [ { "indicador": "...", "valor": "...", "fonte": "Instagram (Meta) | Gerenciador de Anúncios (Meta) | Humaniza OS" } ] } ],
+  "sugestoes": [ { "tipo": "funcionou|repetir|melhorar|teste", "texto": "recomendação específica", "base": [ { "indicador": "...", "valor": "...", "fonte": "Instagram (Meta) | Gerenciador de Anúncios (Meta) | Agência Humaniza" } ] } ],
   "ganchos": [ { "tema": "tema do roteiro/post", "gancho_atual": "texto atual ou vazio", "gancho_sugerido": "novo gancho de até 15 palavras", "motivo": "por que funciona melhor" } ],
   "temas_para_aprofundar": [ { "tema": "...", "motivo": "com base em qual dado", "ideia_de_conteudo": "formato + abordagem" } ],
   "proximos_passos": [ "ação objetiva" ]
@@ -79,7 +79,7 @@ ${JSON.stringify(data)}`;
   const kinds = ["funcionou", "repetir", "melhorar", "teste"];
   const suggestions = (Array.isArray(out.sugestoes) ? out.sugestoes : []).slice(0, 10).map((s: any, i: number) => ({
     id: `ia-${Date.now()}-${i}`, kind: kinds.includes(s?.tipo) ? s.tipo : "melhorar", text: str(s?.texto, 600), approved: false, ai: true,
-    evidence: (Array.isArray(s?.base) ? s.base : []).slice(0, 4).map((e: any) => ({ label: str(e?.indicador, 120), value: str(e?.valor, 120), source: str(e?.fonte, 80) || "Humaniza OS" })),
+    evidence: (Array.isArray(s?.base) ? s.base : []).slice(0, 4).map((e: any) => ({ label: str(e?.indicador, 120), value: str(e?.valor, 120), source: str(e?.fonte, 80) || "Agência Humaniza" })),
   })).filter((s: any) => s.text);
   await logActivity(access, { action: "ai.analysis", description: `${access.name} gerou um rascunho de análise com o Claude para ${client.name}.`, entityType: "report", entityId: client._id, clientId: client._id });
   return json({

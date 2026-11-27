@@ -160,7 +160,7 @@ export default function QuotePublic({ token }: { token: string }) {
           </button>
         </div>
       </div>
-      <div className="border-t border-neutral-200 px-8 py-4 text-xs text-neutral-500">Agência Humaniza · orçamento gerado pelo Humaniza OS</div>
+      <div className="border-t border-neutral-200 px-8 py-4 text-xs text-neutral-500">Agência Humaniza</div>
     </article>
   );
 }

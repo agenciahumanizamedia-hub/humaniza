@@ -2,7 +2,7 @@
 // Regra de ouro: dado ausente é null (a tela mostra "Dado indisponível"), nunca zero.
 import type { Row } from "./db";
 
-export const SRC = { ig: "Instagram (Meta)", ads: "Gerenciador de Anúncios (Meta)", os: "Humaniza OS" } as const;
+export const SRC = { ig: "Instagram (Meta)", ads: "Gerenciador de Anúncios (Meta)", os: "Agência Humaniza" } as const;
 const ADDITIVE_IG = ["views", "total_interactions", "likes", "comments", "shares", "saves", "profile_views", "website_clicks", "follows", "unfollows"];
 
 export const daysBetween = (de: string, ate: string) => {

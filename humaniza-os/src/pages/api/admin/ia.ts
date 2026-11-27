@@ -23,6 +23,6 @@ export const POST: APIRoute = handle(async (request) => {
   } catch (e) {
     throw new HttpError(400, `A chave foi salva, mas o teste falhou: ${e instanceof Error ? e.message : e}`);
   }
-  await logActivity(access, { action: "ai.connected", description: `${access.name} conectou o Claude ao Humaniza OS.`, entityType: "settings", entityId: "anthropic", clientId: "" });
+  await logActivity(access, { action: "ai.connected", description: `${access.name} conectou o Claude ao Humaniza Studio.`, entityType: "settings", entityId: "anthropic", clientId: "" });
   return json({ ok: true });
 });

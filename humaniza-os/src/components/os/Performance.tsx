@@ -220,8 +220,8 @@ export function PerformanceOverview({ me, client, ctx, goTab }: { me: Me; client
           <p className="eyebrow">1 · O que a Humaniza entregou</p>
           <p className="mt-2 text-4xl font-extrabold tabular-nums"><CountUp value={del.total} /><span className="ml-2 text-sm font-semibold text-muted-foreground">conteúdos no período</span></p>
           <div className="mt-4 grid gap-4">
-            <Ring value={approved} total={del.total} label="Aprovados" sub={`${approved} de ${del.total} · Humaniza OS`} color="#7B76FF" />
-            <Ring value={del.postedInternal} total={del.total} label="Postados" sub={`${del.postedInternal} marcados como postados · Humaniza OS`} color="#2A9DB0" />
+            <Ring value={approved} total={del.total} label="Aprovados" sub={`${approved} de ${del.total} · Agência Humaniza`} color="#7B76FF" />
+            <Ring value={del.postedInternal} total={del.total} label="Postados" sub={`${del.postedInternal} marcados como postados · Agência Humaniza`} color="#2A9DB0" />
             <p className="rounded-control bg-secondary p-2 text-xs">{ig ? <>📲 <b>{del.confirmedByInstagram}</b> confirmados pelo Instagram</> : "Confirmação pelo Instagram: conta aguardando conexão"}</p>
           </div>
         </Card>
@@ -274,12 +274,12 @@ export function PerformanceOverview({ me, client, ctx, goTab }: { me: Me; client
         <Card className="hz-rise">
           <div className="flex items-center justify-between"><p className="eyebrow">{ig?.posts.length ? "Feed do período" : "Feed planejado do período"}</p><Button small variant="ghost" onClick={() => goTab("gerenciamento")}>Gerenciamento →</Button></div>
           <div className="mt-3"><PeriodFeed posts={ig?.posts ?? []} items={del.items} brand={brand} /></div>
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">{ig?.posts.length ? "Capas reais · Fonte: Instagram (Meta)" : "Conteúdos do Humaniza OS com data de postagem no período"}</p>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">{ig?.posts.length ? "Capas reais · Fonte: Instagram (Meta)" : "Conteúdos da Humaniza com data de postagem no período"}</p>
         </Card>
         <Card className="hz-rise">
           <p className="eyebrow">Mix de formatos entregues</p>
           <div className="mt-3"><FormatDonut rows={del.byType} /></div>
-          <p className="mt-2 text-[11px] text-muted-foreground">Fonte: Humaniza OS</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">Fonte: Agência Humaniza</p>
           {ig && ig.posts.length > 0 && (<><p className="eyebrow mt-6">Melhor momento para postar</p><div className="mt-3"><BestTime posts={ig.posts} /></div></>)}
           {ads && (<><p className="eyebrow mt-6">Funil dos anúncios</p><div className="mt-3"><AdsFunnel impressions={ads.totals.impressions} clicks={ads.totals.clicks} conversations={ads.totals.conversations} /></div></>)}
         </Card>
@@ -364,7 +364,7 @@ export function ManagementTab({ me, client, ctx }: { me: Me; client: Client; ctx
             <Bars rows={del.byStatus.map((s) => ({ label: s.status, value: s.count }))} />
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Status internos do Humaniza OS. Publicações confirmadas pelo Instagram: <b className="text-foreground">{ig ? `${del.confirmedByInstagram} de ${del.total}` : "conta aguardando conexão"}</b>.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Status internos da Agência Humaniza. Publicações confirmadas pelo Instagram: <b className="text-foreground">{ig ? `${del.confirmedByInstagram} de ${del.total}` : "conta aguardando conexão"}</b>.</p>
       </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -816,7 +816,7 @@ function ClaudePanel({ me, client, perf, onResult, onUseSummary, onAddStep }: {
               </div>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground md:col-span-2">Gerado por {res.model} a partir dos dados do Humaniza OS e do Meta deste período. Confira os números antes de aprovar.</p>
+          <p className="text-[11px] text-muted-foreground md:col-span-2">Gerado por {res.model} a partir dos dados da Humaniza e do Meta deste período. Confira os números antes de aprovar.</p>
         </div>
       )}
     </div>

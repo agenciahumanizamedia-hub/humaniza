@@ -1,13 +1,14 @@
 ---
-// Moldura de todas as páginas do Humaniza OS. Cores e fontes vêm de src/styles/global.css (@theme).
+// Moldura de todas as páginas (Portal Humaniza para o cliente, Humaniza Studio para a equipe). Cores e fontes vêm de src/styles/global.css (@theme).
 import MemberMenu from "../components/members/MemberMenu";
+import HeaderBrand from "../components/os/HeaderBrand";
 import "../styles/global.css";
 
 interface Props {
   title: string;
   description?: string;
 }
-const { title, description = "Humaniza OS — plataforma da Agência Humaniza" } = Astro.props;
+const { title, description = "Portal Humaniza — plataforma da Agência Humaniza" } = Astro.props;
 ---
 
 <!doctype html>
@@ -16,18 +17,16 @@ const { title, description = "Humaniza OS — plataforma da Agência Humaniza" }
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>{title} · Humaniza OS</title>
+    <title>{title} · Portal Humaniza</title>
     <meta name="description" content={description} />
-    <meta property="og:title" content={`${title} · Humaniza OS`} />
+    <meta property="og:title" content={`${title} · Portal Humaniza`} />
     <meta property="og:description" content={description} />
     <slot name="seo-tags" />
   </head>
   <body>
     <header class="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 sm:h-16 sm:px-5">
-        <a href="/painel" class="text-lg font-extrabold tracking-tight text-foreground no-underline">
-          Humaniza <span class="text-primary">OS</span>
-        </a>
+        <div class="min-w-0 flex-1 pr-3"><HeaderBrand client:only="react" /></div>
         <nav class="flex items-center gap-4 text-sm">
           <MemberMenu client:only="react" />
         </nav>

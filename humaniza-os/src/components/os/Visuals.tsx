@@ -172,7 +172,7 @@ export function ProductionSpotlight({ items, brand }: { items: NonNullable<Perfo
       <p className="eyebrow">⭐ Destaque da produção</p>
       <p className="mt-2 max-w-2xl text-2xl font-extrabold leading-tight sm:text-3xl">{best.title || "Conteúdo sem tema"}</p>
       <p className="mt-2 text-sm text-muted-foreground">{TYPE_PT[best.type]} · {brDate(best.postDate)} · {best.clientApproval === "Aprovado" ? "aprovado pelo cliente" : best.status}</p>
-      <p className="mt-4 text-[11px] text-muted-foreground">Fonte: Humaniza OS. Conecte o Instagram para ver qual conteúdo teve mais resultado.</p>
+      <p className="mt-4 text-[11px] text-muted-foreground">Fonte: Agência Humaniza. Conecte o Instagram para ver qual conteúdo teve mais resultado.</p>
     </div>
   );
 }
